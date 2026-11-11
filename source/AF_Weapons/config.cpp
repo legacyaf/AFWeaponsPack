@@ -23,7 +23,7 @@ class CfgPatches
 		units[] = {};
 		weapons[] = {"AF7_Vanguard"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Weapons_Firearms"};
+		requiredAddons[] = {"DZ_Data", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4"};
 	};
 };
 
@@ -56,13 +56,36 @@ class CfgWeapons
 		swayModifier[] = {1.7, 1.7, 1.0};
 
 		// ---------------- [MODEL] custom model (Phase 2) ----------------
+		// Slot names confirmed from vanilla M4A1. The stock and handguard are
+		// built into the Vanguard, so the M4 stock/handguard slots are left out.
 		// model = "\AF_Weapons\af7_vanguard\af7_vanguard.p3d";              // [MODEL]
-		// The stock and handguard are part of the model, so only rail optics,
-		// muzzle devices and a flashlight attach. VERIFY these slot names
-		// against the vanilla M4A1 attachments[] list (GUIDE step 0).
-		// attachments[] = {"weaponOptics", "weaponMuzzleM4", "weaponFlashlight"}; // [MODEL]
-		// hiddenSelections[] = {"camo"};                                     // [MODEL]
+		// attachments[] = {"weaponOptics", "weaponFlashlight", "weaponMuzzleM4", "weaponWrap"}; // [MODEL]
+		// WeaponLength = 0.86;                                                // [MODEL] longer than the M4 (0.78)
 		// hiddenSelectionsTextures[] = {"AF_Weapons\af7_vanguard\data\af7_body_co.paa"};   // [MODEL]
 		// hiddenSelectionsMaterials[] = {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"};   // [MODEL]
+		// (hiddenSelections[] = {"camo"} and simpleHiddenSelections[] = {"hide_barrel"}
+		//  are inherited from the M4 - your model must have both selections.)
+		//
+		// Damage looks. The M4 points these at its own textures, so override them.
+		// Start by using af7_body.rvmat for every level; make _damage/_destruct
+		// versions later (copy the vanilla m4_body_damage.rvmat idea).
+		// class DamageSystem                                                  // [MODEL]
+		// {                                                                   // [MODEL]
+		// 	class GlobalHealth                                                 // [MODEL]
+		// 	{                                                                  // [MODEL]
+		// 		class Health                                                   // [MODEL]
+		// 		{                                                              // [MODEL]
+		// 			hitpoints = 200;                                           // [MODEL]
+		// 			healthLevels[] =                                           // [MODEL]
+		// 			{                                                          // [MODEL]
+		// 				{1.0, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},   // [MODEL]
+		// 				{0.7, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},   // [MODEL]
+		// 				{0.5, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},   // [MODEL]
+		// 				{0.3, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},   // [MODEL]
+		// 				{0.0, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}}    // [MODEL]
+		// 			};                                                         // [MODEL]
+		// 		};                                                             // [MODEL]
+		// 	};                                                                 // [MODEL]
+		// };                                                                  // [MODEL]
 	};
 };

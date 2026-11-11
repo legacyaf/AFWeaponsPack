@@ -14,7 +14,7 @@ Anything marked **VERIFY** is a DayZ name I couldn't confirm without the game fi
    - Click **Extract game data**. This takes a while and needs about 20 GB of free space.
    - From then on, the vanilla configs are in `P:\DZ\...`.
 4. **Copy the source folder:** copy `source/AF_Weapons` from this repo to `P:\AF_Weapons`. Work there from now on.
-5. **Check the VERIFY names:** open `P:\DZ\weapons\firearms\m4\config.cpp` in Notepad++ or VS Code. If you only find `config.bin`, convert it with **DayZ Tools > CfgConvert**. Find `class M4A1_Base` and write down:
+5. **Check the VERIFY names.** Already checked from the vanilla M4 config: the slot names, `eye`, `Nabojnicestart` / `Nabojniceend`, `hide_barrel` and `camo`. **Still unknown:** the bone names (`bolt`, `trigger`, ...) and the muzzle memory points. Here's the original checklist: open `P:\DZ\weapons\firearms\m4\config.cpp` in Notepad++ or VS Code. If you only find `config.bin`, convert it with **DayZ Tools > CfgConvert**. Find `class M4A1_Base` and write down:
    - `boneRemap[]`: the **first** name of each pair (`"bolt"`, `"magazine"`, ...) is a selection name. Your model needs exactly those names. Fix `model.cfg` and your Blender object names to match.
    - `attachments[]`: the slot names. Copy the optic, muzzle and flashlight slots into the `[MODEL]` attachments line in `config.cpp`.
    - Any memory point names, such as `"usti hlavne"`, `"konec hlavne"`, `"eye"` and `"nabojnicestart"`. Compare them with the empties in `AF7_Memory`.

@@ -188,7 +188,7 @@ def build():
     cyl("Barrel", body, m_metal, 0.10, 0.48, 0.0095, z=BORE, sides=20,
         note="Barrel (14.5 in). Mostly hidden by the handguard.")
     cyl("MuzzleBrake", body, m_metal, 0.46, 0.53, 0.0135, z=BORE, sides=8, bevel=0.002,
-        note="Muzzle brake, 8-sided for the angular style. Removed when a suppressor is attached (VERIFY).")
+        note="Muzzle brake, 8-sided for the angular style. Must be in the 'hide_barrel' selection (confirmed from vanilla M4) so it hides when a suppressor is attached.")
 
     # --- Sights (flip-up backup irons) --------------------------------------
     box("FrontSight", body, m_metal, (0, 0.43, 0.097), (0.012, 0.012, 0.022), bevel=0.002,
@@ -226,11 +226,11 @@ def build():
     empty("Mem_BarrelEnd", memory, (0, 0.43, BORE),
           "VERIFY name: 'konec hlavne' - a point behind the muzzle; with the muzzle it sets the firing direction.")
     empty("Mem_Eye", memory, (0, -0.16, 0.097),
-          "VERIFY name: 'eye' - camera position for iron sights. Must line up with rear + front sight.")
+          "CONFIRMED name: 'eye' - camera position for iron sights. Must line up with rear + front sight.")
     empty("Mem_CaseStart", memory, (0.017, 0.035, BORE),
-          "VERIFY name: 'nabojnicestart' - where spent cases appear.")
+          "CONFIRMED name: 'Nabojnicestart' - where spent cases appear.")
     empty("Mem_CaseEnd", memory, (0.09, 0.02, 0.085),
-          "VERIFY name: 'nabojniceend' - direction spent cases fly.")
+          "CONFIRMED name: 'Nabojniceend' - direction spent cases fly.")
 
     # --- Attachment proxies --------------------------------------------------
     empty("Proxy_Optic", proxies, (0, 0.0, 0.087),
