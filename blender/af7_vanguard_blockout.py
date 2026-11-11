@@ -16,7 +16,7 @@ WHAT YOU GET
       AF7_Proxies     empties marking where attachments sit (optic, magazine, muzzle)
       AF7_Reference   reference only (STANAG magazine, human-hand scale) - DON'T export
   - Each object has a custom property "dayz" explaining what it becomes in DayZ.
-    Names in AF7_Memory / AF7_Moving that are marked VERIFY must be checked against
+    Names marked VERIFY must be checked against
     the vanilla M4 config (see docs/GUIDE.md, step 0).
 
 Running the script again deletes and rebuilds everything it made (objects named AF7_*),
@@ -209,16 +209,16 @@ def build():
         note="Rubber butt pad. Rear end of the rifle.")
 
     # --- Moving parts (separate objects = separate animated selections) ------
-    box("Trigger", moving, m_move, (0, 0.012, -0.012), (0.006, 0.006, 0.022), rot=(15, 0, 0), bevel=0.001,
-        note="VERIFY name: 'trigger'. Rotates when firing.")
+    box("Weapon_Trigger", moving, m_move, (0, 0.012, -0.012), (0.006, 0.006, 0.022), rot=(15, 0, 0), bevel=0.001,
+        note="CONFIRMED bone/selection: Weapon_Trigger. Rotates when firing.")
     box("ChargingHandle", moving, m_move, (0, -0.115, 0.072), (0.04, 0.02, 0.008), bevel=0.0015,
-        note="VERIFY name: probably part of the 'bolt' selection or its own bone. Pulled back to chamber.")
-    box("Bolt", moving, m_move, (0.012, 0.035, 0.057), (0.008, 0.06, 0.012), bevel=0.001,
-        note="VERIFY name: 'bolt'. Visible through the ejection port, moves back when firing.")
+        note="Probably one of Weapon_Bone_01..06 - find out which with GUIDE step 9b. Pulled back to chamber.")
+    box("Weapon_Bolt", moving, m_move, (0.012, 0.035, 0.057), (0.008, 0.06, 0.012), bevel=0.001,
+        note="CONFIRMED bone/selection: Weapon_Bolt. Visible through the ejection port, moves back when firing.")
     box("MagRelease", moving, m_move, (0.0165, 0.06, 0.012), (0.004, 0.01, 0.01), bevel=0.001,
-        note="Mag release button, right side. Optional animation.")
+        note="Mag release button, right side. Maybe one of Weapon_Bone_01..06 (GUIDE step 9b), or leave static.")
     box("Safety", moving, m_move, (-0.0165, -0.02, 0.03), (0.004, 0.018, 0.006), bevel=0.001,
-        note="Safety selector, left side. Optional animation.")
+        note="Safety selector, left side. Maybe one of Weapon_Bone_01..06 (GUIDE step 9b), or leave static.")
 
     # --- Memory points -------------------------------------------------------
     empty("Mem_Muzzle", memory, (0, 0.53, BORE),
@@ -236,7 +236,7 @@ def build():
     empty("Proxy_Optic", proxies, (0, 0.0, 0.087),
           "Optic proxy on the rail. Copy the proxy path from the vanilla M4 (see GUIDE).", kind="ARROWS", size=0.03)
     empty("Proxy_Magazine", proxies, (0, 0.075, -0.012),
-          "Magazine proxy. Must be in the 'magazine' selection so reloads move it.", kind="ARROWS", size=0.03)
+          "Magazine proxy. Must be in the Weapon_Magazine selection (CONFIRMED) so reloads move it.", kind="ARROWS", size=0.03)
     empty("Proxy_Muzzle", proxies, (0, 0.53, BORE),
           "Muzzle attachment proxy (suppressor / compensator).", kind="ARROWS", size=0.03)
 

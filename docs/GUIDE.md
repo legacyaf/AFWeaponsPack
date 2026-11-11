@@ -14,7 +14,7 @@ Anything marked **VERIFY** is a DayZ name I couldn't confirm without the game fi
    - Click **Extract game data**. This takes a while and needs about 20 GB of free space.
    - From then on, the vanilla configs are in `P:\DZ\...`.
 4. **Copy the source folder:** copy `source/AF_Weapons` from this repo to `P:\AF_Weapons`. Work there from now on.
-5. **Check the VERIFY names.** Already checked from the vanilla M4 config: the slot names, `eye`, `Nabojnicestart` / `Nabojniceend`, `hide_barrel` and `camo`. **Still unknown:** the bone names (`bolt`, `trigger`, ...) and the muzzle memory points. Here's the original checklist: open `P:\DZ\weapons\firearms\m4\config.cpp` in Notepad++ or VS Code. If you only find `config.bin`, convert it with **DayZ Tools > CfgConvert**. Find `class M4A1_Base` and write down:
+5. **Check the VERIFY names.** Already checked from the vanilla M4 config: the slot names, `eye`, `Nabojnicestart` / `Nabojniceend`, `hide_barrel` and `camo`. The bone names are confirmed from the M4 animation file: `Weapon_Trigger`, `Weapon_Bolt`, `Weapon_Magazine`, `Weapon_Bullet` and `Weapon_Bone_01` to `_06`. **Still unknown:** what Bone_01 to _06 do (see step 9b) and the muzzle memory point names. Here's the original checklist: open `P:\DZ\weapons\firearms\m4\config.cpp` in Notepad++ or VS Code. If you only find `config.bin`, convert it with **DayZ Tools > CfgConvert**. Find `class M4A1_Base` and write down:
    - `boneRemap[]`: the **first** name of each pair (`"bolt"`, `"magazine"`, ...) is a selection name. Your model needs exactly those names. Fix `model.cfg` and your Blender object names to match.
    - `attachments[]`: the slot names. Copy the optic, muzzle and flashlight slots into the `[MODEL]` attachments line in `config.cpp`.
    - Any memory point names, such as `"usti hlavne"`, `"konec hlavne"`, `"eye"` and `"nabojnicestart"`. Compare them with the empties in `AF7_Memory`.
@@ -108,13 +108,13 @@ A DayZ model is several versions of the gun (LODs) in one `.p3d` file:
 | **Memory** | The memory points (from `AF7_Memory`), as single vertices with the names you checked in step 0 |
 
 **Named selections:**
-- Each moving part needs a named selection matching its bone name in `model.cfg` (`bolt`, `trigger`, ...). Do this in **every** resolution LOD.
+- Each moving part needs a named selection matching its bone name in `model.cfg` (`Weapon_Bolt`, `Weapon_Trigger`, ...). Do this in **every** resolution LOD.
 - The whole body goes in `camo`.
 
 **Proxies:** proxies are placeholders that show attachments.
 1. In Object Builder, look at how the **vanilla M4** places its optic, magazine and muzzle proxies. The paths look like `\dz\weapons\...\proxy\...`.
 2. Copy those proxy paths onto the `AF7_Proxies` positions.
-3. Put the **magazine proxy** in the `magazine` selection, so the reload animation moves it.
+3. Put the **magazine proxy** in the `Weapon_Magazine` selection, so the reload animation moves it.
 
 **Done when:** `P:\AF_Weapons\af7_vanguard\af7_vanguard.p3d` exists.
 
@@ -154,6 +154,15 @@ In `P:\AF_Weapons\config.cpp`, remove the `//` in front of every line marked `[M
 - [ ] A STANAG magazine attaches and reloads, and optics sit on the rail.
 - [ ] It looks right at a distance, which means the LODs switch properly.
 - [ ] There are no `AF_Weapons` errors in the `.RPT` log, in `%localappdata%\DayZ`.
+
+### Step 9b: Work out what Weapon_Bone_01 to _06 do
+
+The M4 animation moves six extra bones, but the file doesn't say what they are.
+
+1. In a **test build**, put a small, obvious cube in each one: a cube in the `Weapon_Bone_01` selection, another in `Weapon_Bone_02`, and so on. Place them in different spots on the gun, and add matching names to `model.cfg`.
+2. In game, reload, fire, and switch fire modes.
+3. Watch which cube moves like a charging handle, dust cover, bolt catch, mag release or safety.
+4. Write the results down, then put your real parts in the right selections and delete the test cubes.
 
 **Expect the first test to have problems:** usually the hand position or a wrong selection name. Fix one thing, rebuild, and test again.
 
