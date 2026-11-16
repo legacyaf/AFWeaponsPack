@@ -1,7 +1,7 @@
 Allied Forces Weapons Pack - loot files for server owners
 ==========================================================
 
-These files make the AF-7 Vanguard spawn as loot. They only matter on the
+These files make the AF-7 Vanguard and AF M41 Pathfinder spawn as loot. They only matter on the
 server; players do not need them. Your server also needs a licence for the
 mod to work at all (see the Workshop page).
 
@@ -13,6 +13,9 @@ Class names
   AF7_Vanguard        standard finish. Spawns: 3 on the map, Military, Tier 3-4.
   AF7_Vanguard_Gold   gold floral finish. Does NOT spawn by default (nominal 0).
                       Raise nominal and min in af_weapons_types.xml to change that.
+  AFM41_Pathfinder    bolt-action sniper rifle (7.62x54R). Spawns: 4 on the map,
+                      Military and Hunting, Tier 2-3. Can spawn with a PU scope.
+  AFM41_Pathfinder_Gold  gold floral finish. Does NOT spawn by default (nominal 0).
 
 OPTION A - paste into your existing files (simplest)
   1. Open af_weapons_types.xml and copy everything between <types> and </types>.

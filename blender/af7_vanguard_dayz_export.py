@@ -42,6 +42,17 @@ FIRE_MATERIAL = "dz\\data\\data\\penetration\\metalplate.rvmat"   # same as the 
 MASS_KG = 3.2
 PROXY_SIZE = 0.05
 
+# Per-weapon settings. Another weapon's export script imports this module and overrides these
+# (and the tables below); see afm41_pathfinder_dayz_export.py.
+TEX_NAME = "af7_body"                    # textures are written as <TEX_NAME>_co.png ...
+P3D_FOLDER = "af7_vanguard"              # folder under source/AF_Weapons
+P3D_FILE = "af7_vanguard"                # p3d and fbx file name
+ORIGIN_EMPTY = "Proxy_Magazine"          # empty that becomes the p3d origin (None = working origin)
+LOD_RATIOS = ((2.0, 0.75), (3.0, 0.5), (4.0, 0.36))
+# _smdi levels for the standard finish: specular = SPEC_BASE + SPEC_METAL * metal,
+# gloss = (1 - rough) * GLOSS_SCALE, colour map multiplied by CO_SCALE.
+SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
+
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
 # normal and ambient-shadow maps; it only gets its own _co and _smdi (af7_body_gold_co.png ...).
 SKINS = (("", 0.0), ("_gold", 1.0))
@@ -94,7 +105,9 @@ def _here():
 def export_matrix():
     """Working frame (+Y forward, trigger origin) -> vanilla M4 frame, expressed in Blender axes
     (-X forward, +Z up, magazine proxy at the origin)."""
-    mag = bpy.data.objects.get(PREFIX + "Proxy_Magazine")
+    if not ORIGIN_EMPTY:
+        return Matrix.Rotation(math.radians(90), 4, "Z")
+    mag = bpy.data.objects.get(PREFIX + ORIGIN_EMPTY)
     origin = mag.location.copy() if mag else Vector((0, 0.075, -0.0105))
     return Matrix.Rotation(math.radians(90), 4, "Z") @ Matrix.Translation(-origin)
 
@@ -168,6 +181,16 @@ def remove_hidden_faces(bm, dl, moving_groups):
             continue
         centre = f.calc_center_median()
         samples = [centre] + [centre.lerp(v.co, 0.6) for v in f.verts]
+        # Long triangles (a barrel segment, a stock flank) can be covered at one end and in
+        # plain view at the other, so they get a grid of samples about every 1.5 cm.
+        a, b, c = (v.co for v in f.verts)
+        longest = max((a - b).length, (b - c).length, (c - a).length)
+        k = min(24, int(longest / 0.015))
+        if k >= 3:
+            for i in range(k + 1):
+                for j in range(k + 1 - i):
+                    u, w = (i + 0.25) / (k + 1.0), (j + 0.25) / (k + 1.0)
+                    samples.append(a + (b - a) * u + (c - a) * w)
         if all(inside(p + n * 5e-5) for p in samples):
             doomed.append(f)
     bmesh.ops.delete(bm, geom=doomed, context="FACES")
@@ -423,10 +446,10 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
         co[..., 3] = 1
         # Levels matched to the vanilla m4_body_smdi (specular median 0.13, gloss median 0.39).
         # Anything much higher washes the rifle out to white under DayZ's lighting.
-        spec = np.clip(0.05 + 0.12 * metal, 0, 1)
-        gloss = np.clip((1.0 - rough) * 0.75, 0, 1)
+        spec = np.clip(SPEC_BASE + SPEC_METAL * metal, 0, 1)
+        gloss = np.clip((1.0 - rough) * GLOSS_SCALE, 0, 1)
         if not suffix:
-            co[..., :3] *= 0.85                           # DayZ lights colour maps brightly
+            co[..., :3] *= CO_SCALE                        # DayZ lights colour maps brightly
         if suffix:
             gloss = np.clip(1.0 - rough, 0, 1)
             # Skin: only the ornament reflects (exactly like the old R700 chassis map, which is
@@ -441,8 +464,8 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
     os.makedirs(tex_dir, exist_ok=True)
     files = {}
     for suffix, data, cs in outputs:
-        path = os.path.join(tex_dir, "af7_body_%s.png" % suffix)
-        files[suffix] = _save("af7_body_" + suffix, data, path, cs)
+        path = os.path.join(tex_dir, "%s_%s.png" % (TEX_NAME, suffix))
+        files[suffix] = _save(TEX_NAME + "_" + suffix, data, path, cs)
         print("AF7 wrote", path)
     for tag in list(result):
         img = bpy.data.images.get(PREFIX + "Bake_" + tag)
@@ -483,7 +506,7 @@ def game_material(files, name="Body_DayZ", skin=""):
     nt.links.new(inv.outputs[0], bsdf.inputs["Roughness"])
     met = nt.nodes.new("ShaderNodeMapRange")
     # undo the specular encoding used in bake_textures (the skin halves non-ornament specular)
-    met.inputs[1].default_value, met.inputs[2].default_value = (0.0, 1.0) if skin else (0.05, 0.17)
+    met.inputs[1].default_value, met.inputs[2].default_value = (0.0, 1.0) if skin else (SPEC_BASE, SPEC_BASE + SPEC_METAL)
     nt.links.new(sep.outputs[1], met.inputs[0])
     nt.links.new(met.outputs[0], bsdf.inputs["Metallic"])
     nsep = nt.nodes.new("ShaderNodeSeparateColor")
@@ -690,7 +713,7 @@ def export(bake=True, tex_size=TEX_SIZE):
     here = _here()
     repo = os.path.dirname(here)
     tex_dir = os.path.join(here, "textures")
-    p3d_path = os.path.join(repo, "source", "AF_Weapons", "af7_vanguard", "af7_vanguard.p3d")
+    p3d_path = os.path.join(repo, "source", "AF_Weapons", P3D_FOLDER, P3D_FILE + ".p3d")
     M = export_matrix()
     col = dayz_collection()
 
@@ -707,7 +730,7 @@ def export(bake=True, tex_size=TEX_SIZE):
     lod1.data.update()
 
     visual = [(1.0, lod1)]
-    for res, ratio in ((2.0, 0.75), (3.0, 0.5), (4.0, 0.36)):   # generous: the rifle keeps its shape at distance
+    for res, ratio in LOD_RATIOS:   # generous: the rifle keeps its shape at distance
         ob = decimated(lod1, col, "%sLOD_%d" % (PREFIX, int(res)), ratio)
         ob["dayz"] = "Resolution LOD %d (about %d%% of LOD 1)." % (int(res), int(ratio * 100))
         visual.append((res, ob))
@@ -754,7 +777,7 @@ def export(bake=True, tex_size=TEX_SIZE):
     try:
         os.makedirs(os.path.join(here, "export"), exist_ok=True)
         activate(lod1)
-        bpy.ops.export_scene.fbx(filepath=os.path.join(here, "export", "af7_vanguard_lod1.fbx"),
+        bpy.ops.export_scene.fbx(filepath=os.path.join(here, "export", P3D_FILE + "_lod1.fbx"),
                                  use_selection=True, object_types={"MESH"}, axis_forward="Y", axis_up="Z")
         print("AF7 wrote FBX")
     except Exception as exc:

@@ -17,6 +17,19 @@ An original Allied Forces assault rifle with its own model, textures and marking
 
 Class names: [b]AF7_Vanguard[/b] and [b]AF7_Vanguard_Gold[/b]
 
+[h2]AF M41 "Pathfinder"[/h2]
+A WW2-style bolt-action sniper rifle with its own model and textures.
+
+[list]
+[*][b]7.62x54mmR[/b], five-round internal magazine, loads from loose rounds or stripper clips.
+[*][b]Attachments:[/b] PU scope, Mosin compensator, improvised suppressor and Mosin bayonet.
+[*][b]Two finishes:[/b] walnut and blued steel, or gold floral on black.
+[*][b]Handling:[/b] uses the Mosin 91/30 animations and sounds.
+[*]Full-length walnut stock, turned-down bolt, tangent rear sight, cleaning rod and an AF unit disc in the butt.
+[/list]
+
+Class names: [b]AFM41_Pathfinder[/b] and [b]AFM41_Pathfinder_Gold[/b]
+
 [h2]Licensed servers only[/h2]
 This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
 
@@ -31,14 +44,15 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]Add the mod to your [b]-mod=[/b] launch line.
 [*]Your server must be able to reach the internet when it starts, or the licence check fails and the weapons stay disabled.
 [*]The licence is tied to your server's IP and game port. If either changes, ask Allied Forces staff to update it.
-[*]Loot files are included in the mod's [b]ServerFiles[/b] folder: types and spawnable types for both finishes, with a README. The gold finish is listed but set not to spawn by default.
+[*]Loot files are included in the mod's [b]ServerFiles[/b] folder: types and spawnable types for every weapon, with a README. Gold finishes are listed but set not to spawn by default.
 [/list]
 
 [h2]Known issues[/h2]
 [list]
 [*]Hand position, sight alignment and attachment placement are still being tuned.
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
-[*]The safety and bolt catch do not animate yet.
+[*]The AF-7's safety and bolt catch do not animate yet.
+[*]The M41 Pathfinder is brand new: bolt movement, hand positions and attachment placement have not been tuned in game yet. The stripper clip is not shown while loading.
 [/list]
 
 [h2]Terms[/h2]

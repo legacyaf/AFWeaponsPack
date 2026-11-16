@@ -68,3 +68,9 @@ Until the custom model exists, the Vanguard uses the vanilla M4 model. You can a
    </ce>
    ```
 5. Restart the server, then check the `.RPT` log for `AF_Weapons` errors.
+
+## Second weapon: AF M41 Pathfinder (0.8.0)
+
+Bolt-action sniper rifle built on the vanilla Mosin 91/30. See `docs/M41.md` for the rifle and `docs/PIPELINE.md` for the repeatable steps used to add it. One command rebuilds it:
+
+    blender -b --factory-startup --python blender/afm41_pathfinder_run.py -- 4096

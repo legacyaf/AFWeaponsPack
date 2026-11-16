@@ -51,3 +51,17 @@ With a second player on the server:
 ## Sending results
 
 Send the screenshots and clips in one message with the build version. Say which step each problem belongs to, for example "step 8, 60-round sits too far back".
+
+## AF M41 Pathfinder: first-test checks
+
+Do these for `AFM41_Pathfinder` (and glance at `AFM41_Pathfinder_Gold` for the finish). Steps 1-4, 11-13 of the table above apply as they are. These replace the magazine and bolt steps:
+
+| # | What to do | What to capture | What it tells us |
+|---|---|---|---|
+| M1 | Load five loose rounds, then cycle the bolt slowly, camera on the right side of the action | Short clip | Whether the handle lifts, and the bolt and cocking piece slide back together |
+| M2 | Fire and cycle, first person | Short clip | Hand reaches the bolt knob; casing ejects from the port |
+| M3 | Load with a stripper clip | Short clip | Loading animation (the clip itself is not modelled yet) |
+| M4 | Fit a PU scope, inventory side-on and aimed | 2 screenshots | Scope sits on the receiver, not floating or sunk; scope view works |
+| M5 | Fit the compensator, then the improvised suppressor, then the bayonet | Screenshot each | Muzzle attachment positions |
+| M6 | Aim down the iron sights | Screenshot | Front blade centred in the rear notch |
+| M7 | Carry it on the back and in the hands, third person | 2 screenshots | Length and position against the body |

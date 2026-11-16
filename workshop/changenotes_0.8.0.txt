@@ -1,0 +1,15 @@
+﻿0.8.0
+
+New weapon: AF M41 "Pathfinder"
+- WW2-style bolt-action sniper rifle, 7.62x54mmR, five-round internal magazine.
+- Takes the PU scope, Mosin compensator, improvised suppressor and Mosin bayonet.
+- Two finishes: walnut and blued steel (AFM41_Pathfinder), gold floral on black (AFM41_Pathfinder_Gold).
+- Uses the Mosin 91/30 animations and sounds.
+- First release of this rifle: bolt movement, hand positions and attachment placement are untested in game.
+
+AF-7 Vanguard
+- No changes since 0.7.2.
+
+Server owners
+- ServerFiles now include loot entries for the M41 (4 on the map, Military and Hunting, Tier 2-3; gold does not spawn by default).
+- The mod now also requires the vanilla Mosin addon, which every DayZ install has. No new mods needed.
