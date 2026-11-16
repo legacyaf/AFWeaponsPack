@@ -50,7 +50,9 @@ ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.50, 0.90, 0.9
 
 # Blender object (without M41_) -> vanilla Mosin skeleton bone
 ex.SELECTIONS = {"Weapon_Trigger": "trigger", "BoltBody": "boltbody", "BoltHandle": "bolthandle",
-                 "BoltCocking": "boltbodys"}
+                 "BoltCocking": "boltbodys",
+                 # The vanilla model carries two display rounds in the magazine, on these two bones.
+                 "Round_Top": "bullet1", "Round_TopSlug": "bullet1", "Round_Low": "bullet", "Round_LowSlug": "bullet"}
 ex.HIDE_BARREL = ("MuzzleCrown",)
 
 ex.UV_PRIORITY = {
@@ -58,6 +60,7 @@ ex.UV_PRIORITY = {
     "RearSightBase": 1.5, "RearSightLeaf": 1.5, "RearSightNotch": 1.6, "RearSightSlider": 1.5,
     "FrontSightPost": 1.5, "FrontSightBlock": 1.3, "StockDisc_R": 2.2, "StockDisc_L": 2.2,
     "Weapon_Trigger": 1.3, "TriggerGuard": 1.2,
+    "Round_Top": 0.7, "Round_TopSlug": 0.7, "Round_Low": 0.5, "Round_LowSlug": 0.5, "MagazineBox": 0.5,
     "Stock": 0.85, "Barrel": 0.6, "CleaningRod": 0.6, "ButtPlate": 0.7, "CrossBolt": 0.8,
 }
 

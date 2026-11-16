@@ -60,7 +60,9 @@ Do these for `AFM41_Pathfinder` (and glance at `AFM41_Pathfinder_Gold` for the f
 |---|---|---|---|
 | M1 | Load five loose rounds, then cycle the bolt slowly, camera on the right side of the action | Short clip | Whether the handle lifts, and the bolt and cocking piece slide back together |
 | M2 | Fire and cycle, first person | Short clip | Hand reaches the bolt knob; casing ejects from the port |
-| M3 | Load with a stripper clip | Short clip | Loading animation (the clip itself is not modelled yet) |
+| M3 | Load with a stripper clip | Short clip | Loading animation |
+| M8 | (0.8.1) Open the bolt on a loaded rifle, look down into the action; repeat on an empty rifle | 2 screenshots | Two brass rounds show in the magazine when loaded and are gone when empty |
+| M9 | (0.8.1) Inventory view, left side of the receiver and both sides of the butt | 3 screenshots | Stamps are readable and the right way round: `AF M41 / 1941`, `No 07386`, the round cartouche, the boxed serial |
 | M4 | Fit a PU scope, inventory side-on and aimed | 2 screenshots | Scope sits on the receiver, not floating or sunk; scope view works |
 | M5 | Fit the compensator, then the improvised suppressor, then the bayonet | Screenshot each | Muzzle attachment positions |
 | M6 | Aim down the iron sights | Screenshot | Front blade centred in the rear notch |

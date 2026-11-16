@@ -30,6 +30,7 @@ import sys
 
 import bmesh
 import bpy
+import numpy as np
 from mathutils import Matrix, Vector
 
 
@@ -139,6 +140,256 @@ def woodify(mat, dark, light):
 
 
 # ----------------------------------------------------------------------------
+# Stamps and wear. These are added to a finished material: each one taps the
+# colour / roughness / normal that the material already produces and adds to it.
+# ----------------------------------------------------------------------------
+
+# Stamp lettering: strokes on a 4 x 6 grid, like a hand-cut steel die.
+_GLYPHS = {
+    "A": [[(0, 0), (2, 6), (4, 0)], [(0.8, 2.2), (3.2, 2.2)]],
+    "F": [[(0, 0), (0, 6), (4, 6)], [(0, 3.2), (3, 3.2)]],
+    "M": [[(0, 0), (0, 6), (2, 2.5), (4, 6), (4, 0)]],
+    "N": [[(0, 0), (0, 6), (4, 0), (4, 6)]],
+    "o": [[(1, 3.2), (3, 3.2), (3, 6), (1, 6), (1, 3.2)], [(1, 1.9), (3, 1.9)]],
+    "0": [[(1, 0), (3, 0), (4, 1), (4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0)]],
+    "1": [[(1, 4.6), (2.2, 6), (2.2, 0)], [(1, 0), (3.4, 0)]],
+    "2": [[(0, 5), (1, 6), (3, 6), (4, 5), (4, 3.6), (0, 0), (4, 0)]],
+    "3": [[(0, 5.2), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3.1), (1.6, 3.1)],
+          [(3, 3.1), (4, 2.2), (4, 1), (3, 0), (1, 0), (0, 0.8)]],
+    "4": [[(3, 0), (3, 6), (0, 1.8), (4, 1.8)]],
+    "5": [[(4, 6), (0.4, 6), (0, 3.4), (3, 3.4), (4, 2.5), (4, 1), (3, 0), (1, 0), (0, 0.8)]],
+    "6": [[(3.6, 6), (1.4, 6), (0, 4.4), (0, 1), (1, 0), (3, 0), (4, 1), (4, 2.4), (3, 3.4), (1, 3.4), (0, 2.4)]],
+    "7": [[(0, 6), (4, 6), (1.6, 0)]],
+    "8": [[(1, 3.1), (0, 4), (0, 5), (1, 6), (3, 6), (4, 5), (4, 4), (3, 3.1), (1, 3.1), (0, 2.2), (0, 1), (1, 0),
+           (3, 0), (4, 1), (4, 2.2), (3, 3.1)]],
+    "9": [[(0.4, 0), (2.6, 0), (4, 1.6), (4, 5), (3, 6), (1, 6), (0, 5), (0, 3.6), (1, 2.6), (3, 2.6), (4, 3.6)]],
+    ".": [[(1.8, 0), (2.2, 0)]],
+    "-": [[(0.8, 3), (3.2, 3)]],
+    " ": [],
+}
+
+
+def stamp_image(name, lines, border=None, px=22, ss=2):
+    """Draw stamped lettering as a mask (white = struck). border: None, "box" or "circle".
+    Returns (image, width / height)."""
+    cw, lh, half = 5.6, 8.4, 0.42
+    m = 2.6 if border else 1.2
+    tw = max(len(l) for l in lines) * cw - 1.6
+    th = len(lines) * lh - 2.4
+    if border == "circle":
+        Wd = Hd = math.hypot(tw, th) + 2 * m
+    else:
+        Wd, Hd = tw + 2 * m, th + 2 * m
+    s = px * ss
+    W, H = int(Wd * s) // ss * ss, int(Hd * s) // ss * ss
+    yy, xx = np.mgrid[0:H, 0:W]
+    xx = ((xx + 0.5) / s).astype(np.float32)
+    yy = ((yy + 0.5) / s).astype(np.float32)
+    dist = np.full((H, W), 1e9, dtype=np.float32)
+
+    def seg(a, b):
+        (ax, ay), (bx, by) = a, b
+        dx, dy = bx - ax, by - ay
+        t = np.clip(((xx - ax) * dx + (yy - ay) * dy) / max(dx * dx + dy * dy, 1e-9), 0.0, 1.0)
+        np.minimum(dist, np.hypot(xx - ax - t * dx, yy - ay - t * dy), out=dist)
+
+    for li, line in enumerate(lines):
+        ox = (Wd - (len(line) * cw - 1.6)) / 2.0
+        oy = (Hd - th) / 2.0 + (len(lines) - 1 - li) * lh
+        for ci, ch in enumerate(line):
+            for poly in _GLYPHS[ch]:
+                pts = [(ox + ci * cw + x, oy + y) for x, y in poly]
+                for a, b in zip(pts, pts[1:]):
+                    seg(a, b)
+    if border == "circle":
+        np.minimum(dist, np.abs(np.hypot(xx - Wd / 2, yy - Hd / 2) - (Wd / 2 - 0.9)), out=dist)
+    elif border == "box":
+        c = [(0.8, 0.8), (Wd - 0.8, 0.8), (Wd - 0.8, Hd - 0.8), (0.8, Hd - 0.8)]
+        for a, b in zip(c, c[1:] + c[:1]):
+            seg(a, b)
+    mask = np.clip((half - dist) * px + 0.5, 0.0, 1.0)
+    mask = mask.reshape(H // ss, ss, W // ss, ss).mean(axis=(1, 3))
+    rgba = np.ones((H // ss, W // ss, 4), dtype=np.float32)
+    rgba[..., 0] = rgba[..., 1] = rgba[..., 2] = mask
+
+    img = bpy.data.images.get(PREFIX + "Stamp_" + name)
+    if img:
+        bpy.data.images.remove(img)
+    img = bpy.data.images.new(PREFIX + "Stamp_" + name, W // ss, H // ss, alpha=True)
+    img.colorspace_settings.name = "Non-Color"
+    img.pixels.foreach_set(rgba.ravel())
+    try:
+        img.filepath_raw = os.path.join(_here(), "textures", "afm41_stamp_%s.png" % name.lower())
+        img.file_format = "PNG"
+        img.save()
+        img.pack()
+    except Exception as exc:
+        print("Stamp image not saved to disk:", exc)
+    return img, Wd / Hd
+
+
+class _Post:
+    """Adds effects to a material made by d.material()."""
+
+    def __init__(self, mat):
+        self.nt = mat.node_tree
+        self.N = d._Nodes(self.nt)
+        self.geo = self.N.new("ShaderNodeNewGeometry")
+        xyz = self.N.new("ShaderNodeSeparateXYZ")
+        self.nt.links.new(self.geo.outputs["Position"], xyz.inputs[0])
+        self.px, self.py, self.pz = xyz.outputs
+        nrm = self.N.new("ShaderNodeSeparateXYZ")
+        self.nt.links.new(self.geo.outputs["Normal"], nrm.inputs[0])
+        self.nx = nrm.outputs[0]
+        self.bsdf = next(n for n in self.nt.nodes if n.type == "BSDF_PRINCIPLED")
+        sk = self.nt.nodes.get(PREFIX + "SKIN")
+        self.plain = self.N.math("SUBTRACT", 1.0, sk.outputs[0]) if sk else 1.0   # 0 on the gold skin
+
+    def _tap(self, tap):
+        return self.nt.nodes[PREFIX + tap].inputs[0]
+
+    def color(self, mask, rgb):
+        sock = self._tap("COLOR")
+        self.nt.links.new(self.N.mix(mask, sock.links[0].from_socket, rgb), sock)
+
+    def rough(self, delta):
+        sock = self._tap("ROUGH")
+        self.nt.links.new(self.N.math("ADD", sock.links[0].from_socket, delta, clamp=True), sock)
+
+    def dent(self, height, distance=0.00025):
+        nin = self.bsdf.inputs["Normal"]
+        b = self.N.new("ShaderNodeBump")
+        b.inputs["Strength"].default_value = 1.0
+        if "Distance" in b.inputs:
+            b.inputs["Distance"].default_value = distance
+        self.N.feed(b.inputs["Height"], height)
+        if nin.links:
+            self.nt.links.new(nin.links[0].from_socket, b.inputs["Normal"])
+        self.nt.links.new(b.outputs[0], nin)
+
+    def noise(self, scale, detail=2.0):
+        n = self.N.new("ShaderNodeTexNoise")
+        n.inputs["Scale"].default_value = scale
+        n.inputs["Detail"].default_value = detail
+        self.nt.links.new(self.geo.outputs["Position"], n.inputs["Vector"])
+        return n.outputs[0]
+
+    def cells(self, scale, stretch=(1.0, 1.0, 1.0)):
+        mp = self.N.new("ShaderNodeMapping")
+        mp.inputs["Scale"].default_value = stretch
+        self.nt.links.new(self.geo.outputs["Position"], mp.inputs["Vector"])
+        v = self.N.new("ShaderNodeTexVoronoi")
+        v.inputs["Scale"].default_value = scale
+        self.nt.links.new(mp.outputs[0], v.inputs["Vector"])
+        return v.outputs["Distance"]
+
+    def band(self, sock, centre, half):
+        """1 at `centre`, fading to 0 at `half` away from it."""
+        N = self.N
+        t = N.math("SUBTRACT", 1.0, N.math("DIVIDE", N.math("ABSOLUTE", N.math("SUBTRACT", sock, centre)), half),
+                   clamp=True)
+        return N.math("MULTIPLY", t, t)
+
+    def stamp(self, img, aspect, y0, height, side, v0, wrap=None, rgb=(0.1, 0.1, 0.1), strength=0.7,
+              depth=0.00025):
+        """Strike a stamp. side: +1 right, -1 left. y0 = rear edge, v0 = bottom edge.
+        Flat (wrap None): projected from the side, v0 is a height (z).
+        wrap = (radius, axis z): wrapped round the bore axis, v0 is the arc length above horizontal."""
+        N = self.N
+        w = height * aspect
+        if side > 0:
+            u = N.math("DIVIDE", N.math("SUBTRACT", self.py, y0), w)
+        else:   # seen from the left the muzzle is on the left, so the text runs the other way
+            u = N.math("DIVIDE", N.math("SUBTRACT", y0 + w, self.py), w)
+        sx = N.math("MULTIPLY", self.px, float(side))
+        if wrap:
+            R, zc = wrap
+            dz = N.math("SUBTRACT", self.pz, zc)
+            v = N.math("DIVIDE", N.math("SUBTRACT", N.math("MULTIPLY", N.math("ARCTAN2", dz, sx), R), v0), height)
+            rad = N.math("SQRT", N.math("ADD", N.math("MULTIPLY", self.px, self.px), N.math("MULTIPLY", dz, dz)))
+            gate = N.math("MULTIPLY", N.math("GREATER_THAN", rad, R - 0.0012), N.math("LESS_THAN", rad, R + 0.0012))
+        else:
+            v = N.math("DIVIDE", N.math("SUBTRACT", self.pz, v0), height)
+            gate = N.math("MULTIPLY", N.math("GREATER_THAN", sx, 0.004),
+                          N.math("GREATER_THAN", N.math("MULTIPLY", self.nx, float(side)), 0.55))
+        uv = N.new("ShaderNodeCombineXYZ")
+        self.nt.links.new(u, uv.inputs[0])
+        self.nt.links.new(v, uv.inputs[1])
+        tex = N.new("ShaderNodeTexImage", image=img, extension="CLIP", interpolation="Cubic")
+        self.nt.links.new(uv.outputs[0], tex.inputs[0])
+        mask = N.math("MULTIPLY", tex.outputs["Color"], gate)
+        self.color(N.math("MULTIPLY", mask, strength), rgb)
+        self.rough(N.math("MULTIPLY", mask, 0.12))
+        self.dent(N.math("MULTIPLY", mask, -1.0), depth)
+
+
+def weather_wood(mat):
+    """Handling marks on the stock: dark, polished wood where the hands go, and small dents."""
+    P = _Post(mat)
+    N = P.N
+    # Wrist and fore-end: oil and grime from the hands darken the wood and polish it.
+    held = N.math("MAXIMUM", P.band(P.py, -0.115, 0.075), P.band(P.py, 0.225, 0.130))
+    held = N.math("MULTIPLY", held, N.math("ADD", 0.45, N.math("MULTIPLY", P.noise(28.0, 4.0), 0.9)), clamp=True)
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", held, 0.55), P.plain), (0.030, 0.011, 0.005))
+    P.rough(N.math("MULTIPLY", held, -0.13))
+    # Dents: a scatter of small dings, thicker on the butt and under the fore-end.
+    butt = N.math("LESS_THAN", P.py, -0.20)
+    patchy = N.math("ADD", N.math("MULTIPLY", N.math("SUBTRACT", P.noise(9.0, 2.0), 0.50), 6.0), butt, clamp=True)
+    ding = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.085, P.cells(70.0, (1.0, 0.4, 1.0))), 14.0, clamp=True), patchy)
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", ding, 0.45), P.plain), (0.022, 0.008, 0.004))
+    P.rough(N.math("MULTIPLY", ding, 0.10))
+    P.dent(N.math("MULTIPLY", ding, -1.0), 0.0003)
+    # Pale scuffs where the butt is set down on the ground.
+    scuff = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", -0.365, P.py), 28.0, clamp=True),
+                   N.math("MULTIPLY", N.math("SUBTRACT", P.noise(140.0, 5.0), 0.48), 7.0, clamp=True))
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", scuff, 0.5), P.plain), (0.34, 0.20, 0.10))
+    P.rough(N.math("MULTIPLY", scuff, 0.12))
+    return P
+
+
+def weather_steel(mat):
+    """Old bluing: plum-brown patches, thin blue where the rifle is carried, a few rust specks."""
+    P = _Post(mat)
+    N = P.N
+    plum = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(26.0, 5.0), 0.52), 4.0, clamp=True)
+    P.color(N.math("MULTIPLY", plum, 0.40), (0.060, 0.030, 0.022))
+    P.rough(N.math("MULTIPLY", plum, 0.08))
+    # Carry wear: muzzle and front sight, the guard and floor plate, the butt plate.
+    under = N.math("MULTIPLY", N.math("LESS_THAN", P.pz, 0.060), N.math("GREATER_THAN", P.py, -0.11))
+    zone = N.math("MAXIMUM", N.math("MAXIMUM", N.math("GREATER_THAN", P.py, 0.775), under),
+                  N.math("LESS_THAN", P.py, -0.405))
+    thin = N.math("MULTIPLY", zone, N.math("MULTIPLY", N.math("SUBTRACT", P.noise(75.0, 6.0), 0.47), 5.0, clamp=True))
+    P.color(N.math("MULTIPLY", thin, 0.55), (0.30, 0.30, 0.32))
+    P.rough(N.math("MULTIPLY", thin, -0.06))
+    # Rust specks.
+    speck = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.13, P.cells(420.0)), 22.0, clamp=True),
+                   N.math("MULTIPLY", N.math("SUBTRACT", P.noise(14.0, 2.0), 0.56), 8.0, clamp=True))
+    P.color(N.math("MULTIPLY", speck, 0.8), (0.090, 0.038, 0.016))
+    P.rough(N.math("MULTIPLY", speck, 0.25))
+    P.dent(N.math("MULTIPLY", speck, -1.0), 0.00012)
+    return P
+
+
+# 7.62x54R display round, (distance from the case head, radius). Same length as the vanilla
+# Mosin's two display rounds, so the Mosin's loading animation moves it correctly.
+ROUND_LEN = 0.0648
+ROUND_CASE = [(0.0, 0.0), (0.0, 0.0056), (0.0004, 0.0061), (0.0014, 0.0061), (0.0017, 0.0057), (0.0330, 0.0054),
+              (0.0368, 0.0043), (0.0445, 0.0042), (0.0445, 0.0038)]
+ROUND_SLUG = [(0.0445, 0.0039), (0.0520, 0.0037), (0.0590, 0.0025), (0.0630, 0.0011), (ROUND_LEN, 0.0)]
+
+
+def round_part(name, col, mat, prof, base, tip_z, note):
+    """Part of a cartridge lying along the rifle. base = (y, z) of the case head centre,
+    tip_z = height of the bullet tip (the top round sits nose-up in the magazine)."""
+    y0, z0 = base
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(y0 + y, r) for y, r in prof], sides=12, c=(0.0, z0), cap=False)
+    bmesh.ops.rotate(bm, verts=bm.verts[:], cent=Vector((0.0, y0, z0)),
+                     matrix=Matrix.Rotation(math.atan2(tip_z - z0, ROUND_LEN), 3, "X"))
+    return d.make(name, bm, col, mat, note)
+
+
+# ----------------------------------------------------------------------------
 # Build
 # ----------------------------------------------------------------------------
 
@@ -166,6 +417,22 @@ def build():
                         wear_rgb=(0.60, 0.60, 0.61), scratches=0.35, machining=0.28)
     m_plate = d.material("Plate", (0.030, 0.032, 0.036), rough=0.46, metal=0.9, bump=0.04, bump_scale=900,
                          rough_var=0.06, wear=0.6, wear_rgb=(0.42, 0.43, 0.45), logo=LOGO_BUTT, logo_img=logo)
+    m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
+                         wear_rgb=(0.74, 0.55, 0.26))
+    m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
+
+    # --- Wear and stamps ---------------------------------------------------------
+    wood = weather_wood(m_wood)
+    steel = weather_steel(m_blue)
+    lettering = (0.11, 0.11, 0.115)      # stamps in blued steel read as pale, dusty lines
+    img, asp = stamp_image("Ring", ["AF M41", "1941"])
+    steel.stamp(img, asp, 0.0685, 0.0100, -1, 0.0186 * math.radians(11.0), wrap=(0.0186, BORE), rgb=lettering)
+    img, asp = stamp_image("Serial", ["No 07386"])
+    steel.stamp(img, asp, 0.0100, 0.0048, -1, 0.0162 * math.radians(14.0), wrap=(0.0162, BORE), rgb=lettering)
+    img, asp = stamp_image("Cartouche", ["AF", "41"], border="circle")
+    wood.stamp(img, asp, -0.2500, 0.0190, 1, 0.0500, rgb=(0.020, 0.008, 0.004), strength=0.8, depth=0.0004)
+    img, asp = stamp_image("StockSerial", ["07386"], border="box")
+    wood.stamp(img, asp, -0.2540, 0.0085, -1, 0.0560, rgb=(0.020, 0.008, 0.004), strength=0.8, depth=0.0004)
 
     # --- Stock (one piece of walnut, butt to nose cap) -------------------------
     stock_sections = [
@@ -193,6 +460,21 @@ def build():
         groove = d.make("Stock_GrooveCutter_%s" % ("R" if side > 0 else "L"), bm, cutters, None,
                         "Boolean cutter: finger groove along the fore-end.")
         d.cut(stock, groove, "Groove_%s" % ("R" if side > 0 else "L"))
+    # Magazine well: open from the receiver down, so the rounds show when the bolt is back.
+    well = d.box("MagWellCutter", cutters, None, (0.0, 0.030, 0.0950), (0.0136, 0.072, 0.030), bevel=0,
+                 note="Boolean cutter: magazine well through the stock and the receiver floor.")
+    d.cut(stock, well, "MagWell")
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0, 0.030, 0.0806), (0.0132, 0.0716, 0.0010))
+    for side in (-1, 1):
+        d.bm_box(bm, (side * 0.0065, 0.030, 0.0915), (0.0005, 0.0716, 0.0210))
+    d.make("MagazineBox", bm, body, m_blue, "Steel floor and side walls of the internal magazine.")
+    round_part("Round_Top", moving, m_brass, ROUND_CASE, (-0.0036, 0.1058), 0.1091,
+               "Top round in the magazine (vanilla position). Bone 'bullet1'.")
+    round_part("Round_TopSlug", moving, m_jacket, ROUND_SLUG, (-0.0036, 0.1058), 0.1091, "Bullet of the top round.")
+    round_part("Round_Low", moving, m_brass, ROUND_CASE, (-0.0025, 0.0903), 0.0903,
+               "Second round in the magazine (vanilla position). Bone 'bullet'.")
+    round_part("Round_LowSlug", moving, m_jacket, ROUND_SLUG, (-0.0025, 0.0903), 0.0903, "Bullet of the second round.")
 
     loft("Handguard", body, m_wood,
          [(0.238, 0.104, 0.1340, 0.0178), (0.250, 0.104, 0.1350, 0.0184), (0.400, 0.106, 0.1330, 0.0172),
@@ -223,6 +505,7 @@ def build():
                              ("HandleNotch", (0.014, HANDLE_Y, 0.112), (0.020, 0.019, 0.020))):
         c = d.box("Receiver_%sCutter" % nm, cutters, None, centre, size, bevel=0, note="Boolean cutter.")
         d.cut(receiver, c, nm)
+    d.cut(receiver, well, "MagWell")
     d.box("ReceiverTang", body, m_blue, (0.0, -0.076, 0.1020), (0.012, 0.046, 0.004), rot=(9.5, 0, 0), bevel=0.0008,
           note="Rear tang let into the wrist.")
     bm = bmesh.new()

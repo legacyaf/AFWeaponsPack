@@ -26,6 +26,8 @@ A WW2-style bolt-action sniper rifle with its own model and textures.
 [*][b]Two finishes:[/b] walnut and blued steel, or gold floral on black.
 [*][b]Handling:[/b] uses the Mosin 91/30 animations and sounds.
 [*]Full-length walnut stock, turned-down bolt, tangent rear sight, cleaning rod and an AF unit disc in the butt.
+[*]Arsenal stamps and serial numbers on the receiver and stock, handling wear on the wood and worn bluing on the steel.
+[*]Rounds are visible in the magazine when the bolt is open.
 [/list]
 
 Class names: [b]AFM41_Pathfinder[/b] and [b]AFM41_Pathfinder_Gold[/b]
@@ -52,7 +54,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]Hand position, sight alignment and attachment placement are still being tuned.
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
 [*]The AF-7's safety and bolt catch do not animate yet.
-[*]The M41 Pathfinder is brand new: bolt movement, hand positions and attachment placement have not been tuned in game yet. The stripper clip is not shown while loading.
+[*]The M41 Pathfinder is brand new: bolt movement, hand positions and attachment placement have not been tuned in game yet.
 [/list]
 
 [h2]Terms[/h2]

@@ -1,0 +1,13 @@
+﻿0.8.1
+
+AF M41 "Pathfinder"
+- Arsenal stamps: "AF M41 / 1941" on the receiver ring, serial number on the receiver wall, an inspection cartouche and a boxed serial number on the butt.
+- Wood wear: darker, polished wood where the hands go, small dents, scuffs at the butt.
+- Steel wear: plum-brown patches in the bluing, thin bluing at the muzzle, trigger guard, floor plate and butt plate, a few rust specks.
+- The magazine is now open under the bolt and shows two brass rounds, at the same positions as on the Mosin 91/30.
+
+AF-7 Vanguard
+- No changes.
+
+Server owners
+- No changes to class names, loot files or required mods.

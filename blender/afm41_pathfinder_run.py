@@ -84,7 +84,8 @@ except Exception as e:
 views = {"side": ((2.3, 0.21, 0.07), (0, 0.21, 0.07), 70), "34": ((1.25, 1.15, 0.50), (0, 0.22, 0.08), 50),
          "left": ((-1.25, 0.95, 0.35), (0, 0.20, 0.08), 50), "action": ((0.42, 0.16, 0.32), (0, 0.02, 0.10), 60),
          "butt": ((0.55, -0.52, 0.16), (0, -0.25, 0.05), 60), "muzzle": ((0.40, 0.95, 0.24), (0, 0.72, 0.11), 70),
-         "sights": ((0.0, -0.1582, 0.1377), (0, 0.8, 0.1377), 30)}
+         "sights": ((0.0, -0.1582, 0.1377), (0, 0.8, 0.1377), 30),
+         "stamps": ((-0.30, 0.20, 0.30), (0, 0.045, 0.118), 110), "butt_left": ((-0.50, -0.46, 0.16), (0, -0.25, 0.05), 70)}
 prefix = "m41_model_" if model_only else "m41_"
 for name, (loc, tgt, lens) in views.items():
     cam.location = W(loc)
@@ -93,6 +94,15 @@ for name, (loc, tgt, lens) in views.items():
     scene.render.filepath = os.path.join(REPO, "docs", "img", prefix + name + ".png")
     bpy.ops.render.render(write_still=True)
     print("RENDERED", scene.render.filepath)
+
+if model_only:   # bolt drawn back: the magazine well and the two display rounds
+    for nm in ("M41_BoltBody", "M41_BoltHandle", "M41_BoltCocking"):
+        bpy.data.objects[nm].location.y -= 0.085
+    cam.location = Vector((0.22, 0.11, 0.34))
+    cam.data.lens = 85
+    cam.rotation_euler = (Vector((0, 0.025, 0.108)) - cam.location).to_track_quat("-Z", "Y").to_euler()
+    scene.render.filepath = os.path.join(REPO, "docs", "img", "m41_model_open.png")
+    bpy.ops.render.render(write_still=True)
 
 gold = bpy.data.materials.get("M41_Body_DayZ_Gold")
 if lod1 is not None and gold:
