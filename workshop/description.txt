@@ -1,0 +1,54 @@
+[h1]Allied Forces Weapons Pack[/h1]
+
+Original weapons made by Allied Forces for DayZ.
+
+[b]Very early stages.[/b] This mod is new and still being tested. Expect rough edges, missing features and frequent updates.
+
+[h2]AF-7 "Vanguard"[/h2]
+An original Allied Forces assault rifle with its own model, textures and markings.
+
+[list]
+[*][b]Multi-calibre:[/b] feeds 5.56x45mm from STANAG and CMAG magazines, or .308 Winchester from LAR magazines. The magazine you load decides what it fires.
+[*][b]Attachments:[/b] optic, flashlight and suppressor.
+[*][b]Two finishes:[/b] standard (dark receiver, tan furniture) and gold floral on black.
+[*][b]Handling:[/b] uses the M4 animations and sounds, with slightly less recoil and sway.
+[*]Long slotted handguard, full-length top rail, skeleton stock and hex muzzle brake.
+[/list]
+
+Class names: [b]AF7_Vanguard[/b] and [b]AF7_Vanguard_Gold[/b]
+
+[h2]Licensed servers only[/h2]
+This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
+
+[list]
+[*][b]Players:[/b] subscribe and join an Allied Forces server or another licensed server. Nothing else to set up.
+[*][b]Server owners:[/b] licences are free during early access, one per server. Request one from the Mod Shop on the Allied Forces website: https://legacyaf.github.io/Alliedforces/#modshop
+[/list]
+
+[h2]For licensed server owners[/h2]
+[list]
+[*]Copy [b]Keys\AlliedForces.bikey[/b] to your server's keys folder.
+[*]Add the mod to your [b]-mod=[/b] launch line.
+[*]Your server must be able to reach the internet when it starts, or the licence check fails and the weapons stay disabled.
+[*]The licence is tied to your server's IP and game port. If either changes, ask Allied Forces staff to update it.
+[*]Loot files are included in the mod's [b]ServerFiles[/b] folder: types and spawnable types for both finishes, with a README. The gold finish is listed but set not to spawn by default.
+[/list]
+
+[h2]Known issues[/h2]
+[list]
+[*]Hand position, sight alignment and attachment placement are still being tuned.
+[*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
+[*]The safety and bolt catch do not animate yet.
+[/list]
+
+[h2]Terms[/h2]
+This mod is the property of Allied Forces. You may [b]NOT[/b]:
+[list]
+[*]repack, unpack, edit, re-upload or redistribute this mod or any part of it
+[*]use its models, textures, logos or configs in another mod, server pack or project
+[*]share a licence between servers, or try to bypass the licence check
+[/list]
+
+Unauthorized uploads will be reported to Steam and removed by DMCA takedown.
+
+Copyright (c) Allied Forces. All rights reserved.

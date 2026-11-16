@@ -1,0 +1,53 @@
+# AF Weapons Pack: in-game test checklist
+
+Run this on the test server after every published build. It takes about ten minutes and produces the same set of evidence each time, so a problem is caught in one round.
+
+## Before you start
+
+1. Publish the build and update the mod on the server and your client.
+2. Restart the server. The licence check only runs at start.
+3. Check the server log for `[AF_Weapons] Server licence OK.` If it says `NOT LICENSED`, stop: the weapons will delete themselves. See the Mod Shop staff panel for the address the server actually called from.
+
+## How to capture
+
+- **Use video (MP4) or SDR screenshots where you can.** HDR screenshots (`.jxr`) clip bright areas when converted and make finishes look washed out.
+- Daylight, sun behind you, for anything about colour or finish.
+- One weapon at a time: spawn it, do the steps, then the next.
+
+## The checks
+
+Do every step for **each finish** (`AF7_Vanguard`, `AF7_Vanguard_Gold`).
+
+| # | What to do | What to capture | What it tells us |
+|---|---|---|---|
+| 1 | Open the inventory view of the rifle with no attachments, side-on | Screenshot | Overall look, finish colours, AF plates |
+| 2 | Hold the rifle in first person and look down at it | Screenshot | Texture sharpness, scratches, missing surfaces |
+| 3 | Third person, standing, from the right and the left | 2 screenshots | Hand positions, how it sits on the body |
+| 4 | Aim down the iron sights, no optic | Screenshot | Sight alignment, rear sight visible and not cut off, no blur |
+| 5 | Fit an optic and aim | Screenshot | Optic height and position on the rail |
+| 6 | Fire five rounds, camera on the ejection port | Short clip | Bolt movement, casing ejection, muzzle flash position |
+| 7 | Reload with a 30-round STANAG | Short clip | Reload animation, magazine path into the well |
+| 8 | Inventory side-on with each magazine in turn: 30-round STANAG, coupled, 60-round, CMAG, LAR | Screenshot each | Magazine fit |
+| 9 | Fit a suppressor, inventory side-on | Screenshot | Suppressor position; muzzle brake hidden underneath |
+| 10 | Fit a flashlight, switch it on | Screenshot | Flashlight position and beam direction |
+| 11 | Drop the rifle on flat ground and walk around it | Screenshot | Ground pose, collision, shadow |
+| 12 | Walk away from the dropped rifle to about 5 m, 20 m and 50 m | Screenshot at each | LOD changes: no popping, shape holds |
+| 13 | Damage the rifle with an admin tool to Damaged and Ruined | Screenshot each | Damage overlays |
+| 14 | Chamber a loose 5.56 round, then a loose .308 round | Note what happens | Both calibres chamber by hand |
+
+## Multiplayer
+
+With a second player on the server:
+
+- Each of you sees the other's rifle with the right finish and attachments.
+- Fire while the other watches: muzzle flash and sound come from the right place.
+- One of you reloads: the magazine swap looks right from the outside.
+
+## Performance
+
+- Note your frame rate holding a vanilla M4, then holding the AF-7, in the same spot.
+- Repeat with five AF-7s dropped on the ground nearby.
+
+## Sending results
+
+Send the screenshots and clips in one message with the build version. Say which step each problem belongs to, for example "step 8, 60-round sits too far back".

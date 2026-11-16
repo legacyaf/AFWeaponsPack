@@ -1,0 +1,7 @@
+*.biprivatekey
+@AF_WeaponsPack/Addons/
+*.blend1
+
+# local build scratch
+*.blend1
+

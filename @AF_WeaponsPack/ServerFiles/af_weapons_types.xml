@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8" standalone="yes"?>
+<!-- Allied Forces Weapons Pack: loot economy.
+     Either paste the <type> entries into your mission's db/types.xml, or keep this file
+     separate and load it through cfgeconomycore.xml (see README.txt next to this file). -->
+<types>
+    <!-- AF-7 Vanguard, standard finish: rare military rifle. -->
+    <type name="AF7_Vanguard">
+        <nominal>3</nominal>
+        <lifetime>28800</lifetime>
+        <restock>3600</restock>
+        <min>1</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <value name="Tier3"/>
+        <value name="Tier4"/>
+    </type>
+    <!-- AF-7 Vanguard, gold finish: does NOT spawn by default (nominal and min are 0).
+         It is listed so the server knows the item and keeps it through restarts.
+         To make it spawn, raise nominal (for example 1) and min. -->
+    <type name="AF7_Vanguard_Gold">
+        <nominal>0</nominal>
+        <lifetime>28800</lifetime>
+        <restock>7200</restock>
+        <min>0</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <value name="Tier4"/>
+    </type>
+</types>
