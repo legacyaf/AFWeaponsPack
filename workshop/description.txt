@@ -22,7 +22,7 @@ A WW2-style bolt-action sniper rifle with its own model and textures.
 
 [list]
 [*][b]7.62x54mmR[/b], five-round internal magazine, loads from loose rounds or stripper clips.
-[*][b]Attachments:[/b] PU scope, Mosin compensator, improvised suppressor and Mosin bayonet.
+[*][b]Attachments:[/b] PU scope, ghillie wrap, Mosin compensator, improvised suppressor and Mosin bayonet.
 [*][b]Two finishes:[/b] walnut and blued steel, or gold floral on black.
 [*][b]Handling:[/b] uses the Mosin 91/30 animations and sounds.
 [*]Full-length walnut stock, turned-down bolt, tangent rear sight, cleaning rod and an AF unit disc in the butt.

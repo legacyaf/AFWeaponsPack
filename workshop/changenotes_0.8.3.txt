@@ -1,0 +1,12 @@
+0.8.3
+
+AF M41 "Pathfinder"
+- Ghillie wrap slot: the rifle now takes the ghillie wrap, like the Mosin 91/30.
+- Leather sling between the two sling swivels.
+- First release of both: wrap fit and sling clearance around the hands are untested in game.
+
+Both rifles (from 0.8.2)
+- Three extra distance LODs (5, 6, 7), so rifles far away cost fewer triangles. No change up close.
+
+Server owners
+- No changes to class names, loot files or required mods.

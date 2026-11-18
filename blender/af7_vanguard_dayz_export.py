@@ -619,7 +619,7 @@ class Lod:
         s[0].update(points)
         s[1].update(faces)
 
-    def add_proxy(self, path, origin, up, direction, extra=()):
+    def add_proxy(self, path, origin, up, direction, extra=(), index=1):
         o = Vector(origin)
         # Object Builder's own proxies are 2 m x 1 m; same 2:1 shape here, but small,
         # so the triangles don't inflate the model's bounding sphere.
@@ -631,7 +631,7 @@ class Lod:
         self.normals.append((n.x, n.y, n.z))
         fi = len(self.faces)
         self.faces.append(([(base + k, ni, 0.0, 0.0) for k in range(3)], "", ""))
-        for name in ("proxy:%s.001" % path,) + tuple(extra):
+        for name in ("proxy:%s.%03d" % (path, index),) + tuple(extra):
             self.select(name, range(base, base + 3), [fi])
 
 
@@ -879,17 +879,18 @@ def export(bake=True, tex_size=TEX_SIZE):
         ob["dayz"] = "Resolution LOD %d (about %d%% of LOD 1)." % (int(res), int(ratio * 100))
         visual.append((res, ob))
 
-    proxies = []
+    proxies, used = [], {}
     for short, (path, up, direction, extra) in PROXIES.items():
         e = bpy.data.objects.get(PREFIX + short)
         if e:
-            proxies.append((path, P(M @ e.matrix_world.translation), up, direction, extra))
+            used[path] = used.get(path, 0) + 1    # a model used twice becomes proxy .001, .002, ...
+            proxies.append((path, P(M @ e.matrix_world.translation), up, direction, extra, used[path]))
 
     lods = []
     for res, ob in visual + [(LOD_VIEW_PILOT, lod1)]:
         lod = lod_from_mesh(ob, res, P3D_TEXTURE, P3D_MATERIAL)
-        for path, origin, up, direction, extra in proxies:
-            lod.add_proxy(path, origin, up, direction, extra)
+        for path, origin, up, direction, extra, index in proxies:
+            lod.add_proxy(path, origin, up, direction, extra, index)
         lods.append(lod)
 
     geo_ob = geometry_object(col, M, PREFIX + "LOD_Geometry")

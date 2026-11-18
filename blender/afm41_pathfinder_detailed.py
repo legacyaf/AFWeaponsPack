@@ -420,6 +420,8 @@ def build():
     m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
                          wear_rgb=(0.74, 0.55, 0.26))
     m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
+    m_leather = d.material("Leather", (0.034, 0.014, 0.006), rough=0.72, metal=0.0, bump=0.07, bump_scale=1500,
+                           rough_var=0.08, wear=0.10, wear_rgb=(0.075, 0.036, 0.016), scratches=0.12)
 
     # --- Wear and stamps ---------------------------------------------------------
     wood = weather_wood(m_wood)
@@ -614,6 +616,33 @@ def build():
     d.bm_box(bm, (0.0, -0.335, -0.0260), (0.0070, 0.010, 0.0070), rot=(-16.5, 0, 0))
     bm_torus(bm, (0.0, -0.3365, -0.0355), 0.0100, 0.0016, squash=0.8)
     d.make("ButtSwivel", bm, body, m_blue, "Rear sling swivel.")
+
+    # Leather sling between the two swivels: one strap, hanging with a little slack, thick at
+    # the ends where it folds back around the swivel bars, with a keeper loop at each fold.
+    front, rear, sag, n = (0.416, 0.0452), (-0.3365, -0.0452), 0.011, 28
+    upper, lower = [], []
+    for i in range(n + 1):
+        t = i / n
+        y = front[0] + (rear[0] - front[0]) * t
+        z = front[1] + (rear[1] - front[1]) * t - sag * 4.0 * t * (1.0 - t)
+        end = min(t, 1.0 - t) * abs(rear[0] - front[0])            # distance to the nearer swivel
+        half = 0.0013 + 0.0030 * max(0.0, 1.0 - end / 0.030) ** 1.5
+        upper.append((y, z + half))
+        lower.append((y, z - half))
+    # Round each end off around its swivel bar, so the strap reads as folded through the ring.
+    def end_arc(centre, radius, outward, a0, a1):
+        return [(centre[0] + outward * radius * math.cos(math.radians(a)), centre[1] + radius * math.sin(math.radians(a)))
+                for a in range(a0, a1, 20 if a1 > a0 else -20)][1:]
+    r_end = upper[0][1] - front[1]
+    outline = upper + end_arc(rear, r_end, -1.0, 90, -90) + lower[::-1] + end_arc(front, r_end, 1.0, -90, 90)
+    d.profile("Sling", body, m_leather, outline, width=0.0160, bevel=0.0005,
+              note="Leather sling between the band swivel and the butt swivel.")
+    slope = math.degrees(math.atan2(front[1] - rear[1], front[0] - rear[0]))
+    for tag, t in (("F", 0.075), ("R", 0.925)):
+        y = front[0] + (rear[0] - front[0]) * t
+        z = front[1] + (rear[1] - front[1]) * t - sag * 4.0 * t * (1.0 - t)
+        d.box("SlingKeeper_" + tag, body, m_leather, (0.0, y, z), (0.0182, 0.0075, 0.0060), rot=(-slope, 0, 0),
+              bevel=0.0006, note="Keeper loop holding the folded end of the sling.")
     for z in (0.066, -0.016):
         bm = bmesh.new()
         d.bm_lathe(bm, [(-0.4152, 0.0), (-0.4152, 0.0034), (-0.4142, 0.0042), (-0.4120, 0.0042)], sides=12, c=(0.0, z))
@@ -663,6 +692,9 @@ def build():
     d.empty("Proxy_Compensator", proxies, (0, 0.8311, 0.1162), "mosin_compensator proxy (slot weaponMuzzleMosin).", kind="ARROWS", size=0.03)
     d.empty("Proxy_Suppressor", proxies, (-0.0006, 0.8952, 0.1191), "bottle_suppressor proxy (slot suppressorImpro).", kind="ARROWS", size=0.03)
     d.empty("Proxy_Bayonet", proxies, (0, 0.7916, 0.1161), "bayonet_mosin proxy (slot weaponBayonetMosin).", kind="ARROWS", size=0.03)
+    d.empty("Proxy_Wrap1", proxies, (0, 0.12798, 0.13847), "ghillie_wrap proxy 1, receiver (slot weaponWrap).", kind="ARROWS", size=0.03)
+    d.empty("Proxy_Wrap2", proxies, (0, 0.51078, 0.13847), "ghillie_wrap proxy 2, handguard.", kind="ARROWS", size=0.03)
+    d.empty("Proxy_Wrap3", proxies, (0, -0.23639, 0.10102), "ghillie_wrap proxy 3, butt.", kind="ARROWS", size=0.03)
 
 
 if __name__ == "__main__":

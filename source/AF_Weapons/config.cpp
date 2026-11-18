@@ -35,7 +35,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.8.2";
+		version = "0.8.3";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).
@@ -171,9 +171,9 @@ class CfgWeapons
 		// A touch steadier and more accurate than the service rifle it is based on.
 		swayModifier[] = {2.2, 2.2, 0.9};
 
-		// Slots the model has proxies for: PU scope, Mosin compensator, improvised
-		// suppressor, Mosin bayonet. (The Mosin's ghillie wrap slot is left out.)
-		attachments[] = {"weaponOpticsMosin", "weaponMuzzleMosin", "suppressorImpro", "weaponBayonetMosin"};
+		// Slots the model has proxies for: ghillie wrap, PU scope, Mosin compensator,
+		// improvised suppressor, Mosin bayonet. Same list as the vanilla Mosin.
+		attachments[] = {"weaponWrap", "weaponOpticsMosin", "weaponMuzzleMosin", "suppressorImpro", "weaponBayonetMosin"};
 		hiddenSelections[] = {"camo", "hide_barrel"};
 		hiddenSelectionsTextures[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa"};
 		hiddenSelectionsMaterials[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat"};

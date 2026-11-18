@@ -61,7 +61,7 @@ ex.UV_PRIORITY = {
     "FrontSightPost": 1.5, "FrontSightBlock": 1.3, "StockDisc_R": 2.2, "StockDisc_L": 2.2,
     "Weapon_Trigger": 1.3, "TriggerGuard": 1.2,
     "Round_Top": 0.7, "Round_TopSlug": 0.7, "Round_Low": 0.5, "Round_LowSlug": 0.5, "MagazineBox": 0.5,
-    "Stock": 0.85, "Barrel": 0.6, "CleaningRod": 0.6, "ButtPlate": 0.7, "CrossBolt": 0.8,
+    "Sling": 0.7, "SlingKeeper_F": 0.6, "SlingKeeper_R": 0.6, "Stock": 0.85, "Barrel": 0.6, "CleaningRod": 0.6, "ButtPlate": 0.7, "CrossBolt": 0.8,
 }
 
 ex.MEMORY = {"Mem_Muzzle": "usti hlavne", "Mem_BarrelEnd": "konec hlavne", "Mem_Eye": "eye",
@@ -73,6 +73,11 @@ ex.PROXIES = {
     "Proxy_Compensator": ("\\dz\\weapons\\attachments\\muzzle\\mosin_compensator", (0, 1, 0), (0, 0, 1), ()),
     "Proxy_Suppressor": ("\\dz\\weapons\\attachments\\muzzle\\bottle_suppressor", (1, 0, 0), (0, 0, -1), ()),
     "Proxy_Bayonet": ("\\dz\\weapons\\attachments\\muzzle\\bayonet_mosin", (-1, 0, 0), (0, 0, 1), ()),
+    # Ghillie wrap (slot weaponWrap): the vanilla Mosin carries three proxies of the same model,
+    # on the receiver, on the handguard and under the butt. Order matters: .001, .002, .003.
+    "Proxy_Wrap1": ("\\dz\\weapons\\attachments\\support\\ghillie_wrap", (0, 1, 0), (0, 0, 1), ()),
+    "Proxy_Wrap2": ("\\dz\\weapons\\attachments\\support\\ghillie_wrap", (0, 1, 0), (0, 0, -1), ()),
+    "Proxy_Wrap3": ("\\dz\\weapons\\attachments\\support\\ghillie_wrap", (0.1001, 0.99498, 0), (0, 0, -1), ()),
 }
 
 # Collision boxes in the working frame (min xyz, max xyz)
