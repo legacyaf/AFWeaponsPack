@@ -852,6 +852,16 @@ def export(bake=True, tex_size=TEX_SIZE):
     lod1 = None if bake else lod1_from_p3d(p3d_path, col)
     if lod1 is not None:
         print("AF7 kept LOD 1 and its UVs from", p3d_path)
+        files = {}
+        for suffix in ("co", "nohq", "smdi", "as", "gold_co", "gold_smdi"):
+            png = os.path.join(tex_dir, "%s_%s.png" % (TEX_NAME, suffix))
+            if os.path.isfile(png):
+                files[suffix] = bpy.data.images.load(png, check_existing=True)
+                files[suffix].colorspace_settings.name = "sRGB" if suffix.endswith("co") else "Non-Color"
+        if all(k in files for k in ("co", "nohq", "smdi", "as")):   # preview material from the last bake
+            if "gold_co" in files and "gold_smdi" in files:
+                game_material(files, "Body_DayZ_Gold", "gold_")
+            single_material(lod1, game_material(files))
     else:
         lod1 = build_lod1(col, Matrix.Identity(4))
         unwrap(lod1)
