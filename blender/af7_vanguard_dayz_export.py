@@ -20,7 +20,7 @@ EVERYTHING HERE FOLLOWS THE VANILLA M4 MODEL (dz\\weapons\\firearms\\m4\\m4a1.p3
   - Selections: the M4's skeleton bones are called bolt, trigger, magazine,
     charging ... (not Weapon_Bolt). model.cfg uses the same names in the same order.
   - Proxy names and orientations are copied from the M4.
-  - LODs: 1, 2, 3, 4, View Pilot (1st person), Geometry, Memory, View Geometry, Fire Geometry.
+  - LODs: 1 to 7, View Pilot (1st person), Geometry, Memory, View Geometry, Fire Geometry.
 """
 
 import math
@@ -48,7 +48,13 @@ TEX_NAME = "af7_body"                    # textures are written as <TEX_NAME>_co
 P3D_FOLDER = "af7_vanguard"              # folder under source/AF_Weapons
 P3D_FILE = "af7_vanguard"                # p3d and fbx file name
 ORIGIN_EMPTY = "Proxy_Magazine"          # empty that becomes the p3d origin (None = working origin)
-LOD_RATIOS = ((2.0, 0.75), (3.0, 0.5), (4.0, 0.36))
+# Resolution LODs after LOD 1: (resolution, triangles as a share of LOD 1, smallest part kept in metres).
+# LODs 2-4 are generous, for close range. LODs 5-7 are for distance: loose parts smaller than the
+# given size (screws, pins, ribs, rounds) are dropped, because out there they are under a pixel,
+# and what is left is decimated piece by piece (see decimated()).
+LOD_RATIOS = ((2.0, 0.75, 0.0), (3.0, 0.5, 0.0), (4.0, 0.36, 0.0),
+              (5.0, 0.22, 0.012), (6.0, 0.12, 0.022), (7.0, 0.06, 0.035))
+LOD_PIECE_MIN = 6      # a loose piece is never decimated below this many triangles
 # _smdi levels for the standard finish: specular = SPEC_BASE + SPEC_METAL * metal,
 # gloss = (1 - rough) * GLOSS_SCALE, colour map multiplied by CO_SCALE.
 SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
@@ -301,11 +307,36 @@ def unwrap(ob):
     print("AF7 UV coverage: %.1f%% of the texture" % (100.0 * sum(uv_area(p) for p in me.polygons)))
 
 
-def decimated(src, col, name, ratio):
-    ob = src.copy()
-    ob.data = src.data.copy()
-    ob.name = name
-    col.objects.link(ob)
+def drop_small_parts(me, min_size):
+    """Delete every loose piece of the mesh whose bounding box diagonal is under min_size."""
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    seen, doomed = set(), []
+    for start in bm.verts:
+        if start.index in seen:
+            continue
+        seen.add(start.index)
+        island, stack = [start], [start]
+        while stack:
+            for e in stack.pop().link_edges:
+                for o in e.verts:
+                    if o.index not in seen:
+                        seen.add(o.index)
+                        island.append(o)
+                        stack.append(o)
+        lo = Vector((min(v.co.x for v in island), min(v.co.y for v in island), min(v.co.z for v in island)))
+        hi = Vector((max(v.co.x for v in island), max(v.co.y for v in island), max(v.co.z for v in island)))
+        if (hi - lo).length < min_size:
+            doomed += island
+    bmesh.ops.delete(bm, geom=doomed, context="VERTS")
+    bm.to_mesh(me)
+    bm.free()
+    me.update()
+    return len(doomed)
+
+
+def _collapse(ob, ratio):
+    """Collapse-decimate one object in place."""
     mod = ob.modifiers.new("Decimate", "DECIMATE")
     mod.ratio = ratio
     mod.use_collapse_triangulate = True
@@ -314,7 +345,39 @@ def decimated(src, col, name, ratio):
     ob.modifiers.clear()
     old, ob.data = ob.data, me
     bpy.data.meshes.remove(old)
-    me.name = name
+
+
+def decimated(src, col, name, ratio, min_size=0.0):
+    ob = src.copy()
+    ob.data = src.data.copy()
+    ob.name = name
+    col.objects.link(ob)
+    if min_size <= 0.0:
+        _collapse(ob, ratio)
+    else:
+        # Distance LOD. Decimating the whole mesh at once lets the big flat parts (receiver
+        # sides, stock) collapse to nothing while fiddly ones keep their triangles. So the mesh
+        # is split into its loose pieces and every piece gives up the same share.
+        target = ratio * len(src.data.polygons)
+        drop_small_parts(ob.data, min_size)
+        share = min(1.0, target / max(1, len(ob.data.polygons)))
+        activate(ob)
+        bpy.ops.object.mode_set(mode="EDIT")
+        bpy.ops.mesh.select_all(action="SELECT")
+        bpy.ops.mesh.separate(type="LOOSE")
+        bpy.ops.object.mode_set(mode="OBJECT")
+        pieces = [o for o in col.objects if o.select_get() or o is ob]
+        for piece in pieces:
+            n = len(piece.data.polygons)
+            if n > LOD_PIECE_MIN:
+                _collapse(piece, max(share, LOD_PIECE_MIN / n))
+        for o in bpy.context.view_layer.objects:
+            o.select_set(o in pieces)
+        bpy.context.view_layer.objects.active = ob
+        if len(pieces) > 1:
+            bpy.ops.object.join()
+    me = ob.data
+    ob.name = me.name = name
     if hasattr(me, "set_sharp_from_angle"):
         me.set_sharp_from_angle(angle=math.radians(35))
     return ob
@@ -652,6 +715,71 @@ def write_p3d(path, lods):
             f.write(struct.pack("<f", lod.resolution))
 
 
+def lod1_from_p3d(path, col):
+    """Read resolution LOD 1 back out of a .p3d this script wrote: the mesh, its UVs and its
+    named selections, without the proxy triangles. Used by export(bake=False), so that an
+    export without a new bake keeps exactly the mesh and UVs the textures were baked for.
+    Returns None if the file does not exist."""
+    if not os.path.isfile(path):
+        return None
+    d = open(path, "rb").read()
+    if d[:4] != b"MLOD":
+        return None
+    o = 12
+    for _ in range(struct.unpack_from("<I", d, 8)[0]):
+        npts, nnorm, nfaces = struct.unpack_from("<3I", d, o + 12)
+        o += 28
+        pts = [struct.unpack_from("<3fI", d, o + 16 * i) for i in range(npts)]
+        o += 16 * npts + 12 * nnorm
+        faces = []
+        for _ in range(nfaces):
+            n = struct.unpack_from("<I", d, o)[0]
+            corners = [struct.unpack_from("<2I2f", d, o + 4 + 16 * k) for k in range(n)]
+            o += 72
+            for _ in range(2):          # texture, material
+                o = d.index(b"\0", o) + 1
+            faces.append(corners)
+        o += 4                          # TAGG
+        tags = {}
+        while True:
+            e = d.index(b"\0", o + 1)
+            name = d[o + 1:e].decode("latin1")
+            size = struct.unpack_from("<I", d, e + 1)[0]
+            tags[name] = d[e + 5:e + 5 + size]
+            o = e + 5 + size
+            if name == "#EndOfFile#":
+                break
+        resolution = struct.unpack_from("<f", d, o)[0]
+        o += 4
+        if abs(resolution - 1.0) > 1e-6:
+            continue
+        proxy_faces = set()
+        for name, data in tags.items():
+            if name.startswith("proxy:"):
+                proxy_faces.update(i for i in range(nfaces) if data[npts + i])
+        keep = [i for i in range(nfaces) if i not in proxy_faces]
+        nreal = 1 + max(c[0] for i in keep for c in faces[i])
+        me = bpy.data.meshes.new(PREFIX + "LOD_1")
+        me.from_pydata([(p[0], p[2], p[1]) for p in pts[:nreal]], [], [[c[0] for c in faces[i]] for i in keep])
+        uv = me.uv_layers.new(name="UVMap").data
+        for poly, i in zip(me.polygons, keep):
+            for li, c in zip(poly.loop_indices, faces[i]):
+                uv[li].uv = (c[2], 1.0 - c[3])
+            poly.use_smooth = True
+        me.update()
+        if hasattr(me, "set_sharp_from_angle"):
+            me.set_sharp_from_angle(angle=math.radians(35))
+        ob = bpy.data.objects.new(PREFIX + "LOD_1", me)
+        col.objects.link(ob)
+        for name, data in tags.items():
+            members = [i for i in range(nreal) if data[i]] if not name.startswith(("#", "proxy:")) else []
+            if members:
+                ob.vertex_groups.new(name=name).add(members, 1.0, "REPLACE")
+        ob["dayz"] = "Resolution LOD 1, read back from the existing .p3d (export without bake)."
+        return ob
+    return None
+
+
 # ----------------------------------------------------------------------------
 # Special LODs
 # ----------------------------------------------------------------------------
@@ -719,19 +847,25 @@ def export(bake=True, tex_size=TEX_SIZE):
 
     # Bake in the working frame (the logo and wear are projected by position there),
     # then move the finished mesh into the M4 frame.
-    lod1 = build_lod1(col, Matrix.Identity(4))
-    unwrap(lod1)
-    if bake:
-        files = bake_textures(lod1, tex_dir, tex_size)
-        if "gold_co" in files:   # kept in the file so you can swap it onto AF7_LOD_1 to preview the skin
-            game_material(files, "Body_DayZ_Gold", "gold_")
-        single_material(lod1, game_material(files))
-    lod1.data.transform(M)
-    lod1.data.update()
+    # Without a new bake, LOD 1 is read back from the existing .p3d. Rebuilding it could shift
+    # the automatic unwrap (it depends on every face), and the textures would no longer fit.
+    lod1 = None if bake else lod1_from_p3d(p3d_path, col)
+    if lod1 is not None:
+        print("AF7 kept LOD 1 and its UVs from", p3d_path)
+    else:
+        lod1 = build_lod1(col, Matrix.Identity(4))
+        unwrap(lod1)
+        if bake:
+            files = bake_textures(lod1, tex_dir, tex_size)
+            if "gold_co" in files:   # kept in the file so you can swap it onto AF7_LOD_1 to preview the skin
+                game_material(files, "Body_DayZ_Gold", "gold_")
+            single_material(lod1, game_material(files))
+        lod1.data.transform(M)
+        lod1.data.update()
 
     visual = [(1.0, lod1)]
-    for res, ratio in LOD_RATIOS:   # generous: the rifle keeps its shape at distance
-        ob = decimated(lod1, col, "%sLOD_%d" % (PREFIX, int(res)), ratio)
+    for res, ratio, min_size in LOD_RATIOS:
+        ob = decimated(lod1, col, "%sLOD_%d" % (PREFIX, int(res)), ratio, min_size)
         ob["dayz"] = "Resolution LOD %d (about %d%% of LOD 1)." % (int(res), int(ratio * 100))
         visual.append((res, ob))
 

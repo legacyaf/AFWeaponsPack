@@ -4,9 +4,9 @@
 // AF-7 "Vanguard"    - original Allied Forces assault rifle, 5.56x45 / .308.
 // AF M41 "Pathfinder" - WW2-style bolt-action sniper rifle, 7.62x54R (inherits the Mosin 91/30).
 //
-// It inherits from the vanilla M4A1. That gives it the M4's
-// animations, sounds, recoil, fire modes and STANAG magazines, so we
-// only need to supply the model and textures.
+// Each rifle inherits a vanilla weapon (M4A1, Mosin 91/30). That gives it that
+// weapon's animations, sounds, recoil and fire modes, so we only need to supply
+// the model and textures.
 //
 // CUSTOM MODEL
 //   Phase 2 (now): the lines marked [MODEL] are active, so the Vanguard
@@ -35,7 +35,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.8.1";
+		version = "0.8.2";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).

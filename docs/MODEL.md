@@ -50,17 +50,24 @@ The safety and bolt catch are static. The M4's `firemode` and `boltrelease` bone
 
 | LOD | Resolution | Triangles | Notes |
 |---|---|---|---|
-| 1 | 1 | 7,330 | Full detail, hidden faces removed |
-| 2 | 2 | 5,500 | 75% |
-| 3 | 3 | 3,660 | 50% |
-| 4 | 4 | 2,640 | 36% |
-| View Pilot | 1100 | 7,330 | First person; same mesh as LOD 1 |
+| 1 | 1 | 7,311 | Full detail, hidden faces removed |
+| 2 | 2 | 5,483 | 75% |
+| 3 | 3 | 3,654 | 50% |
+| 4 | 4 | 2,631 | 36% |
+| 5 | 5 | 1,926 | Distance LOD; parts under 1.2 cm dropped |
+| 6 | 6 | 1,221 | Distance LOD; parts under 2.2 cm dropped |
+| 7 | 7 | 820 | Distance LOD; parts under 3.5 cm dropped |
+| View Pilot | 1100 | 7,311 | First person; same mesh as LOD 1 |
 | Geometry | 1e13 | 48 | Four convex boxes, 3.2 kg, `autocenter = 0` |
 | Memory | 1e15 | 7 points | See below |
 | View Geometry | 6e15 | 48 | Copy of Geometry |
 | Fire Geometry | 7e15 | 48 | Copy of Geometry, vanilla `metalplate` penetration material |
 
-LODs 2 to 4 are made by collapse decimation of LOD 1 and checked by render. Switch distances are chosen by the engine from the resolution values; they are not set in the model.
+LODs 2 to 4 are made by collapse decimation of LOD 1 and checked by render. LODs 5 to 7 (added in 0.8.2) are for distance: small loose parts are dropped, then every remaining piece is decimated separately so that large flat parts keep their outline. The vanilla M4 and Mosin stop at resolution 4; the extra three mean a rifle on the ground or on a far player costs 800 to 1,900 triangles, not 2,600. They are checked by render only, not in game.
+
+An export without a new bake (`nobake`) reads LOD 1 back from the existing `.p3d` and rebuilds only the other LODs. Rebuilding LOD 1 can shift the automatic unwrap, and the baked textures would no longer fit.
+
+Switch distances are chosen by the engine from the resolution values; they are not set in the model.
 
 **No Shadow LODs.** The vanilla M4 model has none, so this model follows it and lets the engine shadow from the visual LODs. Adding ShadowVolume LODs is possible but untested for DayZ weapons.
 
@@ -129,12 +136,12 @@ Legend: **Done** = built and checked. **Partly** = built, with a known gap. **No
 ### 3. LODs and optimization
 | Requirement | Status | Notes |
 |---|---|---|
-| Multiple resolution LODs | Done | Four, plus first person. |
+| Multiple resolution LODs | Done | Seven, plus first person. |
 | Progressive reduction, silhouette kept | Done | Checked by render. |
 | Transitions without popping | Not verified | Needs in-game check at distance. |
 | Shadow LODs | Not done | See section 3. |
 | Geometry, Fire Geometry, View Geometry, Memory | Done | Loaded and checked in Object Builder's script engine. |
-| Overall optimization | Partly | Lower LODs are deliberately generous. No before/after performance numbers. |
+| Overall optimization | Partly | LODs 2-4 are generous, 5-7 are light. No before/after performance numbers. |
 
 ### 4. Animations
 | Requirement | Status | Notes |

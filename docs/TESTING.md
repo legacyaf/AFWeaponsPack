@@ -31,7 +31,7 @@ Do every step for **each finish** (`AF7_Vanguard`, `AF7_Vanguard_Gold`).
 | 9 | Fit a suppressor, inventory side-on | Screenshot | Suppressor position; muzzle brake hidden underneath |
 | 10 | Fit a flashlight, switch it on | Screenshot | Flashlight position and beam direction |
 | 11 | Drop the rifle on flat ground and walk around it | Screenshot | Ground pose, collision, shadow |
-| 12 | Walk away from the dropped rifle to about 5 m, 20 m and 50 m | Screenshot at each | LOD changes: no popping, shape holds |
+| 12 | Walk away from the dropped rifle to about 5 m, 20 m, 50 m and 100 m | Screenshot at each | LOD changes: no popping, shape holds, no holes or wrong colours (LODs 5-7 are new in 0.8.2) |
 | 13 | Damage the rifle with an admin tool to Damaged and Ruined | Screenshot each | Damage overlays |
 | 14 | Chamber a loose 5.56 round, then a loose .308 round | Note what happens | Both calibres chamber by hand |
 

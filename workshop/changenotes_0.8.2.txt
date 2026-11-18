@@ -1,0 +1,7 @@
+0.8.2
+
+Both rifles
+- Three extra distance LODs (5, 6, 7). A rifle lying on the ground or carried by a far-away player now uses 500 to 1,900 triangles, down from about 2,700. No change up close.
+
+Server owners
+- No changes to class names, loot files or required mods.

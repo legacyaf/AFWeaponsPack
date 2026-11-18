@@ -22,7 +22,7 @@ To change the design, edit `af7_vanguard_detailed.blend` (or the script), then r
 - **Selection names.** The M4's skeleton bones are `magazine`, `trigger`, `bolt`, `bullet`, `charging`, `boltrelease`, `firemode` and a few covers. They are **not** called `Weapon_Bolt` etc.; those are the animation's names. The M4 has no `boneRemap[]`, so `model.cfg` copies the M4's skeleton exactly (same names, same order). Step 9b is no longer needed.
 - **Moving parts.** The trigger, bolt and charging handle are exported as `trigger`, `bolt` and `charging`. The safety and bolt catch stay static for now: those M4 bones rotate around the M4's own pivots, which the Vanguard's parts don't share.
 - **Proxies.** Names and orientations are copied from the M4: `magazine_stanag30` (in the `magazine` selection), `optic_acog`, `suppressor_556` and `weaponlight_universal`.
-- **LODs.** 1, 2, 3, 4, View Pilot (first person), Geometry (four convex boxes, 3.2 kg, `autocenter = 0`), Memory, View Geometry and Fire Geometry.
+- **LODs.** 1 to 7, View Pilot (first person), Geometry (four convex boxes, 3.2 kg, `autocenter = 0`), Memory, View Geometry and Fire Geometry.
 - **Memory points.** `usti hlavne`, `konec hlavne`, `eye`, `nabojnicestart` and `nabojniceend` are all confirmed.
 - **Material.** `af7_body.rvmat` uses the M4's values. `af7_body_damage.rvmat` and `af7_body_destruct.rvmat` copy the M4's damage overlays.
 
