@@ -69,7 +69,7 @@ An export without a new bake (`nobake`) reads LOD 1 back from the existing `.p3d
 
 Switch distances are chosen by the engine from the resolution values; they are not set in the model.
 
-**No Shadow LODs.** The vanilla M4 model has none, so this model follows it and lets the engine shadow from the visual LODs. Adding ShadowVolume LODs is possible but untested for DayZ weapons.
+**No Shadow LODs, on purpose.** Checked on 2026-11-18: the LOD lists of about 900 vanilla DayZ models were read from the game files (all firearms, pistols, shotguns, melee weapons, launchers, backpacks, tents, tools, wheeled vehicles and residential buildings). None has a ShadowVolume or ShadowBuffer LOD. DayZ draws shadows from the visual LODs, so a shadow LOD would add file size and risk for nothing. The same scan shows vanilla firearms with resolution LODs up to 5 and 6, and a few up to 10 and 15, which is in line with the distance LODs added in 0.8.2.
 
 **Memory points:** `usti hlavne` (muzzle), `konec hlavne` (barrel direction), `eye` (iron sight camera), `nabojnicestart` and `nabojniceend` (case ejection), `boundingbox_min`, `boundingbox_max`.
 
@@ -139,7 +139,7 @@ Legend: **Done** = built and checked. **Partly** = built, with a known gap. **No
 | Multiple resolution LODs | Done | Seven, plus first person. |
 | Progressive reduction, silhouette kept | Done | Checked by render. |
 | Transitions without popping | Not verified | Needs in-game check at distance. |
-| Shadow LODs | Not done | See section 3. |
+| Shadow LODs | n/a | DayZ does not use them; see section 3. |
 | Geometry, Fire Geometry, View Geometry, Memory | Done | Loaded and checked in Object Builder's script engine. |
 | Overall optimization | Partly | LODs 2-4 are generous, 5-7 are light. No before/after performance numbers. |
 
@@ -218,7 +218,7 @@ Paused here to start a second weapon. Last build: 0.7.2, signed, in `@AF_Weapons
 2. 60-round STANAG fit.
 3. Safety and bolt catch do not animate.
 4. Muzzle flash point stays at the bare muzzle when a suppressor is fitted.
-5. No Shadow LODs (the vanilla M4 has none either).
+5. (Closed) Shadow LODs: not used by DayZ, see section 3.
 6. Sounds and animations are all the vanilla M4's.
 7. Scratch strength and the standard finish have not been reviewed in a clean daylight SDR capture.
 
