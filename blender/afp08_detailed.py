@@ -308,12 +308,11 @@ def _build_gun():
     # --- Trigger and guard -----------------------------------------------------------
     gc, r_out, r_in = (0.0830, 0.0230), 0.0165, 0.0138
     d.profile("TriggerGuard", body, m_blue, _arc(gc, r_out, 125.0, 415.0, 28) + _arc(gc, r_in, 415.0, 125.0, 28),
-              width=0.0110, bevel=0.0006, note="Round trigger guard.")
-    d.profile("Weapon_Trigger", moving, m_straw,
-              [(0.0745, 0.0400), (0.0835, 0.0400), (0.0852, 0.0300), (0.0890, 0.0205), (0.0906, 0.0140), (0.0880, 0.0134),
-               (0.0850, 0.0200), (0.0790, 0.0285)], width=0.0062, bevel=0.0007, round=0.0030,
-              note="Trigger. Bone 'trigger'; pivot at (y 0.079, z 0.043).")
-
+              width=0.0096, bevel=0.0012, segments=3, note="Round trigger guard, edges rounded.")
+    d.blade("Weapon_Trigger", moving, m_straw,
+            [(0.0790, 0.0415, 0.0090), (0.0784, 0.0335, 0.0064), (0.0794, 0.0255, 0.0050), (0.0828, 0.0188, 0.0044),
+             (0.0884, 0.0146, 0.0036)], width=0.0062,
+            note="Trigger: a curved, rounded blade. Bone 'trigger'; pivot at (y 0.079, z 0.043).")
     # --- Memory points -------------------------------------------------------------------
     d.empty("Mem_Muzzle", memory, (0, MUZZLE_Y, BORE), "'usti hlavne' - muzzle.")
     d.empty("Mem_BarrelEnd", memory, (0, 0.1050, BORE), "'konec hlavne' - with the muzzle sets the firing direction.")

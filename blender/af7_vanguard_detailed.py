@@ -634,6 +634,38 @@ def profile(name, col, mat, pts, width, x=0.0, bevel=0.002, note="", round=0.0, 
     return make(name, bm, col, mat, note, bevel, **kw)
 
 
+def blade(name, col, mat, spine, width, note="", bevel=None):
+    """A curved, rounded blade (a trigger): `spine` is [(y, z, thickness), ...] along its centre line
+    from the root to the tip. The centre line is a smooth curve through those points, the outline
+    follows it at half the thickness on each side, and the edges are rounded right round, so the
+    part has no flat faces or corners. Detail levels: fewer steps along the curve, plainer edges."""
+    steps = max(1, min(4, int(round(60.0 / FILLET_STEP)))) if FILLET_STEP else 1
+    P = [Vector((y, z, th)) for y, z, th in spine]
+    ext = [P[0] * 2 - P[1]] + P + [P[-1] * 2 - P[-2]]
+    pts = []
+    for i in range(1, len(ext) - 2):
+        a, b, c, e = ext[i - 1], ext[i], ext[i + 1], ext[i + 2]
+        for k in range(steps):
+            t = k / steps
+            pts.append(0.5 * ((2 * b) + (c - a) * t + (2 * a - 5 * b + 4 * c - e) * t * t + (3 * b - a - 3 * c + e) * t ** 3))
+    pts.append(P[-1])
+    front, rear = [], []
+    for i, p in enumerate(pts):
+        q0, q1 = pts[max(i - 1, 0)], pts[min(i + 1, len(pts) - 1)]
+        tan = Vector((q1.x - q0.x, q1.y - q0.y))
+        tan.normalize()
+        n = Vector((-tan.y, tan.x))
+        front.append((p.x + n.x * p.z / 2, p.y + n.y * p.z / 2))
+        rear.append((p.x - n.x * p.z / 2, p.y - n.y * p.z / 2))
+    tip = pts[-1]
+    tan = Vector((tip.x - pts[-2].x, tip.y - pts[-2].y))
+    tan.normalize()
+    outline = front + [(tip.x + tan.x * tip.z * 0.5, tip.y + tan.y * tip.z * 0.5)] + rear[::-1]
+    bm = bmesh.new()
+    bm_profile(bm, outline, width)
+    thin = min(th for _y, _z, th in spine)
+    return make(name, bm, col, mat, note, min(width, thin) * 0.36 if bevel is None else bevel, segments=3, sharp=60.0)
+
 def lathe(name, col, mat, prof, note="", bevel=0.0, **kw):
     bm = bmesh.new()
     bm_lathe(bm, prof, **kw)
@@ -927,11 +959,10 @@ def build():
 
     # --- Moving parts (separate objects = separate animated selections) -------
     # DayZ selection names come from the vanilla M4 model; see af7_vanguard_dayz_export.py.
-    profile("Weapon_Trigger", moving, m_steel,
-            [(0.004, 0.006), (0.006, -0.004), (0.010, -0.012), (0.012, -0.022), (0.008, -0.022),
-             (0.005, -0.012), (0.000, -0.002), (-0.002, 0.006)],
-            width=0.006, bevel=0.0008, round=0.003,
-            note="Exported as the 'trigger' selection (vanilla M4 bone). Rotates when firing.")
+    blade("Weapon_Trigger", moving, m_steel,
+          [(0.0010, 0.0065, 0.0062), (0.0028, -0.0030, 0.0058), (0.0070, -0.0120, 0.0048), (0.0098, -0.0205, 0.0038)],
+          width=0.006,
+          note="Trigger: a curved, rounded blade. Exported as the 'trigger' selection (vanilla M4 bone). Rotates when firing.")
     bm = bmesh.new()
     bm_box(bm, (0, -0.109, 0.0745), (0.046, 0.012, 0.007))
     bm_box(bm, (0, -0.096, 0.0745), (0.012, 0.020, 0.006))

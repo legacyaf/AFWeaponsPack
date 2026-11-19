@@ -270,10 +270,10 @@ def _build_gun():
     inner = [(-0.0042, 0.0245), (-0.0050, 0.0115), (-0.0100, 0.0000), (-0.0185, -0.0088), (-0.0305, -0.0130),
              (-0.0480, -0.0135), (-0.0608, -0.0122), (-0.0675, -0.0070), (-0.0705, 0.0045), (-0.0713, 0.0270)]
     d.profile("TriggerGuard", body, m_steel, outer + inner, width=0.0125, bevel=0.0007, round=0.004, note="Trigger guard.")
-    d.profile("Weapon_Trigger", moving, m_steel,
-              [(-0.0455, 0.0270), (-0.0540, 0.0270), (-0.0582, 0.0100), (-0.0566, -0.0035), (-0.0528, -0.0062),
-               (-0.0522, 0.0085)], width=0.0060, bevel=0.0008, round=0.003,
-              note="Trigger. Bone 'trigger'; pivot at (y -0.0501, z 0.0292).")
+    d.blade("Weapon_Trigger", moving, m_steel,
+            [(-0.0498, 0.0275, 0.0085), (-0.0530, 0.0180, 0.0072), (-0.0552, 0.0092, 0.0060), (-0.0554, 0.0015, 0.0050),
+             (-0.0546, -0.0045, 0.0040)], width=0.0060,
+            note="Trigger: a curved, rounded blade. Bone 'trigger'; pivot at (y -0.0501, z 0.0292).")
     for nm, y, z, r in (("TriggerPin", -0.0501, 0.0340, 0.0026), ("FramePin", 0.0400, 0.0420, 0.0030),
                         ("SearPin", -0.0900, 0.0440, 0.0026)):
         bm = bmesh.new()

@@ -565,10 +565,10 @@ def build():
     d.make("BoltHandle", bm, moving, m_bolt, "Turned-down bolt handle and knob. Bone 'bolthandle'.")
 
     # --- Trigger group ---------------------------------------------------------
-    d.profile("Weapon_Trigger", moving, m_blue,
-              [(-0.0485, 0.0620), (-0.0545, 0.0620), (-0.0585, 0.0480), (-0.0570, 0.0370), (-0.0535, 0.0345),
-               (-0.0530, 0.0470)],
-              width=0.0058, bevel=0.0008, round=0.003, note="Trigger. Bone 'trigger'; pivot at (y -0.0515, z 0.0676).")
+    d.blade("Weapon_Trigger", moving, m_blue,
+            [(-0.0515, 0.0625, 0.0060), (-0.0540, 0.0550, 0.0058), (-0.0558, 0.0470, 0.0052), (-0.0556, 0.0405, 0.0044),
+             (-0.0548, 0.0362, 0.0036)], width=0.0058,
+            note="Trigger: a curved, rounded blade. Bone 'trigger'; pivot at (y -0.0515, z 0.0676).")
     d.profile("TriggerGuard", body, m_blue,
               [(-0.086, 0.0585), (-0.081, 0.0300), (-0.066, 0.0215), (-0.034, 0.0215), (-0.017, 0.0320), (-0.009, 0.0585),
                (-0.0125, 0.0585), (-0.0200, 0.0340), (-0.0355, 0.0247), (-0.0645, 0.0247), (-0.0780, 0.0322),

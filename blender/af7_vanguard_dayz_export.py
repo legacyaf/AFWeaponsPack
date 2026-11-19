@@ -96,6 +96,11 @@ HIDE_BARREL = ("MuzzleBrake",)
 # Bone that every part without its own bone belongs to. None for the M4 and the Mosin; the UMP's whole
 # body is on the bone 'recoil' (it kicks when the gun fires, and the bolt and charging handle are its children).
 BODY_BONE = None
+# Flat faces that keep a texture and material of the game's own instead of the baked set: a scope's
+# reticle and lens glass. ((four corners in the working frame, four (u, v), texture, rvmat, highest
+# resolution LOD that gets it), ...). They are written last in the LOD, both ways round, because
+# they are see-through and must be drawn after the solid faces.
+RAW_QUADS = ()
 
 # Texture space per part, relative to 1.0. More for what sits in front of the player's eyes
 # in first person, less for parts that are mostly covered or tiny.
@@ -987,6 +992,19 @@ class Lod:
         s[0].update(points)
         s[1].update(faces)
 
+    def add_quad(self, corners, uvs, texture, material):
+        """A flat face with its own texture and material, visible from both sides."""
+        pts = [Vector(c) for c in corners]
+        n = (pts[1] - pts[0]).cross(pts[2] - pts[0]).normalized()
+        for flip in (False, True):
+            order = list(range(len(pts)))[::-1] if flip else list(range(len(pts)))
+            base = len(self.points)
+            self.points += [(p.x, p.y, p.z, 0) for p in pts]
+            ni = len(self.normals)
+            m = n if flip else -n
+            self.normals.append((m.x, m.y, m.z))
+            self.faces.append(([(base + k, ni, uvs[k][0], uvs[k][1]) for k in order], texture, material))
+
     def add_proxy(self, path, origin, up, direction, extra=(), index=1):
         o = Vector(origin)
         # Object Builder's own proxies are 2 m x 1 m; same 2:1 shape here, but small,
@@ -1284,6 +1302,9 @@ def export(bake=True, tex_size=TEX_SIZE):
     for res, ob in visual + [(LOD_VIEW_PILOT, lod1)]:
         nsets = len(texture_sets())
         lod = lod_from_mesh(ob, res, [set_texture(k) for k in range(nsets)], [set_rvmat(k) for k in range(nsets)])
+        for corners, uvs, texture, material, max_res in RAW_QUADS:
+            if res <= max_res or res == LOD_VIEW_PILOT:
+                lod.add_quad([P(M @ Vector(c)) for c in corners], uvs, texture, material)
         for path, origin, up, direction, extra, index in proxies:
             lod.add_proxy(path, origin, up, direction, extra, index)
         lods.append(lod)
