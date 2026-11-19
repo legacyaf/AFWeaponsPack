@@ -79,7 +79,7 @@ def _gun_tables():
     # Collision boxes in the working frame (min xyz, max xyz)
     ex.GEOMETRY = [((-0.013, -0.014, 0.034), (0.013, 0.114, 0.082)),      # frame and receiver
                    ((-0.007, 0.114, 0.060), (0.007, 0.205, 0.084)),       # barrel
-                   ((-0.016, -0.040, -0.050), (0.016, 0.060, 0.034))]     # grip
+                   ((-0.016, -0.030, -0.050), (0.016, 0.064, 0.034))]     # grip
 
 
 def _magazine_tables():
@@ -98,7 +98,7 @@ def _magazine_tables():
     ex.UV_PRIORITY = {"Round": 0.8, "RoundSlug": 0.8, "FollowerButton": 0.8}
     ex.MEMORY = {}
     ex.PROXIES = {}
-    ex.GEOMETRY = [((-0.0075, -0.0480, -0.0580), (0.0075, 0.0430, 0.0560))]
+    ex.GEOMETRY = [((-0.0075, -0.0400, -0.0580), (0.0075, 0.0370, 0.0560))]
 
 
 def export(bake=True, tex_size=ex.TEX_SIZE):

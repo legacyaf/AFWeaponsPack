@@ -26,7 +26,7 @@ FRAME
       skeleton             magazine, trigger, recoil; slide, hammer, bolt, slide_catch, bullet (children of recoil).
                            The P1's slide is on the bone 'bolt', its frame on 'recoil'.
   What differs from a real P08 because of that frame:
-    - The grip is raked 27 degrees instead of 35, so that the hand posed for the P1 still closes on it.
+    - The grip is raked 21 degrees instead of 35, so that the hand posed for the P1 still closes on it.
     - The vanilla animations slide the bone 'bolt' straight back. Only the breechblock rides on it:
       the breech opens, but the toggle stays flat instead of folding up.
     - The magazine is drawn out along the P1's 13 degree line, so it passes through the front of the
@@ -62,25 +62,25 @@ MAG_PREFIX = "P08M_"
 BORE = 0.0690            # barrel axis (the vanilla P1's)
 SIGHT_Z = 0.0838         # sight line (the vanilla P1's eye height)
 MUZZLE_Y = 0.2050
-RAKE = math.radians(27.0)
+RAKE = math.radians(21.0)   # 27 was tried first: the fingers closed 2-3 cm in front of the grip (in-game test, 0.11.0)
 T = math.tan(RAKE)
 GRIP_TOP, GRIP_BOTTOM = 0.036, -0.050
-MAG_AT = (0.0, 0.0213, 0.0)          # magazine proxy = the magazine model's own origin
-MAG_HALF_Y = 0.0171                  # magazine half depth measured along the bore
+MAG_AT = (0.0, 0.0332, 0.0)          # magazine proxy = the magazine model's own origin
+MAG_HALF_Y = 0.0164                  # magazine half depth measured along the bore
 MAG_TOP, MAG_BOTTOM = 0.050, -0.050  # magazine body, in the pistol's z
 
 # AF medallion on both grip panels: (y0, z0, width, height, |x| min, |x| max)
-LOGO_GRIP = (-0.0040, -0.0190, 0.0220, 0.0110, 0.0120, 0.0175)
+LOGO_GRIP = (0.0060, -0.0190, 0.0220, 0.0110, 0.0120, 0.0175)
 
 
 def back(z):
     """Back strap line."""
-    return 0.004 - T * (0.040 - z)
+    return 0.006 - T * (0.040 - z)
 
 
 def front(z):
     """Front strap line."""
-    return 0.056 - T * (0.026 - z)
+    return 0.062 - T * (0.026 - z)
 
 
 def mag_centre(z):
@@ -257,7 +257,7 @@ def _build_gun():
                        (0.0660, 0.0350), (0.0625, 0.0340), (front(GRIP_BOTTOM), GRIP_BOTTOM), (back(GRIP_BOTTOM), GRIP_BOTTOM),
                        (back(0.0400), 0.0400), (-0.0080, 0.0470), (-0.0140, 0.0500)],
                       width=0.0230, bevel=0.0012, round=0.0030,
-                      note="Frame and grip in one piece: rails, trigger housing, tang, straps raked 27 degrees.")
+                      note="Frame and grip in one piece: rails, trigger housing, tang, straps raked 21 degrees.")
     for side in (-1, 1):
         d.profile("FrameEar_%s" % ("R" if side > 0 else "L"), body, m_blue,
                   [(-0.0145, 0.0555), (0.0140, 0.0555), (0.0100, 0.0630), (-0.0030, 0.0690), (-0.0125, 0.0690),

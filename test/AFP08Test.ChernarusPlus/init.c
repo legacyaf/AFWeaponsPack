@@ -43,6 +43,7 @@ EntityAI Lay(string type, vector origin, int index, string label)
 	AddShot(label + "_b", Vector(p[0], p[1] + 0.20, p[2] + 0.40), mid, 0.80);
 	AddShot(label + "_close", Vector(p[0] + 0.03, p[1] + 0.14, p[2] - 0.20), mid, 0.80);
 	AddShot(label + "_top", Vector(p[0], p[1] + 0.42, p[2] - 0.06), mid, 0.80);
+	AddShot(label + "_low", Vector(p[0] + 0.16, p[1] + 0.02, p[2] - 0.20), Vector(p[0], p[1] + 0.01, p[2]), 0.80);
 	return item;
 }
 
@@ -156,8 +157,8 @@ void main()
 		dead.SetHealth01("", "", 0.0);
 
 	// The vanilla pistol it is built on, in the same light, to compare shine, colour and size.
-	EntityAI ref = Lay("P1", pos, 8, "ref_p1");
-	Attach(ref, "Mag_P1_8Rnd");	// The player, then the first four rifles from further and further away (LODs).
+	EntityAI vanilla = Lay("P1", pos, 8, "ref_p1");
+	Attach(vanilla, "Mag_P1_8Rnd");	// The player, then the first four rifles from further and further away (LODs).
 	AddShot("player_side", Vector(stand[0] + 0.2, stand[1] + 1.3, stand[2] - 1.7), Vector(stand[0], stand[1] + 1.0, stand[2]), 0.9);
 	AddShot("player_front", Vector(stand[0] + 1.7, stand[1] + 1.3, stand[2] - 0.3), Vector(stand[0], stand[1] + 1.0, stand[2]), 0.9);
 	vector four = Vector(pos[0] + 1.2, pos[1] + 0.05, pos[2]);
