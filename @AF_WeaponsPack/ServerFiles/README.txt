@@ -26,6 +26,13 @@ Class names
   AF_P08_Gold         gold floral grips. Does NOT spawn by default (nominal 0).
   Mag_AFP08_8Rnd      the P08's 8-round magazine. Spawns: 14 on the map. The P08 takes
                       no other magazine, so do not leave this one out.
+  AF_WeaponRepairKit  repair kit for the pack's weapons. Spawns: 6 on the map, Military and
+                      Police, Tier 2-4. How it behaves is set in AF_WeaponsPack.json.
+
+Settings
+  The server writes AF_WeaponsPack.json into its profiles folder on first start. Recoil, sway,
+  damage, jam chance, wear, the repair kit and the aim sounds are all set there, per weapon
+  and for the whole pack. The mod's page lists every setting.
 
 OPTION A - paste into your existing files (simplest)
   1. Open af_weapons_types.xml and copy everything between <types> and </types>.

@@ -23,6 +23,34 @@ Server owners tune the pack's weapons in one file. Nothing here touches vanilla 
 | `GlobalJamChanceMultiplier` | 1.0 | Chance of a jam. 0 means the pack's weapons never jam. |
 | `WeaponsImmuneToBulletDamage` | 0 | 1: a bullet that hits one of the pack's weapons does not damage it. |
 
+## Weapon repair kit
+
+The item `AF_WeaponRepairKit` looks like the game's weapon cleaning kit and is used the same way: combine it with the weapon (kit in the hands and the weapon in front of you, or drag one onto the other in the inventory). It only works on weapons of this pack. It needs a loot or trader entry to reach players; `ServerFiles` has one.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `RepairKitEnabled` | 1 | 0: the kit does nothing. |
+| `RepairKitSeconds` | 8.0 | How long one repair takes (1 to 120). |
+| `RepairKitHealthAdd` | 1.0 | Share of full health one use restores. 1.0 is back to pristine, 0.25 a quarter. |
+| `RepairKitUses` | 4 | Uses in one kit (1 to 100). |
+| `RepairKitRepairsRuined` | 1 | 0: a ruined weapon stays ruined. |
+| `RepairKitWorksOnSuppressors` | 0 | 1: the kit also repairs suppressors. Suppressors are vanilla items, so this is the one setting that reaches outside the pack. |
+
+## Aim, zoom and zero sounds
+
+When a player aims a weapon of this pack, changes its zeroing or changes the zoom of its scope, they and the players near them hear a short sound. The sounds are the game's own; any sound set name the game knows can be put in instead.
+
+| Setting | Default | What it does |
+|---|---|---|
+| `AimSoundsEnabled` | 1 | 0: no sounds. |
+| `AimSoundRadius` | 10.0 | Metres. Players further away are not sent the sound (0 to 100). |
+| `AimSoundSetRifle` | `Weapon_Movement_Rifle_walkRasErc_SoundSet` | Played when a rifle or submachine gun is aimed. |
+| `AimSoundSetPistol` | `Weapon_Movement_Pistol_walkRasErc_SoundSet` | Played when a pistol is aimed. |
+| `ZeroSoundSet` | `combinationlock_changedial_SoundSet` | Played when the zeroing changes. |
+| `ZoomSoundSet` | `Fire_Mode_Switch_Simple_Click_SoundSet` | Played when a scope's zoom changes. |
+
+An empty name (`""`) switches that one sound off.
+
 ## Settings for one weapon
 
 One entry per weapon under `Weapons`. `ClassName` is the standard finish; the gold finish follows the same entry. A weapon's own multiplier is multiplied with the global one, and with whatever its attachments already do.
@@ -74,6 +102,8 @@ Everything is in `source/AF_Weapons/scripts/4_World/AF_Weapons/AFConfig.c`.
 | Extra wear | `Weapon_Base.EEFired`, server only. |
 | Bullet immunity | `Weapon_Base.EEOnDamageCalculated`. |
 | Enabled | `Weapon_Base.EEInit`, server only, three seconds after the weapon appears. |
+| Repair kit | `AFRepairKit.c`: a recipe (`AFRepairWeapon`) registered with the game's recipe manager; its length is read from the settings each time. |
+| Sounds | `PlayerBase.CommandHandler` on the PC of the player holding the weapon notices the change, plays the sound and tells the server (`RPC_SOUND`); the server passes it to players within the radius (`RPC_SOUND_PLAY`). The server only accepts it from the player themself, at most ten a second, and only while they hold a weapon of the pack. |
 | Sync | Two script RPCs on `PlayerBase` (`AFConfig.RPC_REQUEST`, `AFConfig.RPC_SETTINGS`). The player asks when they load and whenever a weapon works out its modifiers before the settings have arrived. |
 
 A new weapon must be added to `AFConfig.BASE_CLASSES`, or it gets no settings.
@@ -84,4 +114,6 @@ A new weapon must be added to `AFConfig.BASE_CLASSES`, or it gets no settings.
 
 Checked that way on 2026-11-19: the file is created with defaults; recoil and sway multipliers (global and per weapon) change the values the game uses; a value of 99 is pulled back to 10 and written back; a disabled weapon is removed; the M4A1 and UMP-45 are untouched.
 
-Not checked yet: damage, jam chance, extra wear and bullet immunity in play (they need shooting), and the sync to players on a real server (the offline test has no second PC).
+Also checked that way: the repair kit refuses a vanilla M4A1, brings a ruined P08 back to pristine, and is used up after the configured four uses.
+
+Not checked yet: damage, jam chance, extra wear and bullet immunity in play (they need shooting); the repair kit through the real crafting action (the test calls the recipe directly); the aim, zoom and zero sounds (they need a player aiming); and the sync to players on a real server (the offline test has no second PC).

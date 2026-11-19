@@ -161,5 +161,22 @@
         <value name="Tier2"/>
         <value name="Tier3"/>
     </type>
+    <!-- AF weapon repair kit: repairs weapons of this pack, even ruined ones (see the mod's settings file). -->
+    <type name="AF_WeaponRepairKit">
+        <nominal>6</nominal>
+        <lifetime>14400</lifetime>
+        <restock>3600</restock>
+        <min>3</min>
+        <quantmin>50</quantmin>
+        <quantmax>100</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="tools"/>
+        <usage name="Military"/>
+        <usage name="Police"/>
+        <value name="Tier2"/>
+        <value name="Tier3"/>
+        <value name="Tier4"/>
+    </type>
 </types>
 

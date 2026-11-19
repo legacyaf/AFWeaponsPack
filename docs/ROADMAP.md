@@ -28,7 +28,7 @@ The goal set on 2026-11-19: a pack good enough to stand next to A-6, with settin
 | Step | What | State |
 |---|---|---|
 | 1 | `AF_WeaponsPack.json`: enable/disable per weapon, recoil, sway, damage, jam chance, extra wear, bullet immunity (`docs/SETTINGS.md`) | written; recoil, sway, enable/disable and the file handling tested offline |
-| 2 | Weapon repair kit (time, health restored, uses, suppressors) and aim / zoom / zero sounds | not started |
+| 2 | Weapon repair kit (time, health restored, uses, suppressors) and aim / zoom / zero sounds | written; kit logic tested offline, sounds not heard in game yet |
 | 3 | Aim-down-sight speed per weapon and attachment; hip fire from the barrel's direction | needs investigation: both are partly engine-side |
 | 4 | Item stats screen (weapon, magazine, attachment) | not started; the largest piece |
 | 5 | Attachments of our own that change recoil, sway and aim speed; toggle keys for bipods, lights and lasers | later |

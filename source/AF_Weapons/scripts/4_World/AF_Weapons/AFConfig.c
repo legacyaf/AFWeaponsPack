@@ -42,6 +42,22 @@ class AFConfigData
 	float GlobalDamageMultiplier = 1.0;
 	float GlobalJamChanceMultiplier = 1.0;
 	bool WeaponsImmuneToBulletDamage = false;      //!< true: a bullet hitting a weapon of the pack does not damage it
+
+	// Weapon repair kit (item AF_WeaponRepairKit): drag it onto a weapon of the pack.
+	bool RepairKitEnabled = true;
+	float RepairKitSeconds = 8.0;                  //!< how long one repair takes
+	float RepairKitHealthAdd = 1.0;                //!< share of full health one use restores: 1.0 = back to pristine, 0.25 = a quarter
+	int RepairKitUses = 4;                         //!< uses in one kit
+	bool RepairKitRepairsRuined = true;            //!< false: a ruined weapon stays ruined
+	bool RepairKitWorksOnSuppressors = false;      //!< true: also repairs suppressors (any suppressor, they are vanilla items)
+
+	// Sounds other players can hear when a weapon of the pack is aimed, zoomed or zeroed.
+	bool AimSoundsEnabled = true;
+	float AimSoundRadius = 10.0;                   //!< metres; players further away are not sent the sound
+	string AimSoundSetRifle = "Weapon_Movement_Rifle_walkRasErc_SoundSet";
+	string AimSoundSetPistol = "Weapon_Movement_Pistol_walkRasErc_SoundSet";
+	string ZeroSoundSet = "combinationlock_changedial_SoundSet";
+	string ZoomSoundSet = "Fire_Mode_Switch_Simple_Click_SoundSet";
 	ref array<ref AFWeaponSettings> Weapons = new array<ref AFWeaponSettings>;
 }
 
@@ -50,6 +66,11 @@ class AFConfig
 	static const string FILE = "$profile:AF_WeaponsPack.json";
 	static const int RPC_REQUEST = 0x41460001;     //!< player -> server: send me the settings
 	static const int RPC_SETTINGS = 0x41460002;    //!< server -> player: the settings, as JSON text
+	static const int RPC_SOUND = 0x41460003;       //!< player -> server: I aimed / zoomed / zeroed
+	static const int RPC_SOUND_PLAY = 0x41460004;  //!< server -> players nearby: play that sound on this player
+	static const int SOUND_AIM = 0;
+	static const int SOUND_ZERO = 1;
+	static const int SOUND_ZOOM = 2;
 	static const float MAX_MULTIPLIER = 10.0;
 
 	//! One entry per weapon of the pack: the class of its standard finish.
@@ -113,6 +134,10 @@ class AFConfig
 		data.GlobalSwayMultiplier = Clamp(data.GlobalSwayMultiplier);
 		data.GlobalDamageMultiplier = Clamp(data.GlobalDamageMultiplier);
 		data.GlobalJamChanceMultiplier = Clamp(data.GlobalJamChanceMultiplier);
+		data.RepairKitSeconds = Math.Clamp(data.RepairKitSeconds, 1.0, 120.0);
+		data.RepairKitHealthAdd = Math.Clamp(data.RepairKitHealthAdd, 0.01, 1.0);
+		data.RepairKitUses = Math.Clamp(data.RepairKitUses, 1, 100);
+		data.AimSoundRadius = Math.Clamp(data.AimSoundRadius, 0.0, 100.0);
 		foreach (AFWeaponSettings w : data.Weapons)
 		{
 			if (!w)
@@ -237,6 +262,58 @@ class AFConfig
 		}
 	}
 
+	// ------------------------------------------------------------------ sounds
+
+	//! The sound set for one of the three events, "" for none.
+	static string SoundSetFor(int type, EntityAI weapon)
+	{
+		AFConfigData data = Get();
+		if (!data.EnableSettings || !data.AimSoundsEnabled)
+			return "";
+		if (type == SOUND_ZERO)
+			return data.ZeroSoundSet;
+		if (type == SOUND_ZOOM)
+			return data.ZoomSoundSet;
+		if (weapon && weapon.IsKindOf("Pistol_Base"))
+			return data.AimSoundSetPistol;
+		return data.AimSoundSetRifle;
+	}
+
+	//! Any PC: play the sound on a player.
+	static void PlayOn(PlayerBase player, int type)
+	{
+		if (!player || GetGame().IsDedicatedServer())
+			return;
+		string name = SoundSetFor(type, player.GetItemInHands());
+		if (name == "")
+			return;
+		EffectSound sound = SEffectManager.PlaySoundOnObject(name, player);
+		if (sound)
+			sound.SetAutodestroy(true);
+	}
+
+	//! Server: a player aimed, zoomed or zeroed. Tell the players within earshot.
+	static void RelaySound(PlayerBase source, int type)
+	{
+		if (!source || type < SOUND_AIM || type > SOUND_ZOOM)
+			return;
+		if (BaseClassOf(source.GetItemInHands()) == "" || SoundSetFor(type, source.GetItemInHands()) == "")
+			return;
+		float radius = Get().AimSoundRadius;
+		array<Man> players = new array<Man>;
+		GetGame().GetPlayers(players);
+		foreach (Man other : players)
+		{
+			if (!other || other == source || !other.GetIdentity())
+				continue;
+			if (vector.Distance(other.GetPosition(), source.GetPosition()) > radius)
+				continue;
+			ScriptRPC rpc = new ScriptRPC();
+			rpc.Write(type);
+			rpc.Send(source, RPC_SOUND_PLAY, true, other.GetIdentity());
+		}
+	}
+
 	// ------------------------------------------------------------------ damage
 
 	//! Called for a player, infected or animal about to take damage, on the server. Returns false when
@@ -354,6 +431,58 @@ modded class Weapon_Base
 
 modded class PlayerBase
 {
+	protected EntityAI m_AFSoundWeapon;
+	protected bool m_AFWasAiming;
+	protected float m_AFZeroing;
+	protected int m_AFZoom;
+	protected int m_AFLastSoundTime;
+
+	//! On the PC of the player holding the weapon: notice aiming, zeroing and zooming, and make the sound.
+	override void CommandHandler(float pDt, int pCurrentCommandID, bool pCurrentCommandFinished)
+	{
+		super.CommandHandler(pDt, pCurrentCommandID, pCurrentCommandFinished);
+		if (GetGame().IsDedicatedServer() || PlayerBase.Cast(GetGame().GetPlayer()) != this)
+			return;
+		Weapon_Base weapon = Weapon_Base.Cast(GetItemInHands());
+		if (weapon && AFConfig.BaseClassOf(weapon) == "")
+			weapon = null;
+		bool aiming = false;
+		float zeroing = 0;
+		int zoom = -1;
+		if (weapon)
+		{
+			aiming = IsInIronsights() || IsInOptics();
+			zeroing = weapon.GetCurrentZeroing(weapon.GetCurrentMuzzle());
+			ItemOptics optic = weapon.GetAttachedOptics();
+			if (optic)
+				zoom = optic.GetStepFOVIndex();
+		}
+		if (weapon && weapon == m_AFSoundWeapon)
+		{
+			if (aiming && !m_AFWasAiming)
+				AF_Sound(AFConfig.SOUND_AIM);
+			if (zeroing != m_AFZeroing)
+				AF_Sound(AFConfig.SOUND_ZERO);
+			if (zoom != m_AFZoom && zoom >= 0 && m_AFZoom >= 0)
+				AF_Sound(AFConfig.SOUND_ZOOM);
+		}
+		m_AFSoundWeapon = weapon;
+		m_AFWasAiming = aiming;
+		m_AFZeroing = zeroing;
+		m_AFZoom = zoom;
+	}
+
+	protected void AF_Sound(int type)
+	{
+		AFConfig.PlayOn(this, type);
+		if (GetGame().IsMultiplayer())
+		{
+			ScriptRPC rpc = new ScriptRPC();
+			rpc.Write(type);
+			rpc.Send(this, AFConfig.RPC_SOUND, true, null);
+		}
+	}
+
 	override void OnPlayerLoaded()
 	{
 		super.OnPlayerLoaded();
@@ -372,6 +501,23 @@ modded class PlayerBase
 		{
 			if (!GetGame().IsDedicatedServer())
 				AFConfig.Receive(ctx);
+		}
+		else if (rpc_type == AFConfig.RPC_SOUND)
+		{
+			// Only from the player themself, and not more than ten a second.
+			int type;
+			int now = GetGame().GetTime();
+			if (GetGame().IsServer() && sender && GetIdentity() && sender.GetId() == GetIdentity().GetId() && now - m_AFLastSoundTime > 100 && ctx.Read(type))
+			{
+				m_AFLastSoundTime = now;
+				AFConfig.RelaySound(this, type);
+			}
+		}
+		else if (rpc_type == AFConfig.RPC_SOUND_PLAY)
+		{
+			int heard;
+			if (!GetGame().IsDedicatedServer() && ctx.Read(heard))
+				AFConfig.PlayOn(this, heard);
 		}
 	}
 

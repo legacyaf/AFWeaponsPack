@@ -22,10 +22,10 @@ class CfgPatches
 {
 	class AF_Weapons
 	{
-		units[] = {};
+		units[] = {"AF_WeaponRepairKit"};
 		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1"};
+		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools"};
 	};
 };
 
@@ -408,6 +408,21 @@ class CfgWeapons
 				};
 			};
 		};
+	};
+};
+
+// Weapon repair kit. It looks like the game's weapon cleaning kit and is used the same way (combine it
+// with the weapon), but only repairs weapons of this pack, and can bring a ruined one back. Time, amount
+// restored, uses per kit and whether it works on suppressors are server settings (AF_WeaponsPack.json).
+class CfgVehicles
+{
+	class WeaponCleaningKit;
+	class AF_WeaponRepairKit: WeaponCleaningKit
+	{
+		scope = 2;
+		displayName = "AF Weapon Repair Kit";
+		descriptionShort = "An armourer's kit for Allied Forces weapons. Combine it with a weapon of the pack to repair it, even a ruined one. It does nothing for other weapons.";
+		repairKitType = 99;      // no item lists kit type 99, so the game's own cleaning recipe ignores this kit
 	};
 };
 

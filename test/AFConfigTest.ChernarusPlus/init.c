@@ -34,11 +34,53 @@ void main()
 			continue;
 		}
 		AFWeaponSettings s = AFConfig.For(w);
+		if (i == 0)
+			AFKitTest(player, pos);
 		string own = "none (not a weapon of the pack)";
 		if (s)
 			own = "file entry " + s.ClassName + " enabled=" + s.Enabled.ToString() + " recoil=" + s.RecoilMultiplier.ToString() + " sway=" + s.SwayMultiplier.ToString() + " damage=" + s.DamageMultiplier.ToString() + " jam=" + s.JamChanceMultiplier.ToString() + " wear=" + s.ExtraWearPerShot.ToString();
 		PropertyModifiers pm = w.GetPropertyModifierObject();
 		Print("[AFCfg] " + types.Get(i) + ": " + own + " | recoilModifier=" + pm.m_RecoilModifiers.ToString() + " swayModifier=" + pm.m_SwayModifiers.ToString());
+	}
+}
+
+// The repair kit, without the crafting animation: a ruined P08 and a fresh kit, used until the kit is gone.
+void AFKitTest(PlayerBase player, vector pos)
+{
+	ItemBase gun = ItemBase.Cast(GetGame().CreateObjectEx("AF_P08", Vector(pos[0], pos[1], pos[2] + 2), ECE_PLACE_ON_SURFACE));
+	ItemBase kit = ItemBase.Cast(GetGame().CreateObjectEx("AF_WeaponRepairKit", Vector(pos[0] + 0.5, pos[1], pos[2] + 2), ECE_PLACE_ON_SURFACE));
+	ItemBase other = ItemBase.Cast(GetGame().CreateObjectEx("M4A1", Vector(pos[0] + 1.0, pos[1], pos[2] + 2), ECE_PLACE_ON_SURFACE));
+	if (!gun || !kit || !other)
+	{
+		Print("[AFCfg] kit test FAILED to spawn its items");
+		return;
+	}
+	gun.SetHealth01("", "", 0.0);
+	other.SetHealth01("", "", 0.3);
+	AFRepairWeapon recipe = new AFRepairWeapon;
+	ItemBase wrong[2];
+	wrong[0] = kit;
+	wrong[1] = other;
+	Print("[AFCfg] kit: quantity " + kit.GetQuantity().ToString() + " of " + kit.GetQuantityMax().ToString() + ", seconds " + recipe.GetLengthInSecs().ToString() + ", can repair an M4A1: " + recipe.CanDo(wrong, player).ToString());
+	ItemBase pair[2];
+	pair[0] = kit;
+	pair[1] = gun;
+	for (int i = 1; i <= 6; i++)
+	{
+		if (!kit)
+		{
+			Print("[AFCfg] kit: used up after " + (i - 1).ToString() + " uses");
+			break;
+		}
+		gun.SetHealth01("", "", 0.0);
+		bool can = recipe.CanDo(pair, player);
+		recipe.Do(pair, player, null, 0);
+		string left = "gone";
+		if (kit && !kit.IsSetForDeletion())
+			left = kit.GetQuantity().ToString();
+		else
+			kit = null;
+		Print("[AFCfg] kit use " + i.ToString() + ": could repair a ruined P08: " + can.ToString() + ", P08 health now " + gun.GetHealth01("", "").ToString() + ", kit left " + left);
 	}
 }
 
