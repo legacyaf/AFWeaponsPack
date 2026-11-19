@@ -42,7 +42,7 @@ When a player aims a weapon of this pack, changes its zeroing or changes the zoo
 
 | Setting | Default | What it does |
 |---|---|---|
-| `AimSoundsEnabled` | 1 | 0: no sounds. |
+| `AimSoundsEnabled` | 0 | Off by default in 0.11.0, because the sounds have not been tried in play yet. 1 switches them on. |
 | `AimSoundRadius` | 10.0 | Metres. Players further away are not sent the sound (0 to 100). |
 | `AimSoundSetRifle` | `Weapon_Movement_Rifle_walkRasErc_SoundSet` | Played when a rifle or submachine gun is aimed. |
 | `AimSoundSetPistol` | `Weapon_Movement_Pistol_walkRasErc_SoundSet` | Played when a pistol is aimed. |

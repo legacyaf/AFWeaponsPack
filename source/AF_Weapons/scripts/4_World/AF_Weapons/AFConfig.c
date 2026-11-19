@@ -52,7 +52,7 @@ class AFConfigData
 	bool RepairKitWorksOnSuppressors = false;      //!< true: also repairs suppressors (any suppressor, they are vanilla items)
 
 	// Sounds other players can hear when a weapon of the pack is aimed, zoomed or zeroed.
-	bool AimSoundsEnabled = true;
+	bool AimSoundsEnabled = false;                 //!< off until a server owner turns it on (0.11.0: not yet heard in play)
 	float AimSoundRadius = 10.0;                   //!< metres; players further away are not sent the sound
 	string AimSoundSetRifle = "Weapon_Movement_Rifle_walkRasErc_SoundSet";
 	string AimSoundSetPistol = "Weapon_Movement_Pistol_walkRasErc_SoundSet";

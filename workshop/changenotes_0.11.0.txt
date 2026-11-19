@@ -7,7 +7,22 @@ New weapon: AF P08
 - Two finishes: walnut grips and blued steel, or gold floral grips on black.
 - Uses the P1 animations and sounds. The toggle stays flat when the action opens.
 
+New: server settings
+- The server writes AF_WeaponsPack.json into its profiles folder on first start.
+- For the whole pack and for each weapon: recoil, sway, damage and jam chance multipliers. Per weapon: switch it off, or add wear per shot. Optional: weapons take no damage from bullets.
+- The settings only affect this pack's weapons, never vanilla or other mods' weapons.
+- Every setting is explained in ServerFiles\SETTINGS.md.
+
+New: AF Weapon Repair Kit
+- Combine it with a weapon of the pack to repair it, even a ruined one.
+- Repair time, amount restored, uses per kit and whether it works on suppressors are server settings.
+
+New, switched off by default: a short sound when a weapon of the pack is aimed, zoomed or zeroed, heard by players nearby. Turn it on in the settings file.
+
+All weapons
+- Triggers are curved, rounded blades instead of flat cut-outs.
+
 Server owners
-- New class names: AF_P08, AF_P08_Gold, Mag_AFP08_8Rnd.
-- The loot files in ServerFiles have entries for all three. Merge them again, or the P08 and its magazine will not spawn. No other magazine fits the pistol.
+- New class names: AF_P08, AF_P08_Gold, Mag_AFP08_8Rnd, AF_WeaponRepairKit.
+- The loot files in ServerFiles have entries for all four. Merge them again, or they will not spawn. No other magazine fits the P08.
 - No class name or loot changes for the AF-7, the M41 or the MP40.

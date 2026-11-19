@@ -58,6 +58,19 @@ A toggle-lock 9 mm service pistol with its own model, textures and magazine.
 
 Class names: [b]AF_P08[/b], [b]AF_P08_Gold[/b] and the magazine [b]Mag_AFP08_8Rnd[/b]
 
+[h2]Server settings[/h2]
+Server owners tune the pack in one file, [b]AF_WeaponsPack.json[/b], which the server writes into its profiles folder on first start.
+
+[list]
+[*][b]Per weapon and for the whole pack:[/b] recoil, sway, damage and jam chance.
+[*][b]Per weapon:[/b] switch it off, or add wear per shot.
+[*][b]AF Weapon Repair Kit:[/b] repairs the pack's weapons, even ruined ones. Repair time, amount restored and uses per kit are settings.
+[*][b]Optional:[/b] weapons take no damage from bullets; a short sound when a weapon is aimed, zoomed or zeroed.
+[*]The settings only affect this pack's weapons. Vanilla weapons and other mods are never touched.
+[/list]
+
+Every setting is explained in [b]ServerFiles\SETTINGS.md[/b] inside the mod. Class name of the kit: [b]AF_WeaponRepairKit[/b]
+
 [h2]Licensed servers only[/h2]
 This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
 
@@ -80,7 +93,8 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]Hand position, sight alignment and attachment placement are still being tuned.
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
 [*]The AF-7's safety and bolt catch do not animate yet.
-[*]The MP40 is brand new: firing, cocking and the first-person view have not been tuned in game yet.
+[*]The MP40 and P08 are new: firing, cocking and the first-person view have not been tuned in game yet.
+[*]The server settings are new: recoil, sway, switching weapons off and the repair kit have been tested; damage, jam chance and wear settings have not been tried in play yet.
 [*]The P08 borrows the P1 animations: its toggle stays flat instead of folding up when the action opens, and the magazine clips through the grip for a moment during a reload.
 [/list]
 
