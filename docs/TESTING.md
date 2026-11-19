@@ -79,3 +79,8 @@ Do these for `AFM41_Pathfinder` (and glance at `AFM41_Pathfinder_Gold` for the f
 It covers: every part textured, both finishes, attachments fitted, damage states, hand positions when aimed, sling, bolt cycle. It does not cover: first-person view and sights, the firing animation itself (the scripted shot does not play it), reloading, sound, distance LODs beyond about 12 m, anything multiplayer or the licence check.
 
 Result on 0.9.0 (2026-11-18): all rifles spawned, all attachments fitted, both texture sets drawn on both rifles in both finishes, damaged and ruined looks applied to metal and furniture, bolt cycle played with the cocking piece staying on the bolt. Sheets of the pictures are in `docs\img\ingame`.
+## Frame-rate and LOD test
+
+`test\run_test.ps1 -Mission AFPerfTest.ChernarusPlus -TimeoutSeconds 600` lays 1,600 of one weapon on the runway, averages the frame rate from 15 to 200 m (lines `[AFPerf] <name> <metres> <fps>` in the script log), repeats that for each AF weapon and the vanilla weapon it is built on, then photographs one of each AF weapon from 2 to 80 m (`af_pull_*.png`). This PC caps at 180 fps and 196 weapons never pulled it below the cap, hence 1,600.
+
+Result on 2026-11-19 (pack 0.10.0), extra frame time for 1,600 weapons at 15 m over the empty runway (5.6 ms): AF-7 with magazine 6.6 ms, M4A1 with handguard, stock and magazine 10.1 ms; M41 2.4 ms, Mosin 2.1 ms; MP40 with magazine 5.9 ms, UMP-45 with magazine 2.9 ms. The cost barely changes between 15 and 60 m, so it is not set by triangle count.
