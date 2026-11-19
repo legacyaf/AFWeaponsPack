@@ -1,7 +1,7 @@
 Allied Forces Weapons Pack - loot files for server owners
 ==========================================================
 
-These files make the AF-7 Vanguard, AF M41 Pathfinder and AF MP40 spawn as loot. They only matter on the
+These files make the AF-7 Vanguard, AF M41 Pathfinder, AF MP40 and AF P08 spawn as loot. They only matter on the
 server; players do not need them. Your server also needs a licence for the
 mod to work at all (see the Workshop page).
 
@@ -20,6 +20,11 @@ Class names
                       Tier 2-3. Most spawn with their magazine fitted.
   AF_MP40_Gold        gold floral finish. Does NOT spawn by default (nominal 0).
   Mag_AFMP40_32Rnd    the MP40's 32-round magazine. Spawns: 10 on the map. The MP40 takes
+                      no other magazine, so do not leave this one out.
+  AF_P08              service pistol (9x19). Spawns: 8 on the map, Military, Police and
+                      Town, Tier 1-3. Most spawn with their magazine fitted.
+  AF_P08_Gold         gold floral grips. Does NOT spawn by default (nominal 0).
+  Mag_AFP08_8Rnd      the P08's 8-round magazine. Spawns: 14 on the map. The P08 takes
                       no other magazine, so do not leave this one out.
 
 OPTION A - paste into your existing files (simplest)

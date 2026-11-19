@@ -50,5 +50,16 @@
             <item name="Mag_AFMP40_32Rnd" chance="1.00"/>
         </attachments>
     </type>
+    <!-- The P08 only takes its own magazine, so most of them spawn with one fitted. -->
+    <type name="AF_P08">
+        <attachments chance="0.70">
+            <item name="Mag_AFP08_8Rnd" chance="1.00"/>
+        </attachments>
+    </type>
+    <type name="AF_P08_Gold">
+        <attachments chance="1.00">
+            <item name="Mag_AFP08_8Rnd" chance="1.00"/>
+        </attachments>
+    </type>
 </spawnabletypes>
 

@@ -4,8 +4,9 @@
 // AF-7 "Vanguard"    - original Allied Forces assault rifle, 5.56x45 / .308.
 // AF M41 "Pathfinder" - WW2-style bolt-action sniper rifle, 7.62x54R (inherits the Mosin 91/30).
 // AF MP40           - WW2-style 9 mm submachine gun with its own 32-round magazine (inherits the UMP-45).
+// AF P08            - toggle-lock 9 mm pistol with its own 8-round magazine (inherits the P1).
 //
-// Each weapon inherits a vanilla weapon (M4A1, Mosin 91/30, UMP-45). That gives it that
+// Each weapon inherits a vanilla weapon (M4A1, Mosin 91/30, UMP-45, P1). That gives it that
 // weapon's animations, sounds, recoil and fire modes, so we only need to supply
 // the model and textures.
 //
@@ -22,9 +23,9 @@ class CfgPatches
 	class AF_Weapons
 	{
 		units[] = {};
-		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold"};
+		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines"};
+		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1"};
 	};
 };
 
@@ -36,7 +37,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.10.0";
+		version = "0.11.0";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).
@@ -58,6 +59,7 @@ class CfgWeapons
 	class M4A1;
 	class Mosin9130;
 	class UMP45;
+	class P1;
 
 	class AF7_Vanguard: M4A1
 	{
@@ -334,6 +336,79 @@ class CfgWeapons
 			};
 		};
 	};
+
+	// AF P08: toggle-lock 9 mm service pistol.
+	// Inherits the vanilla P1: its animations, sounds, recoil and handling. The model is built in the
+	// P1's own frame with the P1's bone names. Different from the P1: its own 8-round magazine
+	// (CfgMagazines below) and a slot for the pistol suppressor as well as the improvised one.
+	class AF_P08: P1
+	{
+		scope = 2;
+		displayName = "AF P08";
+		descriptionShort = "An Allied Forces service pistol in the pattern of 1908: a toggle-locked action, a slim tapered barrel and a steeply raked grip with checkered walnut panels. It fires 9x19mm from its own 8-round magazine.";
+		weight = 870;
+		model = "\AF_Weapons\afp08\afp08.p3d";
+
+		magazines[] = {"Mag_AFP08_8Rnd"};
+
+		// Slots the model has proxies for: improvised suppressor and pistol suppressor.
+		attachments[] = {"suppressorImpro", "pistolMuzzle"};
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afp08\data\afp08_body_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afp08\data\afp08_body.rvmat"};
+
+		// Iron sights: no depth-of-field blur when aiming (same choice as the other AF weapons).
+		// The other values are the P1's.
+		PPDOFProperties[] = {0, 0.55, 10, 240, 4, 10};
+
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 200;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afp08\data\afp08_body.rvmat"}},
+						{0.7, {"AF_Weapons\afp08\data\afp08_body.rvmat"}},
+						{0.5, {"AF_Weapons\afp08\data\afp08_body_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afp08\data\afp08_body_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afp08\data\afp08_body_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
+	// Gold floral finish: black grips with the gold floral pattern, blued steel unchanged.
+	// Not in the loot tables by default.
+	class AF_P08_Gold: AF_P08
+	{
+		scope = 2;
+		displayName = "AF P08 (Gold)";
+		descriptionShort = "An Allied Forces P08 with gold floral grips on black. It fires 9x19mm from its own 8-round magazine.";
+		hiddenSelectionsTextures[] = {"AF_Weapons\afp08\data\afp08_body_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afp08\data\afp08_body_gold.rvmat"};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 200;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afp08\data\afp08_body_gold.rvmat"}},
+						{0.7, {"AF_Weapons\afp08\data\afp08_body_gold.rvmat"}},
+						{0.5, {"AF_Weapons\afp08\data\afp08_body_gold_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afp08\data\afp08_body_gold_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afp08\data\afp08_body_gold_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
 };
 
 // The AF MP40's own magazine. It inherits the UMP-45 magazine (same slot, same handling and
@@ -367,6 +442,35 @@ class CfgMagazines
 						{0.5, {"AF_Weapons\afmp40\data\afmp40_mag_damage.rvmat"}},
 						{0.3, {"AF_Weapons\afmp40\data\afmp40_mag_damage.rvmat"}},
 						{0.0, {"AF_Weapons\afmp40\data\afmp40_mag_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
+	// The AF P08's own magazine. It inherits the P1 magazine (same slot, handling and sounds)
+	// and changes the model.
+	class Mag_P1_8Rnd;
+	class Mag_AFP08_8Rnd: Mag_P1_8Rnd
+	{
+		scope = 2;
+		displayName = "AF P08 8rd Magazine";
+		descriptionShort = "An 8-round magazine for the AF P08, with a wooden base. It holds 9x19mm rounds.";
+		model = "\AF_Weapons\afp08\afp08_mag.p3d";
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 100;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afp08\data\afp08_mag.rvmat"}},
+						{0.7, {"AF_Weapons\afp08\data\afp08_mag.rvmat"}},
+						{0.5, {"AF_Weapons\afp08\data\afp08_mag_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afp08\data\afp08_mag_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afp08\data\afp08_mag_destruct.rvmat"}}
 					};
 				};
 			};

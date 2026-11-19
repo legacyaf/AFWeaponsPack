@@ -1,0 +1,55 @@
+// Material for the AF P08 body ("Super" shader).
+// Lighting values are the vanilla Mosin's (dz\weapons\firearms\mosin9130\data\mosin_9130.rvmat):
+// specular 0.4, power 50, fresnel(0.6,0.6), env_land_co. Only the texture paths differ.
+// Textures come from blender/afp08_dayz_export.py, converted to .paa.
+
+ambient[] = {1, 1, 1, 1};
+diffuse[] = {1, 1, 1, 1};
+forcedDiffuse[] = {0, 0, 0, 0};
+emmisive[] = {0, 0, 0, 1};
+specular[] = {0.4, 0.4, 0.4, 1};
+specularPower = 50;
+PixelShaderID = "Super";
+VertexShaderID = "Super";
+
+class Stage1
+{
+	texture = "AF_Weapons\afp08\data\afp08_body_nohq.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage2
+{
+	texture = "#(argb,8,8,3)color(0.5,0.5,0.5,1,DT)";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage3
+{
+	texture = "#(argb,8,8,3)color(0,0,0,0,MC)";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage4
+{
+	texture = "AF_Weapons\afp08\data\afp08_body_as.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage5
+{
+	texture = "AF_Weapons\afp08\data\afp08_body_smdi.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage6
+{
+	texture = "#(ai,32,128,1)fresnel(0.6,0.6)";
+	uvSource = "none";
+};
+class Stage7
+{
+	texture = "dz\data\data\env_land_co.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};

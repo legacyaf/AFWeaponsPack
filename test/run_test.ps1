@@ -50,4 +50,4 @@ while (-not $p.HasExited) {
 }
 [void][AF.Power]::SetThreadExecutionState([uint32]"0x80000000")     # ES_CONTINUOUS alone: back to normal
 "exit code $($p.ExitCode) after $([int]((Get-Date) - $start).TotalSeconds) s, $shots pictures saved in $prof"
-if ($log) { Select-String -Path $log.FullName -Pattern 'AFTest\] (FAILED|spawned|attached|AFM41|AF_MP40|held|spare|swapping|firing|working|all)|AF_Weapons|Can.t compile' | ForEach-Object { $_.Line } }
+if ($log) { Select-String -Path $log.FullName -Pattern 'AFTest\] (FAILED|spawned|attached|AFM41|AF_MP40|AF_P08|held|spare|swapping|firing|working|all)|AF_Weapons|Can.t compile' | ForEach-Object { $_.Line } }
