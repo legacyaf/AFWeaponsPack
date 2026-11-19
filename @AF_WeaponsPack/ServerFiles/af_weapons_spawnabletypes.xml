@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8" standalone="yes"?>
-<!-- What spawns attached to the AF-7. chance = 0.0 to 1.0.
+<!-- What spawns attached to the AF weapons. chance = 0.0 to 1.0.
      Paste the <type> entries into your mission's cfgspawnabletypes.xml, or load this file
      through cfgeconomycore.xml (see README.txt next to this file). -->
 <spawnabletypes>
@@ -36,4 +36,19 @@
             <item name="PUScopeOptic" chance="1.00"/>
         </attachments>
     </type>
+    <!-- The MP40 only takes its own magazine, so most of them spawn with one fitted. -->
+    <type name="AF_MP40">
+        <attachments chance="0.70">
+            <item name="Mag_AFMP40_32Rnd" chance="1.00"/>
+        </attachments>
+        <attachments chance="0.05">
+            <item name="PistolSuppressor" chance="1.00"/>
+        </attachments>
+    </type>
+    <type name="AF_MP40_Gold">
+        <attachments chance="1.00">
+            <item name="Mag_AFMP40_32Rnd" chance="1.00"/>
+        </attachments>
+    </type>
 </spawnabletypes>
+

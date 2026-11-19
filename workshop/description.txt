@@ -32,6 +32,18 @@ A WW2-style bolt-action sniper rifle with its own model and textures.
 
 Class names: [b]AFM41_Pathfinder[/b] and [b]AFM41_Pathfinder_Gold[/b]
 
+[h2]AF MP40[/h2]
+A WW2-style 9 mm submachine gun with its own model, textures and magazine.
+
+[list]
+[*][b]9x19mm[/b] from its own 32-round stick magazine. Automatic only, at a slow and steady rate.
+[*][b]Attachments:[/b] pistol suppressor and ghillie wrap.
+[*][b]Two finishes:[/b] bakelite and steel, or gold floral on black.
+[*][b]Handling:[/b] uses the UMP-45 animations.
+[*]Steel tube receiver, bakelite frame and grip, resting bar under the barrel, hooded front sight and an under-folding stock.
+[/list]
+
+Class names: [b]AF_MP40[/b], [b]AF_MP40_Gold[/b] and the magazine [b]Mag_AFMP40_32Rnd[/b]
 [h2]Licensed servers only[/h2]
 This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
 
@@ -54,7 +66,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]Hand position, sight alignment and attachment placement are still being tuned.
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
 [*]The AF-7's safety and bolt catch do not animate yet.
-[*]The M41 Pathfinder is brand new: bolt movement, hand positions and attachment placement have not been tuned in game yet.
+[*]The MP40 is brand new: firing, cocking and the first-person view have not been tuned in game yet.
 [/list]
 
 [h2]Terms[/h2]

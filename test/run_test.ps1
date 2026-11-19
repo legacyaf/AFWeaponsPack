@@ -1,7 +1,7 @@
 # Runs the offline test mission in DayZDiag with the locally built mod and saves a picture of the
 # game window for every shot the mission announces in its script log. Steam must be running.
 # Only the game process this script starts is ever stopped.
-param([int]$TimeoutSeconds = 300)
+param([int]$TimeoutSeconds = 300, [string]$Mission = 'AFWeaponsTest.ChernarusPlus')
 Add-Type -ReferencedAssemblies System.Drawing -TypeDefinition @"
 using System; using System.Drawing; using System.Drawing.Imaging; using System.Runtime.InteropServices;
 public static class AFCapture {
@@ -15,6 +15,15 @@ public static class AFCapture {
             bmp.Save(path, ImageFormat.Png); return true; } }
 }
 "@
+# With the monitor asleep Windows stops drawing windows and every picture comes out black. So the
+# display is woken (a one-pixel mouse nudge, there and back) and kept on while the test runs; the
+# request is dropped again at the end, and the PC's own power settings are not changed.
+Add-Type -Namespace AF -Name Power -MemberDefinition @"
+[DllImport("kernel32.dll")] public static extern uint SetThreadExecutionState(uint flags);
+[DllImport("user32.dll")] public static extern void mouse_event(uint flags, int dx, int dy, uint data, UIntPtr extra);
+"@
+[AF.Power]::mouse_event(1, 1, 0, 0, [UIntPtr]::Zero); [AF.Power]::mouse_event(1, -1, 0, 0, [UIntPtr]::Zero)
+[void][AF.Power]::SetThreadExecutionState([uint32]"0x80000003")     # ES_CONTINUOUS | ES_SYSTEM_REQUIRED | ES_DISPLAY_REQUIRED
 $root = Split-Path -Parent $PSScriptRoot
 $game = 'C:\Program Files (x86)\Steam\steamapps\common\DayZ'
 $prof = Join-Path $PSScriptRoot 'profiles'
@@ -22,7 +31,7 @@ New-Item -ItemType Directory -Force $prof | Out-Null
 Get-ChildItem $prof -Filter 'af_*.png' -ErrorAction SilentlyContinue | Remove-Item -Force
 $start = Get-Date
 $p = Start-Process -FilePath "$game\DayZDiag_x64.exe" -WorkingDirectory $game -PassThru -ArgumentList @(
-    "`"-mission=$PSScriptRoot\AFWeaponsTest.ChernarusPlus`"", "`"-mod=$root\@AF_WeaponsPack`"", "`"-profiles=$prof`"",
+    "`"-mission=$PSScriptRoot\$Mission`"", "`"-mod=$root\@AF_WeaponsPack`"", "`"-profiles=$prof`"",
     '-window', '-nosplash', '-noPause', '-scriptDebug=true')
 "started DayZDiag pid $($p.Id)"
 $log = $null; $offset = 0; $shots = 0
@@ -39,5 +48,6 @@ while (-not $p.HasExited) {
     }
     Start-Sleep -Milliseconds 120
 }
+[void][AF.Power]::SetThreadExecutionState([uint32]"0x80000000")     # ES_CONTINUOUS alone: back to normal
 "exit code $($p.ExitCode) after $([int]((Get-Date) - $start).TotalSeconds) s, $shots pictures saved in $prof"
-if ($log) { Select-String -Path $log.FullName -Pattern 'AFTest\] (FAILED|spawned|attached|AFM41|all)|AF_Weapons|Can.t compile' | ForEach-Object { $_.Line } }
+if ($log) { Select-String -Path $log.FullName -Pattern 'AFTest\] (FAILED|spawned|attached|AFM41|AF_MP40|held|spare|swapping|firing|working|all)|AF_Weapons|Can.t compile' | ForEach-Object { $_.Line } }

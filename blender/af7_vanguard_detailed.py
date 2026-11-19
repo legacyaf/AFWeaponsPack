@@ -468,9 +468,82 @@ def bm_tube(bm, outer, inner, y0, y1, shear=0.0, zref=BORE):
         bm.faces.new((ob_[i], ob_[j], ib[j], ib[i]))
 
 
-# Round parts with 16 or more sides get this many times the sides they ask for (0.9.0: 1.5).
-# Faceted parts (hex, octagon: smooth=False or fewer sides) are left alone.
-ROUND_DETAIL = 1.5
+# Round parts with ROUND_MIN_SIDES or more sides get ROUND_DETAIL times the sides they ask for,
+# up to ROUND_MAX_SIDES (0.9.0: 1.5 from 16 sides; 0.10.0: 2.0 from 10 sides, so pins, screws and
+# knobs are round in outline too). Faceted parts (hex, octagon: smooth=False or fewer sides)
+# are left alone.
+ROUND_DETAIL = 2.0
+ROUND_MIN_SIDES = 10
+ROUND_MAX_SIDES = 64
+
+
+def round_sides(sides, smooth=True):
+    if smooth and sides >= ROUND_MIN_SIDES:
+        if ROUND_DETAIL >= 1.0:
+            return max(sides, min(ROUND_MAX_SIDES, int(round(sides * ROUND_DETAIL))))
+        return max(4, int(round(sides * ROUND_DETAIL)))        # reduced-detail build for a distance LOD
+    return sides
+
+
+# Detail levels. FULL is the model as designed. The others rebuild the same weapon with fewer
+# sides on round parts, plainer edges and, at the far end, no Boolean cuts, and are used by the
+# DayZ export for the distance LODs: a part built coarse is clean, where the same part decimated
+# from full detail comes out jagged (slotted handguards and tubes above all).
+#   (name, ROUND_DETAIL, EDGE_SEGMENTS, FILLET_STEP in degrees (0 = corners as drawn), CUTS)
+FULL = ("full", 2.0, 3, 15.0, True)
+DETAIL_LEVELS = (("medium", 1.0, 1, 30.0, True), ("low", 0.5, 0, 0.0, True), ("far", 0.34, 0, 0.0, False),
+                 ("minimal", 0.2, 0, 0.0, False))
+FILLET_STEP = 15.0
+CUTS = True
+
+
+def set_detail(level):
+    global ROUND_DETAIL, EDGE_SEGMENTS, FILLET_STEP, CUTS
+    _name, ROUND_DETAIL, EDGE_SEGMENTS, FILLET_STEP, CUTS = level
+
+
+# Rounded edges (0.10.0). A chamfer this wide or wider is cut in EDGE_SEGMENTS steps instead of
+# one flat face, so it reads as a rounded edge in outline; narrower ones get fewer steps, because
+# nobody can see the difference and every step costs triangles on every rib and screw.
+EDGE_SEGMENTS = 3
+EDGE_STEPS = ((0.0015, 3), (0.0007, 2))     # (minimum chamfer width in metres, steps)
+
+
+def edge_segments(width, asked=1):
+    if EDGE_SEGMENTS <= 1:
+        return EDGE_SEGMENTS
+    for limit, steps in EDGE_STEPS:
+        if width >= limit:
+            return max(asked, min(steps, EDGE_SEGMENTS))
+    return asked
+
+
+def fillet(pts, radius, step_deg=None):
+    """Round the corners of a closed outline [(a, b), ...]. Each corner is replaced by a curve
+    that starts `radius` before it and ends `radius` after it (less on short edges)."""
+    step_deg = FILLET_STEP if step_deg is None else step_deg
+    if not radius or not step_deg:
+        return list(pts)
+    out, n = [], len(pts)
+    for i in range(n):
+        p, a, b = Vector(pts[i]), Vector(pts[i - 1]), Vector(pts[(i + 1) % n])
+        u, v = a - p, b - p
+        lu, lv = u.length, v.length
+        if lu < 1e-9 or lv < 1e-9:
+            out.append(tuple(p))
+            continue
+        turn = math.pi - u.angle(v)
+        cut_len = min(radius, 0.45 * lu, 0.45 * lv)
+        steps = int(math.ceil(math.degrees(turn) / step_deg))
+        if steps < 2 or cut_len < 1e-5:
+            out.append(tuple(p))
+            continue
+        start, end = p + u * (cut_len / lu), p + v * (cut_len / lv)
+        for k in range(steps + 1):
+            t = k / steps
+            q = start * (1 - t) ** 2 + p * (2 * t * (1 - t)) + end * t ** 2
+            out.append((q.x, q.y))
+    return out
 
 
 def bm_lathe(bm, prof, sides=16, axis="Y", c=(0.0, BORE), closed=False, cap=True, smooth=True):
@@ -485,8 +558,7 @@ def bm_lathe(bm, prof, sides=16, axis="Y", c=(0.0, BORE), closed=False, cap=True
         if axis == "X":
             return (pos, c[0] + a, c[1] + b)
         return (c[0] + a, c[1] + b, pos)
-    if smooth and sides >= 16:
-        sides = int(round(sides * ROUND_DETAIL))
+    sides = round_sides(sides, smooth)
     ang = [2 * math.pi * (i + 0.5) / sides for i in range(sides)]
     rings = []
     for pos, r in prof:
@@ -541,10 +613,10 @@ def make(name, bm, col, mat, note="", bevel=0.0, segments=1, sharp=35.0):
     if mat:
         me.materials.append(mat)
     ob["dayz"] = note
-    if bevel:
+    if bevel and edge_segments(bevel, segments) > 0:
         mod = ob.modifiers.new("Bevel", "BEVEL")
         mod.width = bevel
-        mod.segments = segments
+        mod.segments = edge_segments(bevel, segments)
         mod.limit_method = "WEIGHT"
     return ob
 
@@ -555,9 +627,10 @@ def box(name, col, mat, center, size, rot=(0, 0, 0), bevel=0.0008, note="", **kw
     return make(name, bm, col, mat, note, bevel, **kw)
 
 
-def profile(name, col, mat, pts, width, x=0.0, bevel=0.002, note="", **kw):
+def profile(name, col, mat, pts, width, x=0.0, bevel=0.002, note="", round=0.0, **kw):
+    """round: corner radius of the side outline (see fillet). 0 keeps the corners as drawn."""
     bm = bmesh.new()
-    bm_profile(bm, pts, width, x)
+    bm_profile(bm, fillet(pts, round), width, x)
     return make(name, bm, col, mat, note, bevel, **kw)
 
 
@@ -572,6 +645,8 @@ def cut(target, cutter, name):
     cutter.display_type = "WIRE"
     cutter.hide_render = True
     cutter.hide_viewport = True
+    if not CUTS:
+        return
     boo = target.modifiers.new(name, "BOOLEAN")
     boo.operation = "DIFFERENCE"
     boo.solver = "EXACT"
@@ -623,7 +698,7 @@ def build():
     upper = profile("UpperReceiver", body, m_anod,
                     [(-0.100, 0.036), (-0.100, 0.066), (-0.087, 0.079), (0.122, 0.079),
                      (0.122, 0.040), (0.118, 0.036)],
-                    width=0.034, bevel=0.003,
+                    width=0.034, bevel=0.003, round=0.0025,
                     note="Upper receiver. Flat sides, big single chamfers, real ejection-port pocket on the right.")
     port = box("UpperReceiver_PortCutter", cutters, None, (0.018, 0.035, 0.058), (0.024, 0.062, 0.015), bevel=0,
                note="Boolean cutter for the ejection port.")
@@ -648,7 +723,7 @@ def build():
     lower = profile("LowerReceiver", body, m_anod,
                     [(-0.100, 0.036), (0.119, 0.036), (0.122, 0.028), (0.126, 0.022), (0.123, -0.030), (0.116, -0.038),
                      (0.040, -0.033), (0.034, -0.027), (0.031, 0.004), (-0.088, 0.004), (-0.100, 0.016)],
-                    width=0.030, bevel=0.0025,
+                    width=0.030, bevel=0.0025, round=0.0025,
                     note="Lower receiver + magazine well. The AF logo sits in the recessed panel on each side.")
     y0, z0, w, h = LOGO_MAGWELL[:4]
     panel = [(y0 + 0.004, z0), (y0 + w - 0.004, z0), (y0 + w, z0 + 0.004), (y0 + w, z0 + h - 0.004),
@@ -674,7 +749,7 @@ def build():
     profile("TriggerGuard", body, m_anod,
             [(0.034, -0.027), (0.034, -0.032), (-0.014, -0.032), (-0.032, -0.018),
              (-0.029, -0.014), (-0.012, -0.027)],
-            width=0.014, bevel=0.001, note="Trigger guard.")
+            width=0.014, bevel=0.001, round=0.004, note="Trigger guard.")
 
     # Pins and small controls
     bm = bmesh.new()
@@ -689,7 +764,7 @@ def build():
     profile("PistolGrip", body, m_poly,
             [(-0.026, 0.006), (-0.031, -0.016), (-0.052, -0.094), (-0.060, -0.100), (-0.092, -0.094),
              (-0.094, -0.086), (-0.076, -0.028), (-0.084, -0.008), (-0.088, 0.006), (-0.070, 0.010)],
-            width=0.030, bevel=0.005,
+            width=0.030, bevel=0.005, round=0.008,
             note="Pistol grip. The right hand holds here - angle kept close to an M4 grip.")
 
     # --- Handguard: hollow, slanted nose, M-LOK style slots -------------------
@@ -776,11 +851,11 @@ def build():
     stock = profile("StockBody", body, m_poly,
                     [(-0.158, 0.072), (-0.164, 0.077), (-0.338, 0.077), (-0.342, 0.072), (-0.342, -0.052),
                      (-0.336, -0.058), (-0.322, -0.058), (-0.200, 0.026), (-0.162, 0.030), (-0.158, 0.036)],
-                    width=0.034, bevel=0.004,
+                    width=0.034, bevel=0.004, round=0.004,
                     note="Skeleton stock: one body wrapped around the buffer tube with a triangular cutout. AF logo on both sides.")
     cut(stock, profile("StockBody_Cutter", cutters, None,
                        [(-0.236, 0.022), (-0.322, 0.022), (-0.326, 0.018), (-0.326, -0.036), (-0.320, -0.038)],
-                       width=0.060, bevel=0, note="Boolean cutter - stock cutout."), "Cutout")
+                       width=0.060, bevel=0, round=0.005, note="Boolean cutter - stock cutout."), "Cutout")
     box("StockCheek", body, m_poly, (0, -0.250, 0.0795), (0.040, 0.105, 0.009), bevel=0.003,
         note="Cheek rest (where the face sits when aiming).")
     box("StockLatch", body, m_poly, (0, -0.184, 0.0255), (0.014, 0.030, 0.008), rot=(-6, 0, 0), bevel=0.002,
@@ -790,7 +865,7 @@ def build():
           sides=20, axis="X", c=(-0.318, 0.058), note="QD sling socket (static detail).")
     profile("ButtPad", body, m_rubber,
             [(-0.342, 0.078), (-0.352, 0.078), (-0.357, 0.070), (-0.357, -0.050), (-0.352, -0.059), (-0.342, -0.059)],
-            width=0.036, bevel=0.003, note="Rubber butt pad. Rear end of the rifle.")
+            width=0.036, bevel=0.003, round=0.004, note="Rubber butt pad. Rear end of the rifle.")
 
     # --- Detail pass: real geometry for the small mechanical features ----------
     # Forward assist: housing on the right rear of the upper, with its plunger.
@@ -855,7 +930,7 @@ def build():
     profile("Weapon_Trigger", moving, m_steel,
             [(0.004, 0.006), (0.006, -0.004), (0.010, -0.012), (0.012, -0.022), (0.008, -0.022),
              (0.005, -0.012), (0.000, -0.002), (-0.002, 0.006)],
-            width=0.006, bevel=0.0008,
+            width=0.006, bevel=0.0008, round=0.003,
             note="Exported as the 'trigger' selection (vanilla M4 bone). Rotates when firing.")
     bm = bmesh.new()
     bm_box(bm, (0, -0.109, 0.0745), (0.046, 0.012, 0.007))

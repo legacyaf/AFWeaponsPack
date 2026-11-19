@@ -39,6 +39,7 @@ M = None
 if not model_only:
     t0 = time.time()
     exp = importlib.import_module("afm41_pathfinder_dayz_export")
+    exp.ex.REBUILD = model.build          # distance LODs are reduced-detail rebuilds of the rifle
     lod1 = exp.export(bake=bake, tex_size=size)
     M = exp.ex.export_matrix()
     print("EXPORT_SECONDS %.1f" % (time.time() - t0))

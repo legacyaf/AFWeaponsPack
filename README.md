@@ -74,3 +74,11 @@ Until the custom model exists, the Vanguard uses the vanilla M4 model. You can a
 Bolt-action sniper rifle built on the vanilla Mosin 91/30. See `docs/M41.md` for the rifle and `docs/PIPELINE.md` for the repeatable steps used to add it. One command rebuilds it:
 
     blender -b --factory-startup --python blender/afm41_pathfinder_run.py -- 4096
+
+## Third weapon: AF MP40 (0.10.0)
+
+9 mm submachine gun built on the vanilla UMP-45, with its own 32-round magazine. See `docs/MP40.md`. One command rebuilds the gun and the magazine:
+
+    blender -b --factory-startup --python blender/afmp40_run.py -- 4096
+
+In-game check: `test\run_test.ps1 -Mission AFMP40Test.ChernarusPlus`.

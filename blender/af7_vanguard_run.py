@@ -20,6 +20,10 @@ bpy.ops.wm.save_as_mainfile(filepath=REPO + r"\blender\af7_vanguard_detailed.ble
 t0 = time.time()
 ns = runpy.run_path(REPO + r"\blender\af7_vanguard_dayz_export.py", run_name="af7_export")
 ns["__file__"] = REPO + r"\blender\af7_vanguard_dayz_export.py"
+# The distance LODs are reduced-detail rebuilds of the rifle (see build_variants in the export).
+sys.path.insert(0, REPO + r"\blender")
+import af7_vanguard_detailed as _detail
+ns["export"].__globals__["REBUILD"] = _detail.build
 lod1 = ns["export"](bake=bake, tex_size=size)
 print("EXPORT_SECONDS %.1f" % (time.time() - t0))
 M = ns["export_matrix"]()

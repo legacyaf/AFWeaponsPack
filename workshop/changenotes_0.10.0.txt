@@ -1,0 +1,18 @@
+0.10.0
+
+New weapon: AF MP40
+- WW2-style 9 mm submachine gun: steel tube receiver, bakelite furniture, under-folding stock.
+- Fires 9x19mm from its own 32-round magazine (a new item). Automatic only, slow and steady.
+- Takes a pistol suppressor and a ghillie wrap.
+- Two finishes: bakelite and steel, or gold floral on black.
+- Uses the UMP-45 animations.
+
+All weapons: edge and detail pass
+- Rounded edges instead of flat chamfers, with smooth shading across them.
+- Rounder pins, screws, knobs and barrels; curved grips, trigger guards and triggers.
+- Nine levels of detail instead of seven. Up close the weapons have about twice the detail; at range they are lighter than before, so frame rate is not affected.
+
+Server owners
+- New class names: AF_MP40, AF_MP40_Gold, Mag_AFMP40_32Rnd.
+- The loot files in ServerFiles have entries for all three. Merge them again, or the MP40 and its magazine will not spawn. No other magazine fits the gun.
+- No changes to the AF-7 or the M41.

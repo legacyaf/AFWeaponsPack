@@ -64,4 +64,52 @@
         <usage name="Military"/>
         <value name="Tier4"/>
     </type>
+    <!-- AF MP40: 9 mm submachine gun. Military and police spots, low to mid tiers. -->
+    <type name="AF_MP40">
+        <nominal>5</nominal>
+        <lifetime>28800</lifetime>
+        <restock>3600</restock>
+        <min>2</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <usage name="Police"/>
+        <value name="Tier2"/>
+        <value name="Tier3"/>
+    </type>
+    <!-- AF MP40, gold finish: does NOT spawn by default (nominal and min are 0). -->
+    <type name="AF_MP40_Gold">
+        <nominal>0</nominal>
+        <lifetime>28800</lifetime>
+        <restock>7200</restock>
+        <min>0</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <value name="Tier4"/>
+    </type>
+    <!-- The AF MP40's 32-round magazine. No other magazine fits the gun, so keep this one spawning.
+         It comes with a random number of rounds (quantmin / quantmax are percentages). -->
+    <type name="Mag_AFMP40_32Rnd">
+        <nominal>10</nominal>
+        <lifetime>14400</lifetime>
+        <restock>1800</restock>
+        <min>5</min>
+        <quantmin>10</quantmin>
+        <quantmax>80</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <usage name="Police"/>
+        <value name="Tier2"/>
+        <value name="Tier3"/>
+    </type>
 </types>
+

@@ -49,11 +49,26 @@ P3D_FOLDER = "af7_vanguard"              # folder under source/AF_Weapons
 P3D_FILE = "af7_vanguard"                # p3d and fbx file name
 ORIGIN_EMPTY = "Proxy_Magazine"          # empty that becomes the p3d origin (None = working origin)
 # Resolution LODs after LOD 1: (resolution, triangles as a share of LOD 1, smallest part kept in metres).
-# LODs 2-4 are generous, for close range. LODs 5-7 are for distance: loose parts smaller than the
+# LODs 2-4 are generous, for close range. LODs 5-9 are for distance: loose parts smaller than the
 # given size (screws, pins, ribs, rounds) are dropped, because out there they are under a pixel,
 # and what is left is decimated piece by piece (see decimated()).
-LOD_RATIOS = ((2.0, 0.75, 0.0), (3.0, 0.5, 0.0), (4.0, 0.36, 0.0),
-              (5.0, 0.22, 0.012), (6.0, 0.12, 0.022), (7.0, 0.06, 0.035))
+# 0.10.0: LOD 1 carries rounded edges and rounder parts, so it has about twice the triangles it
+# had. The chain is longer and steeper to pay for that: nine levels, each about two thirds of the
+# one before, ending near 2% (a few hundred triangles) for rifles on backs and on the ground at
+# range. The game picks the level by how big the weapon is on screen, so the extra triangles of
+# LOD 1 are only drawn close up and in first person.
+LOD_RATIOS = ((2.0, 0.66, 0.0), (3.0, 0.44, 0.0), (4.0, 0.29, 0.0),
+              (5.0, 0.19, 0.010), (6.0, 0.12, 0.016), (7.0, 0.075, 0.024),
+              (8.0, 0.045, 0.032), (9.0, 0.022, 0.042))
+HULL_MIN_SIZE = 0.024  # from this LOD on (its smallest-part size), a piece that will not decimate is
+HULL_STUBBORN = 1.8    # replaced by its convex hull: when it is left with this many times its target
+# REBUILD: the weapon's own build function (set by the run script). With it, the distance LODs are
+# made from reduced-detail rebuilds of the weapon (af7_vanguard_detailed.DETAIL_LEVELS) instead of
+# by decimating LOD 1. Without it (script run by hand in the Blender UI) LOD 1 is decimated.
+REBUILD = None
+SLIVER = 0.25          # see drop_small_parts
+VARIANT_FIT = 0.85     # a rebuild is used for a LOD when it has at least this share of the LOD's target
+SHARP_ANGLE = 35.0     # edges sharper than this (degrees) stay hard; everything else shades smooth
 LOD_PIECE_MIN = 6      # a loose piece is never decimated below this many triangles
 UV_MARGIN = 0.0016     # gap added around every UV island (about 6 px at 4096)
 UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are unwrapped in several lengths
@@ -78,6 +93,9 @@ EXTRA_SETS = (("af7_furn", ("FDE_Cerakote", "FDE_Polymer", "Rubber")),)
 # the M4's own pivots, which the Vanguard's parts don't share.
 SELECTIONS = {"Weapon_Trigger": "trigger", "Weapon_Bolt": "bolt", "ChargingHandle": "charging"}
 HIDE_BARREL = ("MuzzleBrake",)
+# Bone that every part without its own bone belongs to. None for the M4 and the Mosin; the UMP's whole
+# body is on the bone 'recoil' (it kicks when the gun fires, and the bolt and charging handle are its children).
+BODY_BONE = None
 
 # Texture space per part, relative to 1.0. More for what sits in front of the player's eyes
 # in first person, less for parts that are mostly covered or tiny.
@@ -248,6 +266,135 @@ def remove_hidden_faces(bm, dl, moving_groups):
     return len(doomed)
 
 
+def build_variants():
+    """Reduced-detail rebuilds of the weapon, finest first: [(level name, mesh), ...]. Each is the
+    whole weapon as one triangulated mesh in the working frame, with materials and named
+    selections but no UVs. The weapon is left rebuilt at full detail."""
+    if REBUILD is None:
+        return []
+    import af7_vanguard_detailed as detail
+    out = []
+    try:
+        for level in detail.DETAIL_LEVELS:
+            detail.set_detail(level)
+            REBUILD()
+            ob = build_lod1(dayz_collection(), Matrix.Identity(4))
+            me = ob.data
+            me.name = "AFVariant_%s_%s" % (PREFIX, level[0])
+            me.use_fake_user = True                 # the next rebuild deletes every unused mesh
+            bpy.data.objects.remove(ob, do_unlink=True)
+            out.append((level[0], me))
+            print("AF7 rebuild '%s': %d triangles" % (level[0], len(me.polygons)))
+    finally:
+        detail.set_detail(detail.FULL)
+        REBUILD()
+    return out
+
+
+def transfer_uvs(target, source):
+    """Give `target` (a reduced rebuild) the UVs of `source` (LOD 1), face by face: each face takes
+    the UV island of the LOD 1 surface nearest to its centre (same texture set, best matching
+    direction), and each of its corners the UV of the nearest point of that island. Staying inside
+    one island per face is what keeps a face from being smeared across the texture at a seam."""
+    from mathutils.bvhtree import BVHTree
+    from mathutils.geometry import barycentric_transform
+    sme, tme = source.data, target.data
+    suv = sme.uv_layers.active.data
+    sco = [v.co.copy() for v in sme.vertices]
+    spolys = [tuple(p.vertices) for p in sme.polygons]
+    sloops = [tuple(p.loop_indices) for p in sme.polygons]
+    snor = [p.normal.copy() for p in sme.polygons]
+    ssets = poly_sets(sme)
+
+    parent = list(range(len(spolys)))
+
+    def find(i):
+        while parent[i] != i:
+            parent[i] = parent[parent[i]]
+            i = parent[i]
+        return i
+
+    edges = {}
+    for pi, (vs, ls) in enumerate(zip(spolys, sloops)):
+        keys = [(v, round(suv[l].uv[0], 5), round(suv[l].uv[1], 5)) for v, l in zip(vs, ls)]
+        for a, b in zip(keys, keys[1:] + keys[:1]):
+            e = (a, b) if a < b else (b, a)
+            if e in edges:
+                ra, rb = find(pi), find(edges[e])
+                if ra != rb:
+                    parent[ra] = rb
+            else:
+                edges[e] = pi
+    island = [find(i) for i in range(len(spolys))]
+    members = {}
+    for pi, isl in enumerate(island):
+        members.setdefault(isl, []).append(pi)
+    island_tree = {isl: BVHTree.FromPolygons(sco, [spolys[i] for i in idx]) for isl, idx in members.items()}
+    by_set = {}
+    for pi, k in enumerate(ssets):
+        by_set.setdefault(k, []).append(pi)
+    set_tree = {k: BVHTree.FromPolygons(sco, [spolys[i] for i in idx]) for k, idx in by_set.items()}
+
+    if not tme.uv_layers:
+        tme.uv_layers.new(name="UVMap")
+    tuv = tme.uv_layers.active.data
+    tsets = poly_sets(tme)
+    for poly in tme.polygons:
+        k = tsets[poly.index] if tsets[poly.index] in set_tree else next(iter(set_tree))
+        centre, normal = poly.center, poly.normal
+        near = set_tree[k].find_nearest_range(centre, 0.006) or []
+        if not near:
+            hit = set_tree[k].find_nearest(centre)
+            near = [hit] if hit[0] is not None else []
+        if not near:
+            continue
+        dmin = min(h[3] for h in near)
+        best = max((h for h in near if h[3] <= dmin + 0.0015), key=lambda h: snor[by_set[k][h[2]]].dot(normal))
+        isl = island[by_set[k][best[2]]]
+        tree, idx = island_tree[isl], members[isl]
+        for li, vi in zip(poly.loop_indices, poly.vertices):
+            loc, _n, local, _d = tree.find_nearest(tme.vertices[vi].co)
+            if loc is None:
+                continue
+            sp = idx[local]
+            a, b, cc = (sco[v] for v in spolys[sp][:3])
+            ua, ub, uc = (Vector((suv[l].uv[0], suv[l].uv[1], 0.0)) for l in sloops[sp][:3])
+            uvw = barycentric_transform(loc, a, b, cc, ua, ub, uc)
+            tuv[li].uv = (uvw.x, uvw.y)
+
+
+def lod_from_variants(lod1, variants, col, name, ratio, min_size, M):
+    """One distance LOD. Takes the coarsest of LOD 1 and the reduced rebuilds that still has about
+    the target number of triangles once the parts under `min_size` are dropped, and trims it to
+    the target."""
+    target = ratio * len(lod1.data.polygons)
+    choice = None                                   # None = LOD 1 itself
+    for level, me in variants:
+        probe = me.copy()
+        if min_size > 0.0:
+            drop_small_parts(probe, min_size)
+        n = len(probe.polygons)
+        bpy.data.meshes.remove(probe)
+        if n >= VARIANT_FIT * target:
+            choice = (level, me)
+    if choice is None:
+        ob = decimated(lod1, col, name, ratio, min_size)
+        ob["af_source"] = "LOD 1"
+        return ob
+    level, me = choice
+    base = bpy.data.objects.new(name + "_base", me.copy())
+    col.objects.link(base)
+    base.data.transform(M)
+    base.data.update()
+    transfer_uvs(base, lod1)
+    ob = decimated(base, col, name, target / max(1, len(base.data.polygons)), min_size)
+    data = base.data
+    bpy.data.objects.remove(base, do_unlink=True)
+    bpy.data.meshes.remove(data)
+    ob["af_source"] = "rebuild '%s'" % level
+    return ob
+
+
 def build_lod1(col, M):
     dg = bpy.context.evaluated_depsgraph_get()
     bm = bmesh.new()
@@ -264,7 +411,7 @@ def build_lod1(col, M):
         me = bpy.data.meshes.new_from_object(ob.evaluated_get(dg), preserve_all_data_layers=True, depsgraph=dg)
         me.transform(M @ ob.matrix_world)
         short = ob.name[len(PREFIX):]
-        names = [SELECTIONS[short]] if short in SELECTIONS else []
+        names = [SELECTIONS[short]] if short in SELECTIONS else ([BODY_BONE] if BODY_BONE else [])
         part_set = set_of_material(me.materials[0]) if len(me.materials) else 0
         names.append("hide_barrel" if short in HIDE_BARREL else camo_name(part_set))
         idx = [gidx(n) for n in names]
@@ -303,6 +450,27 @@ def build_lod1(col, M):
     for g in groups:
         ob.vertex_groups.new(name=g)
     ob["dayz"] = "Resolution LOD 1 (full detail). Vertex groups = named selections."
+    return ob
+
+
+def smooth_normals(ob):
+    """Face-area-weighted normals. With plain angle smoothing a rounded edge drags the shading of
+    the flat faces next to it; weighted by area, the flats keep their own direction and the
+    rounding carries the whole turn. Binarize keeps the normals stored in the .p3d (checked
+    0.10.0: two models differing only in their normals binarize differently)."""
+    me = ob.data
+    if "custom_normal" in me.attributes:
+        me.attributes.remove(me.attributes["custom_normal"])
+    for poly in me.polygons:
+        poly.use_smooth = True
+    if hasattr(me, "set_sharp_from_angle"):
+        me.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
+    activate(ob)
+    mod = ob.modifiers.new("AFWeightedNormal", "WEIGHTED_NORMAL")
+    mod.mode = "FACE_AREA"
+    mod.weight = 50
+    mod.keep_sharp = True
+    bpy.ops.object.modifier_apply(modifier=mod.name)
     return ob
 
 
@@ -433,7 +601,10 @@ def drop_small_parts(me, min_size):
                         stack.append(o)
         lo = Vector((min(v.co.x for v in island), min(v.co.y for v in island), min(v.co.z for v in island)))
         hi = Vector((max(v.co.x for v in island), max(v.co.y for v in island), max(v.co.z for v in island)))
-        if (hi - lo).length < min_size:
+        dims = sorted(hi - lo)
+        # Too small to see, or a sliver (a rib, a pin, a rod): long but under a quarter of the
+        # size limit across. Slivers decimate into spikes, so they go too.
+        if (hi - lo).length < min_size or dims[1] < SLIVER * min_size:
             doomed += island
     bmesh.ops.delete(bm, geom=doomed, context="VERTS")
     bm.to_mesh(me)
@@ -454,13 +625,66 @@ def _collapse(ob, ratio):
     bpy.data.meshes.remove(old)
 
 
+def _hull(piece, source, goal, col):
+    """Replace a piece that would not decimate (a shell full of slots or ports keeps every hole)
+    by its convex hull, reduced to `goal` triangles. UVs are taken from the nearest point of the
+    original surface; material and named selections are the piece's own. Far LODs only."""
+    bm = bmesh.new()
+    for v in source.vertices:
+        bm.verts.new(v.co)
+    bmesh.ops.remove_doubles(bm, verts=bm.verts[:], dist=1e-5)
+    out = bmesh.ops.convex_hull(bm, input=bm.verts[:])
+    junk = list({e for e in out.get("geom_interior", []) + out.get("geom_unused", []) if isinstance(e, bmesh.types.BMVert)})
+    if junk:
+        bmesh.ops.delete(bm, geom=junk, context="VERTS")
+    bmesh.ops.triangulate(bm, faces=bm.faces[:])
+    bmesh.ops.recalc_face_normals(bm, faces=bm.faces[:])
+    if len(bm.faces) < 4:
+        bm.free()
+        return
+    me = bpy.data.meshes.new(piece.name + "_hull")
+    bm.to_mesh(me)
+    bm.free()
+    for m in source.materials:
+        me.materials.append(m)
+    counts = {}
+    for p in source.polygons:
+        counts[p.material_index] = counts.get(p.material_index, 0) + 1
+    main = max(counts, key=counts.get)
+    for p in me.polygons:
+        p.material_index = main
+        p.use_smooth = True
+    me.uv_layers.new(name=source.uv_layers.active.name if source.uv_layers.active else "UVMap")
+    donor = bpy.data.objects.new(piece.name + "_donor", source)
+    col.objects.link(donor)
+    groups = [g.group for g in source.vertices[0].groups if g.weight > 0.5] if len(source.vertices) else []
+    names = [g.name for g in piece.vertex_groups]      # vertex group names live in the mesh data
+    old, piece.data = piece.data, me
+    bpy.data.meshes.remove(old)
+    for nm in names:
+        piece.vertex_groups.new(name=nm)
+    for gi in groups:
+        piece.vertex_groups[gi].add(list(range(len(me.vertices))), 1.0, "REPLACE")
+    if len(me.polygons) > goal:
+        _collapse(piece, goal / len(me.polygons))
+    mod = piece.modifiers.new("AFUV", "DATA_TRANSFER")
+    mod.object = donor
+    mod.use_loop_data = True
+    mod.data_types_loops = {"UV"}
+    mod.loop_mapping = "POLYINTERP_NEAREST"
+    activate(piece)
+    bpy.ops.object.modifier_apply(modifier=mod.name)
+    bpy.data.objects.remove(donor, do_unlink=True)
+
+
 def decimated(src, col, name, ratio, min_size=0.0):
     ob = src.copy()
     ob.data = src.data.copy()
     ob.name = name
     col.objects.link(ob)
     if min_size <= 0.0:
-        _collapse(ob, ratio)
+        if ratio < 0.97:
+            _collapse(ob, ratio)
     else:
         # Distance LOD. Decimating the whole mesh at once lets the big flat parts (receiver
         # sides, stock) collapse to nothing while fiddly ones keep their triangles. So the mesh
@@ -477,7 +701,15 @@ def decimated(src, col, name, ratio, min_size=0.0):
         for piece in pieces:
             n = len(piece.data.polygons)
             if n > LOD_PIECE_MIN:
-                _collapse(piece, max(share, LOD_PIECE_MIN / n))
+                goal = max(share * n, LOD_PIECE_MIN)
+                if goal >= 0.97 * n:
+                    continue
+                source = piece.data.copy() if min_size >= HULL_MIN_SIZE and n >= 60 else None
+                _collapse(piece, goal / n)
+                if source is not None:
+                    if len(piece.data.polygons) > HULL_STUBBORN * goal:
+                        _hull(piece, source, goal, col)
+                    bpy.data.meshes.remove(source)
         for o in bpy.context.view_layer.objects:
             o.select_set(o in pieces)
         bpy.context.view_layer.objects.active = ob
@@ -485,8 +717,7 @@ def decimated(src, col, name, ratio, min_size=0.0):
             bpy.ops.object.join()
     me = ob.data
     ob.name = me.name = name
-    if hasattr(me, "set_sharp_from_angle"):
-        me.set_sharp_from_angle(angle=math.radians(35))
+    smooth_normals(ob)
     return ob
 
 
@@ -871,7 +1102,9 @@ def lod1_from_p3d(path, col):
         npts, nnorm, nfaces = struct.unpack_from("<3I", d, o + 12)
         o += 28
         pts = [struct.unpack_from("<3fI", d, o + 16 * i) for i in range(npts)]
-        o += 16 * npts + 12 * nnorm
+        o += 16 * npts
+        stored_normals = [struct.unpack_from("<3f", d, o + 12 * i) for i in range(nnorm)]
+        o += 12 * nnorm
         faces, face_tex = [], []
         for _ in range(nfaces):
             n = struct.unpack_from("<I", d, o)[0]
@@ -917,7 +1150,17 @@ def lod1_from_p3d(path, col):
             poly.material_index = tex_set.get(face_tex[i], 0)
         me.update()
         if hasattr(me, "set_sharp_from_angle"):
-            me.set_sharp_from_angle(angle=math.radians(35))
+            me.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
+        # The stored normals (inward, p3d axes) back as custom normals, one per face corner.
+        corner = []
+        for i in keep:
+            for c in faces[i]:
+                kx, ky, kz = stored_normals[c[1]]
+                corner.append((-kx, -kz, -ky))
+        try:
+            me.normals_split_custom_set(corner)
+        except Exception as exc:
+            print("AF7 could not restore the stored normals:", exc)
         ob = bpy.data.objects.new(PREFIX + "LOD_1", me)
         col.objects.link(ob)
         for name, data in tags.items():
@@ -991,6 +1234,8 @@ def export(bake=True, tex_size=TEX_SIZE):
     repo = os.path.dirname(here)
     tex_dir = os.path.join(here, "textures")
     p3d_path = os.path.join(repo, "source", "AF_Weapons", P3D_FOLDER, P3D_FILE + ".p3d")
+    # Reduced-detail rebuilds for the distance LODs come first: each rebuild clears the scene.
+    variants = build_variants()
     M = export_matrix()
     col = dayz_collection()
 
@@ -1015,6 +1260,7 @@ def export(bake=True, tex_size=TEX_SIZE):
     else:
         lod1 = build_lod1(col, Matrix.Identity(4))
         unwrap(lod1)
+        smooth_normals(lod1)          # before the bake: the normal map is relative to these normals
         if bake:
             set_materials(lod1, preview_materials(bake_textures(lod1, tex_dir, tex_size)))
         lod1.data.transform(M)
@@ -1022,8 +1268,9 @@ def export(bake=True, tex_size=TEX_SIZE):
 
     visual = [(1.0, lod1)]
     for res, ratio, min_size in LOD_RATIOS:
-        ob = decimated(lod1, col, "%sLOD_%d" % (PREFIX, int(res)), ratio, min_size)
-        ob["dayz"] = "Resolution LOD %d (about %d%% of LOD 1)." % (int(res), int(ratio * 100))
+        ob = lod_from_variants(lod1, variants, col, "%sLOD_%d" % (PREFIX, int(res)), ratio, min_size, M)
+        ob["dayz"] = "Resolution LOD %d (about %d%% of LOD 1), from %s." % (int(res), int(ratio * 100), ob["af_source"])
+        print("AF7 LOD %d: %d triangles, from %s" % (int(res), len(ob.data.polygons), ob["af_source"]))
         visual.append((res, ob))
 
     proxies, used = [], {}

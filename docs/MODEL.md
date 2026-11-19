@@ -111,6 +111,35 @@ UVs come from an automatic unwrap (Smart UV Project). It has no stretching to sp
 Selections: `camo` is set 0, `camo1` is set 1; `hide_barrel` is always in set 0. `config.cpp` lists three hidden selections (`camo`, `hide_barrel`, `camo1`) and two materials per health level, and each set has its own six `.rvmat` files. A new weapon declares its extra sets with `ex.EXTRA_SETS` in its export script.
 
 A full bake now takes about 20 minutes per rifle. Not tested in game: that both sets show, in both finishes and in the damaged states.
+## 4b. Edge and LOD pass (0.10.0)
+
+Asked for on 2026-11-18: as much detail as the LODs can carry on all three weapons, smooth edges, and no cost in frame rate.
+
+| | 0.9.0 | 0.10.0 |
+|---|---|---|
+| Chamfers | one flat face | up to three steps (`EDGE_STEPS` in `af7_vanguard_detailed.py`): three from 1.5 mm, two from 0.7 mm, one below that |
+| Edge shading | by angle only | face-area-weighted normals (`smooth_normals` in the export), so flat faces stay flat and the rounding carries the turn |
+| Round parts | 1.5 x the sides, from 16 sides | 2 x, from 10 sides, up to 64: pins, screws and knobs are round in outline too |
+| Side outlines | polygon corners | corners rounded with `profile(..., round=radius)`: grips, trigger guards, triggers, receivers, stock, butt pad, the MP40's resting bar |
+| LOD 1 triangles | AF-7 8,162, M41 10,665 | AF-7 14,472, M41 15,298, MP40 13,148 |
+| Resolution LODs | 7, decimated from LOD 1 | 9; from LOD 3 on they are reduced-detail rebuilds of the weapon |
+| Last LOD | AF-7 about 490, M41 677 | AF-7 299, M41 338, MP40 301 |
+
+**Normals survive Binarize.** Checked by binarizing the same model twice, once with every stored normal overwritten: the two results differ. So the weighted normals written into the `.p3d` are what the game uses.
+
+**Why the distance LODs are rebuilt, not decimated.** Decimating the full model turned slotted and tubular parts (AF-7 handguard and muzzle brake, MP40 receiver) into jagged triangles from LOD 5 on. The weapon scripts are procedural, so the export now rebuilds the weapon at four lower detail levels (`DETAIL_LEVELS`: fewer sides, plain edges, and at the far end no Boolean cuts), gives each rebuild the UVs of LOD 1 (`transfer_uvs`: one UV island per face, so nothing smears across a seam), and for every LOD takes the coarsest rebuild that still has the triangles the LOD is allowed (`lod_from_variants`). Parts under the LOD's size limit are dropped, and so are slivers (ribs, pins, rods), which decimate into spikes. The run scripts hand the export the weapon's build function (`ex.REBUILD`); without it the export falls back to decimating LOD 1.
+
+**Frame rate.** The game picks the LOD by how large the weapon is on screen, so LOD 1's extra triangles are drawn only close up and in first person, and each step down is about two thirds of the one before. At range a weapon is now cheaper than it was in 0.9.0 (about 300 triangles against 490-680). Texture sets and material counts are unchanged.
+
+LOD triangles as exported (LOD 1 to 9):
+
+| Weapon | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 |
+|---|---|---|---|---|---|---|---|---|---|
+| AF-7 | 14,472 | 9,551 | 6,367 | 4,196 | 2,461 | 1,669 | 947 | 627 | 299 |
+| M41 | 15,298 | 10,095 | 6,731 | 4,318 | 2,850 | 1,763 | 1,116 | 673 | 338 |
+| MP40 | 13,148 | 8,676 | 5,784 | 3,811 | 2,423 | 1,536 | 1,001 | 564 | 301 |
+
+Checked: Object Builder's script engine loads all fourteen LODs of every model with convex collision; the automated in-game test shows every weapon textured correctly in both finishes, with attachments, damaged and ruined, and from 5 to 50 m. Not checked in game: at which distance each LOD switches in, and frame rate with many weapons in view.
 ## 5. Dependencies
 
 - **Game data:** `DZ_Data`, `DZ_Scripts`, `DZ_Weapons_Firearms`, `DZ_Weapons_Firearms_M4`, `DZ_Weapons_Firearms_FAL`.

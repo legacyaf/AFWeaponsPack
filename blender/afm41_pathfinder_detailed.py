@@ -62,7 +62,7 @@ LOGO_BUTT = (-0.318, 0.031, 0.036, 0.018, 0.0222, 0.0232)
 def bm_loft(bm, sections, sides=28, power=2.6, cap=True):
     """Rounded body through cross-sections [(y, z_bottom, z_top, half_width), ...].
     Each section is a superellipse (power 2 = ellipse, higher = squarer)."""
-    sides = int(round(sides * d.ROUND_DETAIL))
+    sides = d.round_sides(sides)
     rings = []
     for y, zb, zt, hw in sections:
         zc, hh = (zb + zt) / 2.0, (zt - zb) / 2.0
@@ -568,12 +568,12 @@ def build():
     d.profile("Weapon_Trigger", moving, m_blue,
               [(-0.0485, 0.0620), (-0.0545, 0.0620), (-0.0585, 0.0480), (-0.0570, 0.0370), (-0.0535, 0.0345),
                (-0.0530, 0.0470)],
-              width=0.0058, bevel=0.0008, note="Trigger. Bone 'trigger'; pivot at (y -0.0515, z 0.0676).")
+              width=0.0058, bevel=0.0008, round=0.003, note="Trigger. Bone 'trigger'; pivot at (y -0.0515, z 0.0676).")
     d.profile("TriggerGuard", body, m_blue,
               [(-0.086, 0.0585), (-0.081, 0.0300), (-0.066, 0.0215), (-0.034, 0.0215), (-0.017, 0.0320), (-0.009, 0.0585),
                (-0.0125, 0.0585), (-0.0200, 0.0340), (-0.0355, 0.0247), (-0.0645, 0.0247), (-0.0780, 0.0322),
                (-0.0825, 0.0585)],
-              width=0.012, bevel=0.0007, note="Trigger guard bow.")
+              width=0.012, bevel=0.0007, round=0.005, note="Trigger guard bow.")
     d.box("FloorPlate", body, m_blue, (0.0, 0.036, 0.0568), (0.0175, 0.108, 0.0042), bevel=0.0012,
           note="Flush magazine floor plate (internal 5-round magazine).")
     d.box("GuardTang", body, m_blue, (0.0, -0.062, 0.0575), (0.014, 0.090, 0.0035), bevel=0.0010,

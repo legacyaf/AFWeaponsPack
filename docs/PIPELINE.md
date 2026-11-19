@@ -1,6 +1,6 @@
 # Adding a weapon to the AF Weapons Pack
 
-The AF-7 Vanguard was built first; the AF M41 Pathfinder was built second, by following the steps below. They are the repeatable part of the work. A new weapon is three small files in `blender/`, one folder in `source/AF_Weapons/`, and a class in `config.cpp`.
+The AF-7 Vanguard was built first; the AF M41 Pathfinder and the AF MP40 were built by following the steps below. They are the repeatable part of the work. A new weapon is three small files in `blender/`, one folder in `source/AF_Weapons/`, and a class in `config.cpp`.
 
 ## What is shared and what is per weapon
 
@@ -44,7 +44,12 @@ Rules that keep the animations working:
 
 Copy `afm41_pathfinder_dayz_export.py` and change: file names, `SELECTIONS` (object to vanilla bone), `HIDE_BARREL`, `PROXIES` (vanilla path and orientation), `MEMORY`, `GEOMETRY` boxes, mass, fire-geometry material, `_smdi` levels, UV priorities.
 
-Proxy orientation: the vanilla model stores each proxy as a 3x3 matrix. Its first row is the `up` axis and its second row the `dir` axis used in the `PROXIES` table.
+Proxy orientation: the vanilla model stores each proxy as a 3x3 matrix. Its second row is the `up` axis and its third row the `dir` axis used in the `PROXIES` table (checked against the M4, Mosin and UMP tables).
+
+Two things the MP40 added:
+
+- `BODY_BONE`: on some vanilla weapons the whole body is on a bone (the UMP's is `recoil`, with the bolt and charging handle as its children). Read the skeleton's parent names out of the vanilla `.p3d` and set `ex.BODY_BONE` if so.
+- A weapon with its own magazine: the magazine is a second model with its own prefix, built in the same Blender file around its own origin, and exported by a second set of tables in the same export script (see `afmp40_dayz_export.py`). The weapon keeps the vanilla magazine proxy path, because the game ties the proxy name to the `magazine` slot and then shows whichever magazine is attached.
 
 ### 5. Build and look
 
