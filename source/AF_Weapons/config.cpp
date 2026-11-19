@@ -35,7 +35,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.8.3";
+		version = "0.8.4";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).

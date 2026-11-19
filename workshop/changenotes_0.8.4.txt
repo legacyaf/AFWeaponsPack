@@ -1,0 +1,7 @@
+0.8.4
+
+AF M41 "Pathfinder"
+- Fixed: the cocking piece at the back of the bolt lagged behind and drifted back into place when firing. It now moves with the bolt.
+
+Server owners
+- No changes to class names, loot files or required mods.

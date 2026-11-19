@@ -50,7 +50,9 @@ ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.50, 0.90, 0.9
 
 # Blender object (without M41_) -> vanilla Mosin skeleton bone
 ex.SELECTIONS = {"Weapon_Trigger": "trigger", "BoltBody": "boltbody", "BoltHandle": "bolthandle",
-                 "BoltCocking": "boltbodys",
+                 # The cocking piece rides on 'boltbody'. The vanilla model has no geometry on
+                 # 'boltbodys' (checked 0.8.4); on that bone the part lagged behind the bolt when firing.
+                 "BoltCocking": "boltbody",
                  # The vanilla model carries two display rounds in the magazine, on these two bones.
                  "Round_Top": "bullet1", "Round_TopSlug": "bullet1", "Round_Low": "bullet", "Round_LowSlug": "bullet"}
 ex.HIDE_BARREL = ("MuzzleCrown",)
