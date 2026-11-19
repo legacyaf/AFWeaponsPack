@@ -63,6 +63,8 @@ Do these for `AFM41_Pathfinder` (and glance at `AFM41_Pathfinder_Gold` for the f
 | M3 | Load with a stripper clip | Short clip | Loading animation |
 | M8 | (0.8.1) Open the bolt on a loaded rifle, look down into the action; repeat on an empty rifle | 2 screenshots | Two brass rounds show in the magazine when loaded and are gone when empty |
 | M9 | (0.8.1) Inventory view, left side of the receiver and both sides of the butt | 3 screenshots | Stamps are readable and the right way round: `AF M41 / 1941`, `No 07386`, the round cartouche, the boxed serial |
+| M12 | (0.9.0) Both rifles, both finishes, close up in the inventory view and in first person | Screenshots | Every part is textured (no white, pink or black parts); furniture and metal both look right; checkering on the M41 wrist and fore-end |
+| M13 | (0.9.0) Damage a rifle to Damaged and to Ruined (shoot it or use an admin tool) | 2 screenshots | Scratches and the ruined look appear on both the metal and the furniture |
 | M10 | (0.8.3) Fit a ghillie wrap (any colour) | 2 screenshots, both sides | Wrap pieces sit on the receiver, handguard and butt as they do on the vanilla Mosin; none floating |
 | M11 | (0.8.3) Hold the rifle in first and third person, and aim | 2 screenshots | The leather sling hangs under the rifle and does not cut through the hands or the arm |
 | M4 | Fit a PU scope, inventory side-on and aimed | 2 screenshots | Scope sits on the receiver, not floating or sunk; scope view works |

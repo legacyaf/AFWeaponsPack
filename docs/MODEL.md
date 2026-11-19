@@ -97,6 +97,20 @@ Materials: `af7_body.rvmat` uses the vanilla M4's values. `af7_body_gold.rvmat` 
 
 UVs come from an automatic unwrap (Smart UV Project). It has no stretching to speak of, but it wastes space on hidden faces and many small islands.
 
+## 4a. Quality pass (0.9.0), both rifles
+
+| Change | Before | After |
+|---|---|---|
+| Texture layout | automatic packing, about 45% of the texture used | exact-outline packing with free rotation; long parts unwrapped in lengths of 40 cm or less |
+| Texture sets | one 4096 set per rifle | two: AF-7 `af7_body` (receiver, steel) 57% used and `af7_furn` (handguard, grip, stock, butt pad) 68% used; M41 `afm41_body` 52% and `afm41_wood` 66% |
+| Round parts | 16 to 32 sides | 1.5 times as many sides on every round part with 16 or more (`ROUND_DETAIL`) |
+| M41 detail | - | cut checkering on the wrist and fore-end; stamps drawn at nearly twice the resolution |
+| Triangles, LOD 1 | AF-7 7,311, M41 8,178 | AF-7 8,162, M41 10,665 |
+| Addon size | 55 MB | 101 MB |
+
+Selections: `camo` is set 0, `camo1` is set 1; `hide_barrel` is always in set 0. `config.cpp` lists three hidden selections (`camo`, `hide_barrel`, `camo1`) and two materials per health level, and each set has its own six `.rvmat` files. A new weapon declares its extra sets with `ex.EXTRA_SETS` in its export script.
+
+A full bake now takes about 20 minutes per rifle. Not tested in game: that both sets show, in both finishes and in the damaged states.
 ## 5. Dependencies
 
 - **Game data:** `DZ_Data`, `DZ_Scripts`, `DZ_Weapons_Firearms`, `DZ_Weapons_Firearms_M4`, `DZ_Weapons_Firearms_FAL`.

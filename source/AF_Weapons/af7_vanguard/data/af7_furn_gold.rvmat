@@ -1,0 +1,56 @@
+// Second texture set (handguard, grip, stock and butt pad): same settings as af7_body_gold.rvmat, own textures.
+// AF-7 gold floral skin.
+// The lighting values, fresnel and orange environment map are the ones from the old
+// AF R700 chassis material (Chassis.rvmat), which is what gives the ornament its gold shine.
+// Normal and ambient-shadow maps are shared with the standard AF-7 material.
+
+ambient[] = {0.15, 0.15, 0.15, 1};
+diffuse[] = {0.5, 0.5, 0.5, 1};
+forcedDiffuse[] = {0, 0, 0, 0};
+emmisive[] = {0, 0, 0, 1};
+specular[] = {1, 1, 1, 1};
+specularPower = 350;
+PixelShaderID = "Super";
+VertexShaderID = "Super";
+
+class Stage1
+{
+	texture = "AF_Weapons\af7_vanguard\data\af7_furn_nohq.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage2
+{
+	texture = "#(argb,8,8,3)color(0.5,0.5,0.5,1,DT)";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage3
+{
+	texture = "#(argb,8,8,3)color(0,0,0,0,MC)";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage4
+{
+	texture = "AF_Weapons\af7_vanguard\data\af7_furn_as.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage5
+{
+	texture = "AF_Weapons\af7_vanguard\data\af7_furn_gold_smdi.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};
+class Stage6
+{
+	texture = "#(ai,32,128,1)fresnel(1.2887,2.4191)";
+	uvSource = "none";
+};
+class Stage7
+{
+	texture = "AF_Weapons\af7_vanguard\data\env_orange_co.paa";
+	uvSource = "tex";
+	class uvTransform { aside[] = {1,0,0}; up[] = {0,1,0}; dir[] = {0,0,0}; pos[] = {0,0,0}; };
+};

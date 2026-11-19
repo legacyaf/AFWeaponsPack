@@ -35,7 +35,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.8.4";
+		version = "0.9.0";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).
@@ -92,9 +92,9 @@ class CfgWeapons
 		// only has proxies for an optic, a flashlight, a suppressor and the magazine.
 		model = "\AF_Weapons\af7_vanguard\af7_vanguard.p3d";              // [MODEL]
 		attachments[] = {"weaponOptics", "weaponFlashlight", "weaponMuzzleM4"}; // [MODEL]
-		hiddenSelections[] = {"camo", "hide_barrel"};   // [MODEL] the muzzle brake is retextured with the body
-		hiddenSelectionsTextures[] = {"AF_Weapons\af7_vanguard\data\af7_body_co.paa", "AF_Weapons\af7_vanguard\data\af7_body_co.paa"};   // [MODEL]
-		hiddenSelectionsMaterials[] = {"AF_Weapons\af7_vanguard\data\af7_body.rvmat", "AF_Weapons\af7_vanguard\data\af7_body.rvmat"};   // [MODEL]
+		hiddenSelections[] = {"camo", "hide_barrel", "camo1"};   // [MODEL] the muzzle brake is retextured with the body
+		hiddenSelectionsTextures[] = {"AF_Weapons\af7_vanguard\data\af7_body_co.paa", "AF_Weapons\af7_vanguard\data\af7_body_co.paa", "AF_Weapons\af7_vanguard\data\af7_furn_co.paa"};   // [MODEL]
+		hiddenSelectionsMaterials[] = {"AF_Weapons\af7_vanguard\data\af7_body.rvmat", "AF_Weapons\af7_vanguard\data\af7_body.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn.rvmat"};   // [MODEL]
 
 		// Iron sights: no depth-of-field blur when aiming. The M4 default blurred the whole view
 		// through this rifle's low backup sights. The other values are the M4's.
@@ -115,11 +115,11 @@ class CfgWeapons
 					hitpoints = 200;                                           // [MODEL]
 					healthLevels[] =                                           // [MODEL]
 					{                                                          // [MODEL]
-						{1.0, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},            // [MODEL]
-						{0.7, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat"}},            // [MODEL]
-						{0.5, {"AF_Weapons\af7_vanguard\data\af7_body_damage.rvmat"}},     // [MODEL]
-						{0.3, {"AF_Weapons\af7_vanguard\data\af7_body_damage.rvmat"}},     // [MODEL]
-						{0.0, {"AF_Weapons\af7_vanguard\data\af7_body_destruct.rvmat"}}    // [MODEL]
+						{1.0, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn.rvmat"}},            // [MODEL]
+						{0.7, {"AF_Weapons\af7_vanguard\data\af7_body.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn.rvmat"}},            // [MODEL]
+						{0.5, {"AF_Weapons\af7_vanguard\data\af7_body_damage.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_damage.rvmat"}},     // [MODEL]
+						{0.3, {"AF_Weapons\af7_vanguard\data\af7_body_damage.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_damage.rvmat"}},     // [MODEL]
+						{0.0, {"AF_Weapons\af7_vanguard\data\af7_body_destruct.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_destruct.rvmat"}}    // [MODEL]
 					};                                                         // [MODEL]
 				};                                                             // [MODEL]
 			};                                                                 // [MODEL]
@@ -134,8 +134,8 @@ class CfgWeapons
 		scope = 2;
 		displayName = "AF-7 Vanguard (Gold)";
 		descriptionShort = "An Allied Forces AF-7 Vanguard with gold floral furniture on black. It feeds 5.56x45mm from STANAG magazines or .308 Winchester from LAR magazines.";
-		hiddenSelectionsTextures[] = {"AF_Weapons\af7_vanguard\data\af7_body_gold_co.paa", "AF_Weapons\af7_vanguard\data\af7_body_gold_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat", "AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\af7_vanguard\data\af7_body_gold_co.paa", "AF_Weapons\af7_vanguard\data\af7_body_gold_co.paa", "AF_Weapons\af7_vanguard\data\af7_furn_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat", "AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold.rvmat"};
 		class DamageSystem
 		{
 			class GlobalHealth
@@ -145,11 +145,11 @@ class CfgWeapons
 					hitpoints = 200;
 					healthLevels[] =
 					{
-						{1.0, {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat"}},
-						{0.7, {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat"}},
-						{0.5, {"AF_Weapons\af7_vanguard\data\af7_body_gold_damage.rvmat"}},
-						{0.3, {"AF_Weapons\af7_vanguard\data\af7_body_gold_damage.rvmat"}},
-						{0.0, {"AF_Weapons\af7_vanguard\data\af7_body_gold_destruct.rvmat"}}
+						{1.0, {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold.rvmat"}},
+						{0.7, {"AF_Weapons\af7_vanguard\data\af7_body_gold.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold.rvmat"}},
+						{0.5, {"AF_Weapons\af7_vanguard\data\af7_body_gold_damage.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold_damage.rvmat"}},
+						{0.3, {"AF_Weapons\af7_vanguard\data\af7_body_gold_damage.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold_damage.rvmat"}},
+						{0.0, {"AF_Weapons\af7_vanguard\data\af7_body_gold_destruct.rvmat", "AF_Weapons\af7_vanguard\data\af7_furn_gold_destruct.rvmat"}}
 					};
 				};
 			};
@@ -174,9 +174,9 @@ class CfgWeapons
 		// Slots the model has proxies for: ghillie wrap, PU scope, Mosin compensator,
 		// improvised suppressor, Mosin bayonet. Same list as the vanilla Mosin.
 		attachments[] = {"weaponWrap", "weaponOpticsMosin", "weaponMuzzleMosin", "suppressorImpro", "weaponBayonetMosin"};
-		hiddenSelections[] = {"camo", "hide_barrel"};
-		hiddenSelectionsTextures[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat"};
+		hiddenSelections[] = {"camo", "hide_barrel", "camo1"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_body_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_wood_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood.rvmat"};
 
 		// Iron sights: no depth-of-field blur when aiming (same choice as the AF-7).
 		// The other values are the Mosin's.
@@ -191,11 +191,11 @@ class CfgWeapons
 					hitpoints = 250;
 					healthLevels[] =
 					{
-						{1.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat"}},
-						{0.7, {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat"}},
-						{0.5, {"AF_Weapons\afm41_pathfinder\data\afm41_body_damage.rvmat"}},
-						{0.3, {"AF_Weapons\afm41_pathfinder\data\afm41_body_damage.rvmat"}},
-						{0.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_destruct.rvmat"}}
+						{1.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood.rvmat"}},
+						{0.7, {"AF_Weapons\afm41_pathfinder\data\afm41_body.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood.rvmat"}},
+						{0.5, {"AF_Weapons\afm41_pathfinder\data\afm41_body_damage.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm41_pathfinder\data\afm41_body_damage.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_destruct.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_destruct.rvmat"}}
 					};
 				};
 			};
@@ -209,8 +209,8 @@ class CfgWeapons
 		scope = 2;
 		displayName = "AF M41 Pathfinder (Gold)";
 		descriptionShort = "An Allied Forces M41 Pathfinder with gold floral furniture on black. It fires 7.62x54mmR, loads from stripper clips and takes the PU scope.";
-		hiddenSelectionsTextures[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_body_gold_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_body_gold_co.paa", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold.rvmat"};
 		class DamageSystem
 		{
 			class GlobalHealth
@@ -220,11 +220,11 @@ class CfgWeapons
 					hitpoints = 250;
 					healthLevels[] =
 					{
-						{1.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat"}},
-						{0.7, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat"}},
-						{0.5, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_damage.rvmat"}},
-						{0.3, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_damage.rvmat"}},
-						{0.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_destruct.rvmat"}}
+						{1.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold.rvmat"}},
+						{0.7, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold.rvmat"}},
+						{0.5, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_damage.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_damage.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm41_pathfinder\data\afm41_body_gold_destruct.rvmat", "AF_Weapons\afm41_pathfinder\data\afm41_wood_gold_destruct.rvmat"}}
 					};
 				};
 			};

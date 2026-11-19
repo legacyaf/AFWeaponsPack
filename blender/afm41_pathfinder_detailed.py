@@ -62,6 +62,7 @@ LOGO_BUTT = (-0.318, 0.031, 0.036, 0.018, 0.0222, 0.0232)
 def bm_loft(bm, sections, sides=28, power=2.6, cap=True):
     """Rounded body through cross-sections [(y, z_bottom, z_top, half_width), ...].
     Each section is a superellipse (power 2 = ellipse, higher = squarer)."""
+    sides = int(round(sides * d.ROUND_DETAIL))
     rings = []
     for y, zb, zt, hw in sections:
         zc, hh = (zb + zt) / 2.0, (zt - zb) / 2.0
@@ -169,7 +170,7 @@ _GLYPHS = {
 }
 
 
-def stamp_image(name, lines, border=None, px=22, ss=2):
+def stamp_image(name, lines, border=None, px=40, ss=2):
     """Draw stamped lettering as a mask (white = struck). border: None, "box" or "circle".
     Returns (image, width / height)."""
     cw, lh, half = 5.6, 8.4, 0.42
@@ -339,6 +340,24 @@ def weather_wood(mat):
     P.color(N.math("MULTIPLY", N.math("MULTIPLY", ding, 0.45), P.plain), (0.022, 0.008, 0.004))
     P.rough(N.math("MULTIPLY", ding, 0.10))
     P.dent(N.math("MULTIPLY", ding, -1.0), 0.0003)
+    # Checkering: cut diamonds on both sides of the wrist and of the fore-end, where the hands grip.
+    pitch = 0.0014
+    tri = []
+    for sign in (1.0, -1.0):
+        along = N.math("ADD", N.math("MULTIPLY", P.py, 0.866 / pitch), N.math("MULTIPLY", P.pz, sign * 0.5 / pitch))
+        tri.append(N.math("MULTIPLY", N.math("ABSOLUTE", N.math("SUBTRACT", N.math("FRACT", along), 0.5)), 2.0))
+    diamonds = N.math("MINIMUM", tri[0], tri[1])                 # 0 in the grooves, 1 on the points
+
+    def panel(y0, y1, z0, z1):
+        m = N.math("MULTIPLY", N.math("GREATER_THAN", P.py, y0), N.math("LESS_THAN", P.py, y1))
+        m = N.math("MULTIPLY", m, N.math("MULTIPLY", N.math("GREATER_THAN", P.pz, z0), N.math("LESS_THAN", P.pz, z1)))
+        return N.math("MULTIPLY", m, N.math("GREATER_THAN", N.math("ABSOLUTE", P.nx), 0.62))
+
+    checker = N.math("MAXIMUM", panel(-0.150, -0.088, 0.052, 0.086), panel(0.150, 0.300, 0.074, 0.097))
+    P.dent(N.math("MULTIPLY", checker, N.math("SUBTRACT", diamonds, 1.0)), 0.00045)
+    grooves = N.math("MULTIPLY", checker, N.math("SUBTRACT", 1.0, diamonds))
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", grooves, 0.55), P.plain), (0.020, 0.008, 0.004))
+    P.rough(N.math("MULTIPLY", checker, 0.07))
     # Pale scuffs where the butt is set down on the ground.
     scuff = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", -0.365, P.py), 28.0, clamp=True),
                    N.math("MULTIPLY", N.math("SUBTRACT", P.noise(140.0, 5.0), 0.48), 7.0, clamp=True))

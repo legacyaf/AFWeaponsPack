@@ -468,6 +468,11 @@ def bm_tube(bm, outer, inner, y0, y1, shear=0.0, zref=BORE):
         bm.faces.new((ob_[i], ob_[j], ib[j], ib[i]))
 
 
+# Round parts with 16 or more sides get this many times the sides they ask for (0.9.0: 1.5).
+# Faceted parts (hex, octagon: smooth=False or fewer sides) are left alone.
+ROUND_DETAIL = 1.5
+
+
 def bm_lathe(bm, prof, sides=16, axis="Y", c=(0.0, BORE), closed=False, cap=True, smooth=True):
     """Revolve [(pos, radius), ...] around an axis.
     axis "Y": c = (x, z)   axis "X": c = (y, z)   axis "Z": c = (x, y)
@@ -480,6 +485,8 @@ def bm_lathe(bm, prof, sides=16, axis="Y", c=(0.0, BORE), closed=False, cap=True
         if axis == "X":
             return (pos, c[0] + a, c[1] + b)
         return (c[0] + a, c[1] + b, pos)
+    if smooth and sides >= 16:
+        sides = int(round(sides * ROUND_DETAIL))
     ang = [2 * math.pi * (i + 0.5) / sides for i in range(sides)]
     rings = []
     for pos, r in prof:

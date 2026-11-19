@@ -106,8 +106,11 @@ if model_only:   # bolt drawn back: the magazine well and the two display rounds
 
 gold = bpy.data.materials.get("M41_Body_DayZ_Gold")
 if lod1 is not None and gold:
-    default = lod1.data.materials[0]
-    lod1.data.materials[0] = gold
+    default = list(lod1.data.materials)
+    for k in range(len(default)):          # one preview material per texture set
+        g = bpy.data.materials.get("M41_Body_DayZ_Gold" + ("" if k == 0 else "_%d" % k))
+        if g:
+            lod1.data.materials[k] = g
     for name in ("34", "action"):
         loc, tgt, lens = views[name]
         cam.location = W(loc)
@@ -115,7 +118,8 @@ if lod1 is not None and gold:
         cam.rotation_euler = (W(tgt) - cam.location).to_track_quat("-Z", "Y").to_euler()
         scene.render.filepath = os.path.join(REPO, "docs", "img", "m41_gold_" + name + ".png")
         bpy.ops.render.render(write_still=True)
-    lod1.data.materials[0] = default
+    for k, m in enumerate(default):
+        lod1.data.materials[k] = m
 
 if not model_only:
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "afm41_pathfinder_dayz.blend"))

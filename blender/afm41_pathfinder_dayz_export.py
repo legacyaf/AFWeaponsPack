@@ -43,7 +43,8 @@ ex.P3D_TEXTURE = ex.MOD_DIR + "\\data\\afm41_body_co.paa"
 ex.P3D_MATERIAL = ex.MOD_DIR + "\\data\\afm41_body.rvmat"
 ex.FIRE_MATERIAL = "dz\\data\\data\\penetration\\wood.rvmat"     # same as the vanilla Mosin
 ex.MASS_KG = 4.0
-ex.SKINS = (("", 0.0), ("_gold", 1.0))   # gold = black furniture with gold floral, like the AF-7 Gold
+ex.SKINS = (("", 0.0), ("_gold", 1.0))
+ex.EXTRA_SETS = (("afm41_wood", ("Walnut", "Leather")),)   # stock, handguard and sling get their own texture set   # gold = black furniture with gold floral, like the AF-7 Gold
 # Matched to the vanilla mosin_9130_smdi (specular: wood about 0.05, steel up to 0.7; gloss 0.42-0.65),
 # because the rifle uses the Mosin's material values (specular 0.4, power 50).
 ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.50, 0.90, 0.90

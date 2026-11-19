@@ -55,6 +55,8 @@ ORIGIN_EMPTY = "Proxy_Magazine"          # empty that becomes the p3d origin (No
 LOD_RATIOS = ((2.0, 0.75, 0.0), (3.0, 0.5, 0.0), (4.0, 0.36, 0.0),
               (5.0, 0.22, 0.012), (6.0, 0.12, 0.022), (7.0, 0.06, 0.035))
 LOD_PIECE_MIN = 6      # a loose piece is never decimated below this many triangles
+UV_MARGIN = 0.0016     # gap added around every UV island (about 6 px at 4096)
+UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are unwrapped in several lengths
 # _smdi levels for the standard finish: specular = SPEC_BASE + SPEC_METAL * metal,
 # gloss = (1 - rough) * GLOSS_SCALE, colour map multiplied by CO_SCALE.
 SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
@@ -62,6 +64,14 @@ SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
 # normal and ambient-shadow maps; it only gets its own _co and _smdi (af7_body_gold_co.png ...).
 SKINS = (("", 0.0), ("_gold", 1.0))
+
+# Texture sets. Every rifle has the set TEX_NAME. EXTRA_SETS adds more, each with its own
+# 0..1 UV layout and its own files: ((texture name, (material names without the prefix, ...)), ...).
+# Faces whose material is not named in any extra set stay in set 0. The selections are
+# 'camo' for set 0 and 'camo1', 'camo2' ... for the others; parts in HIDE_BARREL must be in set 0.
+# The value here is the AF-7's: receiver and steel in af7_body, handguard, grip, stock and butt pad
+# in af7_furn. Every other weapon's export script sets its own (see afm41_pathfinder_dayz_export.py).
+EXTRA_SETS = (("af7_furn", ("FDE_Cerakote", "FDE_Polymer", "Rubber")),)
 
 # Blender object (without AF7_) -> named selection. Names are the vanilla M4 skeleton bones.
 # Safety ('firemode') and BoltCatch ('boltrelease') stay static: those bones rotate around
@@ -106,6 +116,41 @@ def _here():
         if cand and os.path.isdir(os.path.dirname(cand)):
             return os.path.dirname(os.path.abspath(cand))
     raise RuntimeError("Save the .blend next to this script first.")
+
+
+def texture_sets():
+    return [(TEX_NAME, None)] + [(name, tuple(mats)) for name, mats in EXTRA_SETS]
+
+
+def set_of_material(mat):
+    """Texture set of a material: its 'af_set' property if it has one (baked preview materials),
+    otherwise looked up by name in EXTRA_SETS."""
+    if mat is None:
+        return 0
+    if "af_set" in mat:
+        return int(mat["af_set"])
+    short = mat.name[len(PREFIX):] if mat.name.startswith(PREFIX) else mat.name
+    for k, (_name, names) in enumerate(texture_sets()):
+        if names and short in names:
+            return k
+    return 0
+
+
+def camo_name(k):
+    return "camo" if k == 0 else "camo%d" % k
+
+
+def set_texture(k):
+    return P3D_TEXTURE if k == 0 else "%s\\data\\%s_co.paa" % (MOD_DIR, texture_sets()[k][0])
+
+
+def set_rvmat(k):
+    return P3D_MATERIAL if k == 0 else "%s\\data\\%s.rvmat" % (MOD_DIR, texture_sets()[k][0])
+
+
+def poly_sets(me):
+    mats = [set_of_material(m) for m in me.materials] or [0]
+    return [mats[min(p.material_index, len(mats) - 1)] for p in me.polygons]
 
 
 def export_matrix():
@@ -220,7 +265,8 @@ def build_lod1(col, M):
         me.transform(M @ ob.matrix_world)
         short = ob.name[len(PREFIX):]
         names = [SELECTIONS[short]] if short in SELECTIONS else []
-        names.append("hide_barrel" if short in HIDE_BARREL else "camo")
+        part_set = set_of_material(me.materials[0]) if len(me.materials) else 0
+        names.append("hide_barrel" if short in HIDE_BARREL else camo_name(part_set))
         idx = [gidx(n) for n in names]
         nv, nf = len(bm.verts), len(bm.faces)
         bm.from_mesh(me)
@@ -288,14 +334,72 @@ def unwrap(ob):
             if s != 1.0:
                 for li in poly.loop_indices:
                     uv[li].uv = uv[li].uv * s
-        bpy.ops.object.mode_set(mode="EDIT")
-        bpy.ops.mesh.select_all(action="SELECT")
+
+    # Long parts (stock, barrel, handguard) unwrap into strips as long as the rifle, and one such
+    # strip sets the scale for the whole layout. Cut every part longer than UV_MAX_LENGTH into
+    # equal lengths: faces in different lengths are moved apart in UV space, which splits the
+    # islands there, and the packer then places the pieces separately.
+    bm = bmesh.new()
+    bm.from_mesh(me)
+    uvl = bm.loops.layers.uv.active
+    seen = set()
+    for start in bm.verts:
+        if start.index in seen:
+            continue
+        seen.add(start.index)
+        part, stack = [start], [start]
+        while stack:
+            for e in stack.pop().link_edges:
+                for o in e.verts:
+                    if o.index not in seen:
+                        seen.add(o.index)
+                        part.append(o)
+                        stack.append(o)
+        lo, hi = min(v.co.y for v in part), max(v.co.y for v in part)
+        pieces = int(math.ceil((hi - lo) / UV_MAX_LENGTH))
+        if pieces < 2:
+            continue
+        for f in {f for v in part for f in v.link_faces}:
+            k = min(pieces - 1, int((f.calc_center_median().y - lo) / (hi - lo) * pieces))
+            for loop in f.loops:
+                loop[uvl].uv.x += 40.0 * k
+    bm.to_mesh(me)
+    bm.free()
+
+    def pack():
+        # Exact island outlines and free rotation fill the square far better than the default
+        # bounding-box packing (about 45% used before, see the coverage line in the log).
+        for kw in (dict(rotate=True, rotate_method="ANY", shape_method="CONCAVE", margin_method="ADD", margin=UV_MARGIN),
+                   dict(rotate=True, margin=UV_MARGIN), dict(margin=UV_MARGIN)):
+            try:
+                bpy.ops.uv.pack_islands(**kw)
+                return
+            except TypeError:
+                continue
+
+    # Each texture set is packed on its own into the full 0..1 square.
+    bpy.context.tool_settings.mesh_select_mode = (False, False, True)
+    nsets = len(texture_sets())
+    mat_sets = [set_of_material(m) for m in ob.data.materials] or [0]
+    bpy.ops.object.mode_set(mode="EDIT")
+    bm = bmesh.from_edit_mesh(ob.data)
+    for k in range(nsets):
+        mine = [f for f in bm.faces if mat_sets[min(f.material_index, len(mat_sets) - 1)] == k]
+        if not mine:
+            continue
+        for f in bm.faces:              # the packer only sees faces that are visible and selected
+            f.hide_set(True)
+        for f in mine:
+            f.hide_set(False)
+            f.select_set(True)
+        bmesh.update_edit_mesh(ob.data)
         bpy.ops.uv.select_all(action="SELECT")
-        try:
-            bpy.ops.uv.pack_islands(rotate=True, margin=0.003)
-        except TypeError:
-            bpy.ops.uv.pack_islands(margin=0.003)
-        bpy.ops.object.mode_set(mode="OBJECT")
+        pack()
+    for f in bm.faces:
+        f.hide_set(False)
+        f.select_set(True)
+    bmesh.update_edit_mesh(ob.data)
+    bpy.ops.object.mode_set(mode="OBJECT")
 
     me = ob.data                           # re-fetch: leaving edit mode rebuilds the mesh data
     uv = me.uv_layers.active.data
@@ -304,7 +408,10 @@ def unwrap(ob):
         a, b, c = (uv[li].uv.copy() for li in p.loop_indices)
         return abs((b.x - a.x) * (c.y - a.y) - (c.x - a.x) * (b.y - a.y)) / 2.0
 
-    print("AF7 UV coverage: %.1f%% of the texture" % (100.0 * sum(uv_area(p) for p in me.polygons)))
+    sets = poly_sets(me)
+    for k in range(nsets):
+        used = sum(uv_area(p) for p, s in zip(me.polygons, sets) if s == k)
+        print("AF7 UV coverage, set %d (%s): %.1f%% of the texture" % (k, texture_sets()[k][0], 100.0 * used))
 
 
 def drop_small_parts(me, min_size):
@@ -412,7 +519,7 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
     saved_engine = scene.render.engine
     scene.render.engine = "CYCLES"
     scene.cycles.device = "CPU"
-    scene.render.bake.margin = 16
+    scene.render.bake.margin = 8
     scene.render.bake.use_clear = True
     scene.render.bake.use_selected_to_active = False
     if scene.world:
@@ -422,23 +529,37 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
         o.hide_render = o is not ob
     activate(ob)
 
+    sets = texture_sets()
+    mat_set = {m: set_of_material(m) for m in mats}
+
     def target(tag, colorspace, fill):
-        name = PREFIX + "Bake_" + tag
-        if name in bpy.data.images:
-            bpy.data.images.remove(bpy.data.images[name])
-        img = bpy.data.images.new(name, size, size, alpha=False)
-        img.generated_color = fill
-        img.colorspace_settings.name = colorspace
+        """One bake image per texture set; every material bakes into the image of its set,
+        so a single bake pass fills all the sets."""
+        imgs = []
+        for k in range(len(sets)):
+            name = PREFIX + "Bake_%s_%d" % (tag, k)
+            if name in bpy.data.images:
+                bpy.data.images.remove(bpy.data.images[name])
+            img = bpy.data.images.new(name, size, size, alpha=False)
+            img.generated_color = fill
+            img.colorspace_settings.name = colorspace
+            imgs.append(img)
         for m in mats:
             nt = m.node_tree
             node = nt.nodes.get(PREFIX + "BAKE") or nt.nodes.new("ShaderNodeTexImage")
             node.name = PREFIX + "BAKE"
-            node.image = img
+            node.image = imgs[mat_set[m]]
             for n in nt.nodes:
                 n.select = False
             node.select = True
             nt.nodes.active = node
-        return img
+        return imgs
+
+    def grab(imgs, channel=None):
+        out = [_pixels(i) if channel is None else _pixels(i)[..., channel].copy() for i in imgs]
+        for i in imgs:
+            bpy.data.images.remove(i)
+        return out
 
     def surface(tap):
         """Route a named tap through an Emission shader (tap=None restores the BSDF)."""
@@ -468,23 +589,23 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
         for suffix, value in skins:
             set_skin(value)
             for tag, tap, cs in (("color", "COLOR", "sRGB"), ("rough", "ROUGH", "Non-Color"), ("metal", "METAL", "Non-Color")):
-                img = target(tag, cs, (0, 0, 0, 1))
+                imgs = target(tag, cs, (0, 0, 0, 1))
                 surface(tap)
                 bpy.ops.object.bake(type="EMIT")
-                result[tag + suffix] = _pixels(img)
+                result[tag + suffix] = grab(imgs, None if tag == "color" else 0)
                 print("AF7 baked", tag + suffix)
         set_skin(0.0)
         surface(None)
         scene.cycles.samples = SAMPLES["NORMAL"]
-        img = target("normal", "Non-Color", (0.5, 0.5, 1.0, 1.0))
+        imgs = target("normal", "Non-Color", (0.5, 0.5, 1.0, 1.0))
         # DayZ / Arma normal maps are DirectX style (green pointing down)
         bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT", normal_r="POS_X", normal_g="NEG_Y", normal_b="POS_Z")
-        result["normal"] = _pixels(img)
+        result["normal"] = grab(imgs)
         print("AF7 baked normal")
         scene.cycles.samples = SAMPLES["AO"]
-        img = target("ao", "Non-Color", (1, 1, 1, 1))
+        imgs = target("ao", "Non-Color", (1, 1, 1, 1))
         bpy.ops.object.bake(type="AO")
-        result["ao"] = _pixels(img)
+        result["ao"] = grab(imgs, 0)
         print("AF7 baked ao")
     finally:
         set_skin(0.0)
@@ -493,48 +614,47 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
             o.hide_render = h
         scene.render.engine = saved_engine
 
-    ao = np.clip(result["ao"][..., 0], 0, 1)
-    one = np.ones_like(ao)
-    base_metal = np.clip(result["metal"][..., 0], 0, 1)
-    amb = np.stack([one, ao, one, one], axis=-1)           # green = ambient shadow
-    nohq = result["normal"].copy()
-    nohq[..., 3] = 1
-    outputs = [("nohq", nohq, "Non-Color"), ("as", amb, "Non-Color")]
-
-    for suffix, _value in skins:
-        rough = np.clip(result["rough" + suffix][..., 0], 0, 1)
-        metal = np.clip(result["metal" + suffix][..., 0], 0, 1)
-        co = result["color" + suffix].copy()
-        co[..., :3] *= (0.78 + 0.22 * ao)[..., None]      # a little baked-in contact shadow
-        co[..., 3] = 1
-        # Levels matched to the vanilla m4_body_smdi (specular median 0.13, gloss median 0.39).
-        # Anything much higher washes the rifle out to white under DayZ's lighting.
-        spec = np.clip(SPEC_BASE + SPEC_METAL * metal, 0, 1)
-        gloss = np.clip((1.0 - rough) * GLOSS_SCALE, 0, 1)
-        if not suffix:
-            co[..., :3] *= CO_SCALE                        # DayZ lights colour maps brightly
-        if suffix:
-            gloss = np.clip(1.0 - rough, 0, 1)
-            # Skin: only the ornament reflects (exactly like the old R700 chassis map, which is
-            # specular 1 on the gold and 0 everywhere else). The skin's material uses a strong
-            # orange environment map; any specular on the black parts turns them orange in game.
-            ornament = np.clip(metal - base_metal, 0, 1)
-            spec = ornament
-        smdi = np.stack([one, spec, gloss, one], axis=-1)
-        key = suffix.strip("_") + "_" if suffix else ""
-        outputs += [(key + "co", co, "sRGB"), (key + "smdi", smdi, "Non-Color")]
-
     os.makedirs(tex_dir, exist_ok=True)
-    files = {}
-    for suffix, data, cs in outputs:
-        path = os.path.join(tex_dir, "%s_%s.png" % (TEX_NAME, suffix))
-        files[suffix] = _save(TEX_NAME + "_" + suffix, data, path, cs)
-        print("AF7 wrote", path)
-    for tag in list(result):
-        img = bpy.data.images.get(PREFIX + "Bake_" + tag)
-        if img:
-            bpy.data.images.remove(img)
-    return files
+    all_files = []
+    for k, (tex_name, _names) in enumerate(sets):
+        ao = np.clip(result["ao"][k], 0, 1)
+        one = np.ones_like(ao)
+        base_metal = np.clip(result["metal"][k], 0, 1)
+        amb = np.stack([one, ao, one, one], axis=-1)           # green = ambient shadow
+        nohq = result["normal"][k]
+        nohq[..., 3] = 1
+        outputs = [("nohq", nohq, "Non-Color"), ("as", amb, "Non-Color")]
+
+        for suffix, _value in skins:
+            rough = np.clip(result["rough" + suffix][k], 0, 1)
+            metal = np.clip(result["metal" + suffix][k], 0, 1)
+            co = result["color" + suffix][k]
+            co[..., :3] *= (0.78 + 0.22 * ao)[..., None]      # a little baked-in contact shadow
+            co[..., 3] = 1
+            # Levels matched to the vanilla m4_body_smdi (specular median 0.13, gloss median 0.39).
+            # Anything much higher washes the rifle out to white under DayZ's lighting.
+            spec = np.clip(SPEC_BASE + SPEC_METAL * metal, 0, 1)
+            gloss = np.clip((1.0 - rough) * GLOSS_SCALE, 0, 1)
+            if not suffix:
+                co[..., :3] *= CO_SCALE                        # DayZ lights colour maps brightly
+            if suffix:
+                gloss = np.clip(1.0 - rough, 0, 1)
+                # Skin: only the ornament reflects (exactly like the old R700 chassis map, which is
+                # specular 1 on the gold and 0 everywhere else). The skin's material uses a strong
+                # orange environment map; any specular on the black parts turns them orange in game.
+                ornament = np.clip(metal - base_metal, 0, 1)
+                spec = ornament
+            smdi = np.stack([one, spec, gloss, one], axis=-1)
+            key = suffix.strip("_") + "_" if suffix else ""
+            outputs += [(key + "co", co, "sRGB"), (key + "smdi", smdi, "Non-Color")]
+
+        files = {}
+        for suffix, data, cs in outputs:
+            path = os.path.join(tex_dir, "%s_%s.png" % (tex_name, suffix))
+            files[suffix] = _save(tex_name + "_" + suffix, data, path, cs)
+            print("AF7 wrote", path)
+        all_files.append(files)
+    return all_files
 
 
 def game_material(files, name="Body_DayZ", skin=""):
@@ -590,11 +710,28 @@ def game_material(files, name="Body_DayZ", skin=""):
     return mat
 
 
-def single_material(ob, mat):
-    ob.data.materials.clear()
-    ob.data.materials.append(mat)
-    for p in ob.data.polygons:
-        p.material_index = 0
+def preview_materials(files_by_set):
+    """Preview materials for every set (and the gold skin where it was baked), tagged with their set."""
+    mats = []
+    for k, files in enumerate(files_by_set):
+        tail = "" if k == 0 else "_%d" % k
+        if "gold_co" in files and "gold_smdi" in files:   # kept in the file to preview the skin
+            game_material(files, "Body_DayZ_Gold" + tail, "gold_")["af_set"] = k
+        mat = game_material(files, "Body_DayZ" + tail)
+        mat["af_set"] = k
+        mats.append(mat)
+    return mats
+
+
+def set_materials(ob, mats):
+    """Replace the object's materials by one material per texture set."""
+    me = ob.data
+    sets = poly_sets(me)
+    me.materials.clear()
+    for m in mats:
+        me.materials.append(m)
+    for p, s in zip(me.polygons, sets):
+        p.material_index = s
 
 
 # ----------------------------------------------------------------------------
@@ -638,6 +775,7 @@ class Lod:
 def lod_from_mesh(ob, resolution, texture, material):
     me = ob.data
     lod = Lod(resolution)
+    sets = poly_sets(me) if not isinstance(texture, str) else None
     lod.points = [P(v.co) + (0,) for v in me.vertices]
     uv = me.uv_layers.active.data if me.uv_layers.active else None
     corner_normals = me.corner_normals if hasattr(me, "corner_normals") else None
@@ -652,7 +790,10 @@ def lod_from_mesh(ob, resolution, texture, material):
                 lod.normals.append(key)
             u, v = (uv[li].uv[0], 1.0 - uv[li].uv[1]) if uv else (0.0, 0.0)
             verts.append((me.loops[li].vertex_index, index[key], u, v))
-        lod.faces.append((verts, texture, material))
+        if sets is None:
+            lod.faces.append((verts, texture, material))
+        else:
+            lod.faces.append((verts, texture[sets[poly.index]], material[sets[poly.index]]))
     for g in ob.vertex_groups:
         pts = set()
         for v in me.vertices:
@@ -731,13 +872,14 @@ def lod1_from_p3d(path, col):
         o += 28
         pts = [struct.unpack_from("<3fI", d, o + 16 * i) for i in range(npts)]
         o += 16 * npts + 12 * nnorm
-        faces = []
+        faces, face_tex = [], []
         for _ in range(nfaces):
             n = struct.unpack_from("<I", d, o)[0]
             corners = [struct.unpack_from("<2I2f", d, o + 4 + 16 * k) for k in range(n)]
             o += 72
-            for _ in range(2):          # texture, material
-                o = d.index(b"\0", o) + 1
+            e = d.index(b"\0", o)
+            face_tex.append(d[o:e].decode("latin1").lower())
+            o = d.index(b"\0", e + 1) + 1     # material
             faces.append(corners)
         o += 4                          # TAGG
         tags = {}
@@ -766,6 +908,13 @@ def lod1_from_p3d(path, col):
             for li, c in zip(poly.loop_indices, faces[i]):
                 uv[li].uv = (c[2], 1.0 - c[3])
             poly.use_smooth = True
+        tex_set = {set_texture(k).lower(): k for k in range(len(texture_sets()))}
+        for k in range(len(texture_sets())):
+            holder = bpy.data.materials.new(PREFIX + "Set%d" % k)
+            holder["af_set"] = k
+            me.materials.append(holder)
+        for poly, i in zip(me.polygons, keep):
+            poly.material_index = tex_set.get(face_tex[i], 0)
         me.update()
         if hasattr(me, "set_sharp_from_angle"):
             me.set_sharp_from_angle(angle=math.radians(35))
@@ -852,24 +1001,22 @@ def export(bake=True, tex_size=TEX_SIZE):
     lod1 = None if bake else lod1_from_p3d(p3d_path, col)
     if lod1 is not None:
         print("AF7 kept LOD 1 and its UVs from", p3d_path)
-        files = {}
-        for suffix in ("co", "nohq", "smdi", "as", "gold_co", "gold_smdi"):
-            png = os.path.join(tex_dir, "%s_%s.png" % (TEX_NAME, suffix))
-            if os.path.isfile(png):
-                files[suffix] = bpy.data.images.load(png, check_existing=True)
-                files[suffix].colorspace_settings.name = "sRGB" if suffix.endswith("co") else "Non-Color"
-        if all(k in files for k in ("co", "nohq", "smdi", "as")):   # preview material from the last bake
-            if "gold_co" in files and "gold_smdi" in files:
-                game_material(files, "Body_DayZ_Gold", "gold_")
-            single_material(lod1, game_material(files))
+        loaded = []
+        for tex_name, _names in texture_sets():
+            files = {}
+            for suffix in ("co", "nohq", "smdi", "as", "gold_co", "gold_smdi"):
+                png = os.path.join(tex_dir, "%s_%s.png" % (tex_name, suffix))
+                if os.path.isfile(png):
+                    files[suffix] = bpy.data.images.load(png, check_existing=True)
+                    files[suffix].colorspace_settings.name = "sRGB" if suffix.endswith("co") else "Non-Color"
+            loaded.append(files)
+        if all(all(k in f for k in ("co", "nohq", "smdi", "as")) for f in loaded):   # preview from the last bake
+            set_materials(lod1, preview_materials(loaded))
     else:
         lod1 = build_lod1(col, Matrix.Identity(4))
         unwrap(lod1)
         if bake:
-            files = bake_textures(lod1, tex_dir, tex_size)
-            if "gold_co" in files:   # kept in the file so you can swap it onto AF7_LOD_1 to preview the skin
-                game_material(files, "Body_DayZ_Gold", "gold_")
-            single_material(lod1, game_material(files))
+            set_materials(lod1, preview_materials(bake_textures(lod1, tex_dir, tex_size)))
         lod1.data.transform(M)
         lod1.data.update()
 
@@ -888,7 +1035,8 @@ def export(bake=True, tex_size=TEX_SIZE):
 
     lods = []
     for res, ob in visual + [(LOD_VIEW_PILOT, lod1)]:
-        lod = lod_from_mesh(ob, res, P3D_TEXTURE, P3D_MATERIAL)
+        nsets = len(texture_sets())
+        lod = lod_from_mesh(ob, res, [set_texture(k) for k in range(nsets)], [set_rvmat(k) for k in range(nsets)])
         for path, origin, up, direction, extra, index in proxies:
             lod.add_proxy(path, origin, up, direction, extra, index)
         lods.append(lod)
