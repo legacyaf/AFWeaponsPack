@@ -2,15 +2,18 @@
 // on this PC; it never connects to a server.
 // Start it with: test\run_test.ps1 -Mission AFPerfTest.ChernarusPlus -TimeoutSeconds 600
 //
-// Part 1 (frame rate): a 40 x 40 grid (1,600 pieces; fewer never pull this PC below its 180 fps cap) of one weapon is laid on the runway and the frame
-// rate is averaged over four seconds from 15, 30, 60, 120 and 200 m. This is done for an empty runway,
-// for each AF weapon and for the vanilla weapon it is built on. Lines: "[AFPerf] <name> <metres> <fps> <frames>".
-// Part 2 (LOD switching): one of each AF weapon side by side, photographed from 2 to 80 m.
+// Part 1 (frame rate; skipped when AF_PULL_ONLY is true): a 40 x 40 grid (1,600 pieces; fewer never pull this PC below its 180 fps cap) of one weapon is laid on the runway and the frame
+// rate is averaged over four seconds from 15, 30 and 120 m. This is done for an empty runway,
+// for each AF weapon and the vanilla weapon it is built on, bare and with their usual attachments, and for the magazines alone. Lines: "[AFPerf] <name> <metres> <fps> <frames>".
+// Part 2 (LOD switching): one of each AF weapon and a vanilla Mosin side by side, photographed from
+// 2 to 80 m. The white dot in the middle of every picture is the game's crosshair, not part of a
+// weapon (it was mistaken for a fault on the M41 once); the row is laid out so no weapon sits under it.
 
 const int AF_COLS = 40;
 const int AF_ROWS = 40;
 const float AF_DX = 0.95;
 const float AF_DZ = 0.45;
+const bool AF_PULL_ONLY = false;    // true: skip the frame-rate part and only take the pull-back pictures
 
 vector g_AFOrigin;
 
@@ -83,19 +86,16 @@ class CustomMission: MissionGameplay
 	override void OnInit()
 	{
 		super.OnInit();
-		m_Groups.Insert("empty");
-		m_Groups.Insert("AF7_Vanguard");
-		m_Groups.Insert("M4A1");
-		m_Groups.Insert("AFM41_Pathfinder");
-		m_Groups.Insert("Mosin9130");
-		m_Groups.Insert("AF_MP40");
-		m_Groups.Insert("UMP45");
-		m_Groups.Insert("empty");       // the empty runway again at the end, to see how much the numbers drift
+		// A name ending in "+" is spawned with its usual attachments (see Dress), otherwise bare.
+		string list = "empty AF7_Vanguard AF7_Vanguard+ M4A1 M4A1+ AFM41_Pathfinder Mosin9130 AF_MP40 AF_MP40+ UMP45 UMP45+ Mag_AFMP40_32Rnd Mag_UMP_25Rnd Mag_STANAG_30Rnd empty";
+		if (AF_PULL_ONLY)
+			list = "";
+		list.Split(" ", m_Groups);
 		m_Dists.Insert(15);
 		m_Dists.Insert(30);
-		m_Dists.Insert(60);
+		
 		m_Dists.Insert(120);
-		m_Dists.Insert(200);
+		
 		m_Pull.Insert(2);
 		m_Pull.Insert(3);
 		m_Pull.Insert(4);
@@ -160,6 +160,8 @@ class CustomMission: MissionGameplay
 	void Fill(string type)
 	{
 		Clear();
+		bool dressed = type.Contains("+");
+		type.Replace("+", "");
 		if (type == "empty")
 			return;
 		for (int r = 0; r < AF_ROWS; r++)
@@ -171,7 +173,8 @@ class CustomMission: MissionGameplay
 				EntityAI item = EntityAI.Cast(GetGame().CreateObjectEx(type, p, ECE_PLACE_ON_SURFACE));
 				if (item)
 				{
-					Dress(item, type);
+					if (dressed)
+						Dress(item, type);
 					m_Items.Insert(item);
 				}
 			}
@@ -208,10 +211,10 @@ class CustomMission: MissionGameplay
 	{
 		Clear();
 		vector c = Centre();
-		TStringArray three = {"AF7_Vanguard", "AFM41_Pathfinder", "AF_MP40"};
-		for (int i = 0; i < 3; i++)
+		TStringArray three = {"AF7_Vanguard", "AFM41_Pathfinder", "AF_MP40", "Mosin9130"};   // the Mosin for comparison
+		for (int i = 0; i < three.Count(); i++)
 		{
-			vector p = Vector(c[0] + (i - 1) * 1.3, 0, c[2]);
+			vector p = Vector(c[0] + (i - 1.5) * 1.3, 0, c[2]);
 			p[1] = GetGame().SurfaceY(p[0], p[2]);
 			EntityAI item = EntityAI.Cast(GetGame().CreateObjectEx(three.Get(i), p, ECE_PLACE_ON_SURFACE));
 			if (item)
