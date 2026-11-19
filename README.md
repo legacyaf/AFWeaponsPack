@@ -82,3 +82,11 @@ Bolt-action sniper rifle built on the vanilla Mosin 91/30. See `docs/M41.md` for
     blender -b --factory-startup --python blender/afmp40_run.py -- 4096
 
 In-game check: `test\run_test.ps1 -Mission AFMP40Test.ChernarusPlus`.
+
+## Fourth weapon: AF P08 (0.11.0)
+
+Toggle-lock 9 mm pistol built on the vanilla P1, with its own 8-round magazine. See `docs/P08.md`. One command rebuilds the pistol and the magazine:
+
+    blender -b --factory-startup --python blender/afp08_run.py -- 4096
+
+In-game check: `test\run_test.ps1 -Mission AFP08Test.ChernarusPlus` (not run yet).

@@ -44,6 +44,20 @@ A WW2-style 9 mm submachine gun with its own model, textures and magazine.
 [/list]
 
 Class names: [b]AF_MP40[/b], [b]AF_MP40_Gold[/b] and the magazine [b]Mag_AFMP40_32Rnd[/b]
+
+[h2]AF P08[/h2]
+A toggle-lock 9 mm service pistol with its own model, textures and magazine.
+
+[list]
+[*][b]9x19mm[/b] from its own 8-round magazine.
+[*][b]Attachments:[/b] pistol suppressor and improvised suppressor.
+[*][b]Two finishes:[/b] walnut grips and blued steel, or gold floral grips on black.
+[*][b]Handling:[/b] uses the P1 animations and sounds.
+[*]Slim tapered barrel, knurled toggle knobs, straw-coloured small parts and a raked grip with checkered walnut panels.
+[/list]
+
+Class names: [b]AF_P08[/b], [b]AF_P08_Gold[/b] and the magazine [b]Mag_AFP08_8Rnd[/b]
+
 [h2]Licensed servers only[/h2]
 This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
 
@@ -67,6 +81,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
 [*]The AF-7's safety and bolt catch do not animate yet.
 [*]The MP40 is brand new: firing, cocking and the first-person view have not been tuned in game yet.
+[*]The P08 borrows the P1 animations: its toggle stays flat instead of folding up when the action opens, and the magazine clips through the grip for a moment during a reload.
 [/list]
 
 [h2]Terms[/h2]

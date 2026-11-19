@@ -1,0 +1,13 @@
+0.11.0
+
+New weapon: AF P08
+- Toggle-lock 9 mm service pistol: slim tapered barrel, knurled toggle knobs, raked grip with checkered walnut panels.
+- Fires 9x19mm from its own 8-round magazine (a new item).
+- Takes a pistol suppressor or an improvised suppressor.
+- Two finishes: walnut grips and blued steel, or gold floral grips on black.
+- Uses the P1 animations and sounds. The toggle stays flat when the action opens.
+
+Server owners
+- New class names: AF_P08, AF_P08_Gold, Mag_AFP08_8Rnd.
+- The loot files in ServerFiles have entries for all three. Merge them again, or the P08 and its magazine will not spawn. No other magazine fits the pistol.
+- No class name or loot changes for the AF-7, the M41 or the MP40.

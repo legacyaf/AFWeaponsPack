@@ -1,6 +1,6 @@
 # Adding a weapon to the AF Weapons Pack
 
-The AF-7 Vanguard was built first; the AF M41 Pathfinder and the AF MP40 were built by following the steps below. They are the repeatable part of the work. A new weapon is three small files in `blender/`, one folder in `source/AF_Weapons/`, and a class in `config.cpp`.
+The AF-7 Vanguard was built first; the AF M41 Pathfinder, the AF MP40 and the AF P08 were built by following the steps below. They are the repeatable part of the work. A new weapon is three small files in `blender/`, one folder in `source/AF_Weapons/`, and a class in `config.cpp`.
 
 ## What is shared and what is per weapon
 
