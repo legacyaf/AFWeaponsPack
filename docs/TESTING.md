@@ -71,3 +71,11 @@ Do these for `AFM41_Pathfinder` (and glance at `AFM41_Pathfinder_Gold` for the f
 | M5 | Fit the compensator, then the improvised suppressor, then the bayonet | Screenshot each | Muzzle attachment positions |
 | M6 | Aim down the iron sights | Screenshot | Front blade centred in the rear notch |
 | M7 | Carry it on the back and in the hands, third person | 2 screenshots | Length and position against the body |
+
+## Automated in-game test (since 0.9.0)
+
+`test\run_test.ps1` starts DayZDiag offline with the built mod and the mission in `test\AFWeaponsTest.ChernarusPlus`. The mission lays every rifle out on the north-west airfield runway (both finishes, with attachments, damaged, ruined, and the vanilla Mosin and M4 for comparison), raises the M41 in the player's hands, fires, works the bolt, moves a scripted camera through about 60 shots and quits. The script saves a picture of the game window for each shot into `test\profiles\af_*.png`. Steam must be running; it takes about four minutes.
+
+It covers: every part textured, both finishes, attachments fitted, damage states, hand positions when aimed, sling, bolt cycle. It does not cover: first-person view and sights, the firing animation itself (the scripted shot does not play it), reloading, sound, distance LODs beyond about 12 m, anything multiplayer or the licence check.
+
+Result on 0.9.0 (2026-11-18): all rifles spawned, all attachments fitted, both texture sets drawn on both rifles in both finishes, damaged and ruined looks applied to metal and furniture, bolt cycle played with the cocking piece staying on the bolt. Sheets of the pictures are in `docs\img\ingame`.
