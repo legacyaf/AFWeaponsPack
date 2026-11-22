@@ -652,6 +652,11 @@ class CfgMagazines
 		model = "\AF_Weapons\afstg44\afstg44_mag.p3d";
 		weight = 400;
 		itemSize[] = {1, 3};
+		// The AKM magazine swaps its own texture onto "camo" (seen as stripes in the first in-game
+		// test); this one has its own.
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_mag_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_mag.rvmat"};
 		class DamageSystem
 		{
 			class GlobalHealth
@@ -681,5 +686,18 @@ class CfgSlots
 		name = "weaponOpticsAFStG";
 		displayName = "Optics";
 		ghostIcon = "set:dayz_inventory image:weaponoptics";
+	};
+};
+
+// Tells the game which slot the scope proxy in afstg44.p3d belongs to. Without it the scope model
+// is drawn on every StG 44, attached or not (seen in the first in-game test).
+class CfgNonAIVehicles
+{
+	class ProxyAttachment;
+	class Proxyafzf4: ProxyAttachment
+	{
+		scope = 2;
+		inventorySlot = "weaponOpticsAFStG";
+		model = "\AF_Weapons\afstg44\afzf4.p3d";
 	};
 };

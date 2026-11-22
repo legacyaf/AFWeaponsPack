@@ -52,6 +52,17 @@ All of these come from borrowing the AKM's animations.
 - **The handguard sleeve comes down round the barrel.** On the real rifle it covers only the gas cylinder; here it reaches z 0.076 because that is where the AKM puts the left hand.
 - **The magazine may clip during a reload.** The AKM animation draws its magazine out along a 20.7 degree lean; ours is longer and curves forward. To be checked in game.
 
+## First in-game test (2026-11-22)
+
+Run with the AF Content Factory session's go-ahead (`test\AFStG44Test.ChernarusPlus`).
+
+- **Worked:** every class spawns; magazine, scope, AK suppressor and improvised suppressor attach; the vanilla AKM magazine and the PU scope are refused. In the hands both hands close on the grip and the handguard, the stock sits in the shoulder, the magazine seats in its housing, and the magazine swap ran (`CanSwap=true`). Firing reported `CanFire=true`.
+- **Bug, fixed:** the ZF4 scope was drawn on every rifle, attached or not. The scope proxy had no `CfgNonAIVehicles` entry tying it to its slot; `Proxyafzf4` now does.
+- **Bug, fixed:** the magazine showed the vanilla AKM magazine texture (stripes), because it inherited the AKM magazine's `hiddenSelectionsTextures`. It now sets its own.
+- Magazines of rifles lying on the ground sink into the runway; the vanilla AKM next to them does the same.
+
+Both fixes are built and signed but not yet seen in game.
+
 ## What still has to be checked in game
 
 Hand fit on the grip and handguard, magazine fit and the reload, bolt travel through the port, the iron-sight picture, the scope view (eye point, reticle, lens), suppressor positions, both finishes under game lighting, and that the vanilla AKM magazine and PU scope are refused. The test mission covers all of these. It waits until the AF Content Factory session can spare the game (owner's rule, 2026-11-21).
