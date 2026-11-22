@@ -5,7 +5,7 @@
 // its magazine, the magazine alone, the ZF4 scope alone, with the scope, with each suppressor,
 // damaged, ruined, and a vanilla AKM), puts a loaded StG 44 in the player's hands, raises it,
 // fires, works the action and swaps the magazine while taking pictures from both sides, then
-// photographs the row and quits the game.
+// takes the iron-sight and scope views, photographs the row and quits the game.
 // Start it with: test\run_test.ps1 -Mission AFStG44Test.ChernarusPlus
 
 ref TStringArray g_ShotName = new TStringArray;
@@ -192,8 +192,73 @@ class CustomMission: MissionGameplay
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFFire, 24000, false);
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFCycle, 27500, false);
 		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFReload, 32500, false);
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFLower, 41000, false);
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFNext, 42500, false);
+		// Sight pictures while the rifle is still raised: iron sights, then the ZF4 fitted and its view.
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFIronView, 40000, false);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFFitScope, 43000, false);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFScopeView, 45000, false);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFLower, 49000, false);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFNext, 50500, false);
+	}
+
+	//! A still camera at a memory point of `ent`, looking from `from` towards `towards` (both memory points).
+	void AFPointCam(EntityAI ent, string from, string towards, float fov, string name)
+	{
+		if (!ent || !ent.MemoryPointExists(from) || !ent.MemoryPointExists(towards))
+		{
+			Print("[AFTest] FAILED sight view " + name + ": memory point missing");
+			return;
+		}
+		vector eye = ent.ModelToWorld(ent.GetMemoryPointPos(from));
+		vector ahead = ent.ModelToWorld(ent.GetMemoryPointPos(towards));
+		vector dir = vector.Direction(eye, ahead).Normalized();
+		if (!m_AFCam)
+		{
+			m_AFCam = Camera.Cast(GetGame().CreateObject("staticcamera", eye, true));
+			m_AFCam.SetActive(true);
+		}
+		m_AFCam.SetPosition(eye);
+		m_AFCam.LookAt(eye + dir * 20.0);
+		m_AFCam.SetFOV(fov);
+		Print("[AFTest] sight view " + name + " eye=" + eye.ToString() + " dir=" + dir.ToString());
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFShotNamed, 1500, false, name);
+	}
+
+	void AFShotNamed(string name)
+	{
+		Print("[AFTest] screenshot " + name);
+	}
+
+	void AFIronView()
+	{
+		// 'eye' is the iron-sight camera; the bore runs from 'konec hlavne' to 'usti hlavne'.
+		vector eye = g_AFHeld.GetMemoryPointPos("eye");
+		vector a = g_AFHeld.GetMemoryPointPos("konec hlavne");
+		vector b = g_AFHeld.GetMemoryPointPos("usti hlavne");
+		Print("[AFTest] model eye=" + eye.ToString() + " barrel " + a.ToString() + " -> " + b.ToString());
+		AFPointCam(g_AFHeld, "eye", "usti hlavne", 0.45, "sight_iron");
+	}
+
+	void AFFitScope()
+	{
+		EntityAI scope = g_AFHeld.GetInventory().CreateAttachment("AF_ZF4Optic");
+		if (scope)
+			Print("[AFTest] ZF4 fitted to the held rifle");
+		else
+			Print("[AFTest] FAILED to fit the ZF4 to the held rifle");
+	}
+
+	void AFScopeView()
+	{
+		EntityAI scope = g_AFHeld.FindAttachmentBySlotName("weaponOpticsAFStG");
+		AFPointCam(scope, "eyescope", "cameradir", 0.30, "sight_scope");
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFScopeSide, 2500, false);
+	}
+
+	void AFScopeSide()
+	{
+		m_AFBurst = 1;
+		m_AFBurstName = "scope_fitted";
+		AFBurstStep();
 	}
 
 	protected int m_AFBurst;

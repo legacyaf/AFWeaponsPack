@@ -133,14 +133,16 @@ def _scope_tables():
     ex.PROXIES = {}
     ex.GEOMETRY = [((-0.016, model.SCOPE_REAR, -0.026), (0.020, model.SCOPE_FRONT, 0.026))]
     # Reticle in the middle of the tube, lens glass at both ends: the vanilla PU scope's own textures.
+    # The panels are square: half-sizes are kept under the tube's outer radius / sqrt(2), so the corners stay
+    # inside the tube wall (bigger ones poked through as a black square in the first in-game scope view).
     def disc(y, r):
         return ((-r, y, -r), (r, y, -r), (r, y, r), (-r, y, r))
     uv = ((0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0))
     ex.RAW_QUADS = (
-        (disc(model.SCOPE_REAR + 0.0400, 0.0105), uv, OPTICS + "reticle_pu_ca.paa", OPTICS + "forceddiffuse.rvmat", 3.0),
-        (disc(model.SCOPE_REAR + 0.0030, 0.0116), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
+        (disc(model.SCOPE_REAR + 0.0400, 0.0088), uv, OPTICS + "reticle_pu_ca.paa", OPTICS + "forceddiffuse.rvmat", 3.0),
+        (disc(model.SCOPE_REAR + 0.0030, 0.0102), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
          OPTICS + "lensglass_standard.rvmat", 3.0),
-        (disc(model.SCOPE_FRONT - 0.0030, 0.0124), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
+        (disc(model.SCOPE_FRONT - 0.0030, 0.0102), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
          OPTICS + "lensglass_standard.rvmat", 3.0),
     )
 
