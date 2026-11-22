@@ -71,6 +71,11 @@ Run with the owner's go-ahead.
 - **Scope view:** taken from the ZF4's `eyescope` point. The crosshair is centred and the view through the lens is clear. A black square stuck out round the eyepiece: the flat lens and reticle panels are square and their corners poked through the tube. They are now smaller (corners inside the tube wall); rebuilt, not yet seen in game.
 - **Iron sights:** taken from the `eye` point looking at the muzzle, which tilts the camera about 4 degrees down compared with the game's own aiming view. The front sight shows above the rounded receiver top, but the top of the receiver fills the lower half of the picture. Worth a look in real play before deciding whether to lower the receiver top.
 
+## Third and fourth in-game tests (2026-11-22)
+
+- Third: the smaller panels were exported without a bake, and the exporter read the old panels back as body faces, so the scope view showed the texture sheet. Fixed in `af7_vanguard_dayz_export.py` (`lod1_from_p3d` now skips `RAW_QUADS` faces); the ZF4 was re-exported from the earlier file.
+- Fourth: crosshair and lens are back and centred. A smaller black square is still visible inside the eyepiece opening, now within the tube. Most likely the black corners of the vanilla PU reticle texture, which the game's own aiming view normally covers with its round optics mask; the test's still camera does not apply that mask, so this has to be judged by aiming in real play.
+
 ## What still has to be checked in game
 
 Hand fit on the grip and handguard, magazine fit and the reload, bolt travel through the port, the iron-sight picture, the scope view (eye point, reticle, lens), suppressor positions, both finishes under game lighting, and that the vanilla AKM magazine and PU scope are refused. The test mission covers all of these. It waits until the AF Content Factory session can spare the game (owner's rule, 2026-11-21).
