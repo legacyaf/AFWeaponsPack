@@ -87,7 +87,7 @@ def _gun_tables():
         "Proxy_Wrap2": (WRAP, (0, 1, 0), (0, 0, -1), ()),
     }
     # Collision boxes in the working frame (min xyz, max xyz)
-    ex.GEOMETRY = [((-0.021, -0.406, 0.010), (0.021, -0.150, 0.134)),      # stock
+    ex.GEOMETRY = [((-0.021, -0.406, 0.010), (0.021, -0.152, 0.134)),      # stock
                    ((-0.020, -0.150, 0.044), (0.022, 0.105, 0.152)),       # receiver and trigger housing
                    ((-0.016, -0.158, -0.040), (0.016, -0.086, 0.058)),     # pistol grip
                    ((-0.022, 0.105, 0.072), (0.022, 0.470, 0.152))]        # handguard, barrel and sights

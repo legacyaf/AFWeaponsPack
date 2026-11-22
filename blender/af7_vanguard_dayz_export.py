@@ -26,6 +26,7 @@ EVERYTHING HERE FOLLOWS THE VANILLA M4 MODEL (dz\\weapons\\firearms\\m4\\m4a1.p3
 import math
 import os
 import struct
+import zlib
 import bmesh
 import bpy
 import numpy as np
@@ -69,7 +70,7 @@ REBUILD = None
 SLIVER = 0.25          # see drop_small_parts
 VARIANT_FIT = 0.85     # a rebuild is used for a LOD when it has at least this share of the LOD's target
 SHARP_ANGLE = 35.0     # edges sharper than this (degrees) stay hard; everything else shades smooth
-LOD_PIECE_MIN = 6      # a loose piece is never decimated below this many triangles
+LOD_PIECE_MIN = 12     # a loose piece is never decimated below this many triangles (a box: fewer folds it, 2026-11-22)
 UV_MARGIN = 0.0016     # gap added around every UV island (about 6 px at 4096)
 UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are unwrapped in several lengths
 # _smdi levels for the standard finish: specular = SPEC_BASE + SPEC_METAL * metal,
@@ -310,6 +311,20 @@ def transfer_uvs(target, source):
     sloops = [tuple(p.loop_indices) for p in sme.polygons]
     snor = [p.normal.copy() for p in sme.polygons]
     ssets = poly_sets(sme)
+    # Faces are matched within the same source part when both meshes say which part each face came
+    # from (build_lod1, attribute af7_part). Without it a big face of a reduced part (a receiver side
+    # without its ejection port) could take the texture of a different part lying nearer its centre
+    # (the bolt behind the port) and stretch it across the whole face.
+    def parts(me):
+        a = me.attributes.get("af7_part")
+        if a is None or a.domain != "FACE" or len(a.data) != len(me.polygons):
+            return None
+        return [d.value for d in a.data]
+    spart = parts(sme)
+    tpart = parts(tme) if spart is not None else None
+    if tpart is None:
+        spart = None
+    skey = [(k, spart[i]) if spart else (k, 0) for i, k in enumerate(ssets)]
 
     parent = list(range(len(spolys)))
 
@@ -339,6 +354,10 @@ def transfer_uvs(target, source):
     for pi, k in enumerate(ssets):
         by_set.setdefault(k, []).append(pi)
     set_tree = {k: BVHTree.FromPolygons(sco, [spolys[i] for i in idx]) for k, idx in by_set.items()}
+    by_key = {}
+    for pi, key in enumerate(skey):
+        by_key.setdefault(key, []).append(pi)
+    key_tree = {key: BVHTree.FromPolygons(sco, [spolys[i] for i in idx]) for key, idx in by_key.items()} if spart else {}
 
     if not tme.uv_layers:
         tme.uv_layers.new(name="UVMap")
@@ -346,16 +365,18 @@ def transfer_uvs(target, source):
     tsets = poly_sets(tme)
     for poly in tme.polygons:
         k = tsets[poly.index] if tsets[poly.index] in set_tree else next(iter(set_tree))
+        key = (k, tpart[poly.index]) if tpart else None
+        tree_k, pool = (key_tree[key], by_key[key]) if key in key_tree else (set_tree[k], by_set[k])
         centre, normal = poly.center, poly.normal
-        near = set_tree[k].find_nearest_range(centre, 0.006) or []
+        near = tree_k.find_nearest_range(centre, 0.006) or []
         if not near:
-            hit = set_tree[k].find_nearest(centre)
+            hit = tree_k.find_nearest(centre)
             near = [hit] if hit[0] is not None else []
         if not near:
             continue
         dmin = min(h[3] for h in near)
-        best = max((h for h in near if h[3] <= dmin + 0.0015), key=lambda h: snor[by_set[k][h[2]]].dot(normal))
-        isl = island[by_set[k][best[2]]]
+        best = max((h for h in near if h[3] <= dmin + 0.0015), key=lambda h: snor[pool[h[2]]].dot(normal))
+        isl = island[pool[best[2]]]
         tree, idx = island_tree[isl], members[isl]
         for li, vi in zip(poly.loop_indices, poly.vertices):
             loc, _n, local, _d = tree.find_nearest(tme.vertices[vi].co)
@@ -405,6 +426,7 @@ def build_lod1(col, M):
     bm = bmesh.new()
     dl = bm.verts.layers.deform.verify()
     uv_prio = bm.faces.layers.float.new("af7_uv_priority")
+    part_layer = bm.faces.layers.int.new("af7_part")     # which source part each face came from (see transfer_uvs)
     groups, mats = [], []
 
     def gidx(name):
@@ -429,7 +451,9 @@ def build_lod1(col, M):
                 v[dl][i] = 1.0
         src = list(me.materials)
         priority = UV_PRIORITY.get(short, 1.0)
+        part_id = zlib.crc32(short.encode("utf-8")) & 0x7FFFFFFF
         for f in bm.faces[nf:]:
+            f[part_layer] = part_id
             m = src[f.material_index] if src else None
             if m not in mats:
                 mats.append(m)
@@ -1105,6 +1129,34 @@ def write_p3d(path, lods):
             f.write(struct.pack("<f", lod.resolution))
 
 
+def tag_parts_from_build(lod1, col, M):
+    """LOD 1 read back from a .p3d does not know which part each face came from (attribute af7_part,
+    used by transfer_uvs). The weapon as it stands is the same geometry, so build it once more and
+    give every LOD 1 face the part of the built face whose centre is nearest."""
+    from mathutils.kdtree import KDTree
+    ref = build_lod1(col, M)
+    rme = ref.data
+    attr = rme.attributes.get("af7_part")
+    if attr is None:
+        bpy.data.objects.remove(ref, do_unlink=True)
+        return
+    kd = KDTree(len(rme.polygons))
+    for p in rme.polygons:
+        kd.insert(p.center, p.index)
+    kd.balance()
+    values = [d.value for d in attr.data]
+    me = lod1.data
+    out = me.attributes.get("af7_part") or me.attributes.new("af7_part", "INT", "FACE")
+    far = 0
+    for p in me.polygons:
+        _co, idx, dist = kd.find(p.center)
+        out.data[p.index].value = values[idx]
+        far += dist > 0.002
+    print("AF7 tagged LOD 1 faces with their parts (%d of %d matched further than 2 mm)" % (far, len(me.polygons)))
+    bpy.data.objects.remove(ref, do_unlink=True)
+    bpy.data.meshes.remove(rme)
+
+
 def lod1_from_p3d(path, col):
     """Read resolution LOD 1 back out of a .p3d this script wrote: the mesh, its UVs and its
     named selections, without the proxy triangles. Used by export(bake=False), so that an
@@ -1268,6 +1320,7 @@ def export(bake=True, tex_size=TEX_SIZE):
     lod1 = None if bake else lod1_from_p3d(p3d_path, col)
     if lod1 is not None:
         print("AF7 kept LOD 1 and its UVs from", p3d_path)
+        tag_parts_from_build(lod1, col, M)
         loaded = []
         for tex_name, _names in texture_sets():
             files = {}

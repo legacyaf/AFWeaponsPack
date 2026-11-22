@@ -180,6 +180,25 @@ def _stock_wood(mat):
     return P
 
 
+def _rake(bm, top=(-0.1140, 0.0580), axis=(-0.0220, -0.0970)):
+    """Turn a part built along +Y (down the grip; +Z = forward) onto the grip line: local +Y runs
+    from `top` along `axis` (down and back, the AKM's 77 degrees), local +Z points forward."""
+    theta = math.atan2(axis[1], axis[0])
+    c, s_ = math.cos(theta), math.sin(theta)
+    for v in bm.verts:
+        x, y, z = v.co
+        v.co = (x, top[0] + y * c - z * s_, top[1] + y * s_ + z * c)
+
+
+def _rivet(bm, y, z, side, face_x, r):
+    """Domed rivet head on a side face at |x| = face_x."""
+    prof = [(face_x - 0.0004, 0.0), (face_x - 0.0004, r), (face_x + 0.0003, r * 0.92), (face_x + 0.0008, r * 0.62),
+            (face_x + 0.0010, 0.0)]
+    if side < 0:
+        prof = [(-x, rr) for x, rr in prof][::-1]
+    d.bm_lathe(bm, prof, sides=10, axis="X", c=(y, z))
+
+
 def _arc(centre, radius, a0, a1, steps):
     return [(centre[0] + radius * math.cos(math.radians(a0 + (a1 - a0) * k / steps)),
              centre[1] + radius * math.sin(math.radians(a0 + (a1 - a0) * k / steps))) for k in range(steps + 1)]
@@ -234,25 +253,37 @@ def _build_gun():
     img, asp = scratch_image("Legacy", "legacy was here")
     steel.stamp(img, asp, -0.1300, 0.0062, 1, 0.0790, rgb=(0.46, 0.46, 0.48), strength=0.85, depth=0.00012)
 
-    # --- Receiver (stamped upper: rounded top, flat sides) ---------------------------------
-    top = _arc((0.0, TOP_Z), R_TOP, 0.0, 180.0, 10)
-    xsec = [(-0.0170, 0.0750), (0.0170, 0.0750), (0.0190, 0.0800)] + top + [(-0.0190, 0.0800)]
+    # --- Receiver (stamped upper) ------------------------------------------------------------------
+    # The real upper is one pressing: a round top over flat sides, with the sides stepped in along
+    # their lower third (the swage line), and a rolled lower edge where the trigger housing meets it.
+    top = _arc((0.0, TOP_Z), R_TOP, 0.0, 180.0, 12)
+    right = [(0.0168, 0.0750), (0.0178, 0.0762), (0.0178, 0.0915), (0.0186, 0.0932), (R_TOP, 0.0952)]
+    left = [(-x, z) for x, z in right[::-1]]
     bm = bmesh.new()
-    d.bm_xsec(bm, xsec, -0.1500, 0.1050)
+    d.bm_xsec(bm, right + top + left, -0.1500, 0.1050)
     recv = d.make("Receiver", bm, body, m_steel, "Stamped receiver. Open: ejection port (right), cocking slot (right).", bevel=0.0010)
     for nm, centre, size in (("Port", (R_TOP, 0.0320, BORE + 0.0090), (0.0200, 0.0560, 0.0180)),
                              ("Slot", (R_TOP, 0.0550, TOP_Z + 0.0020), (0.0140, 0.1250, 0.0075))):
         c = d.box("Receiver_%sCutter" % nm, cutters, None, centre, size, bevel=0, note="Boolean cutter.")
         d.cut(recv, c, nm)
+    # Rear end cap of the receiver and the steel collar the stock is pinned into.
     bm = bmesh.new()
-    for side in (-1, 1):       # long ribs pressed into the sides
-        d.bm_box(bm, (side * 0.0190, -0.0850, 0.0880), (0.0016, 0.1000, 0.0040))
-        d.bm_box(bm, (side * 0.0190, -0.0850, 0.1080), (0.0016, 0.1000, 0.0040))
-    d.make("ReceiverRibs", bm, body, m_steel, "Stiffening ribs pressed into the receiver sides.", bevel=0.0007)
+    d.bm_lathe(bm, [(-0.1730, 0.0), (-0.1730, 0.0160), (-0.1715, 0.0182), (-0.1600, 0.0190), (-0.1585, 0.0204),
+                    (-0.1530, 0.0206), (-0.1515, 0.0198), (-0.1500, 0.0198), (-0.1500, 0.0)], sides=28, c=(0.0, TOP_Z - 0.0030))
+    d.make("StockFerrule", bm, body, m_steel, "End cap of the receiver and the stock collar.")
     bm = bmesh.new()
-    d.bm_lathe(bm, [(-0.1680, 0.0), (-0.1680, 0.0170), (-0.1640, 0.0205), (-0.1500, 0.0205), (-0.1500, 0.0)], sides=28,
-               c=(0.0, TOP_Z - 0.0030))
-    d.make("StockFerrule", bm, body, m_steel, "Ferrule where the stock meets the receiver.")
+    d.bm_lathe(bm, [(-0.0218, 0.0), (-0.0218, 0.0030), (-0.0208, 0.0034), (0.0208, 0.0034), (0.0218, 0.0030), (0.0218, 0.0)],
+               sides=14, axis="X", c=(-0.1640, TOP_Z - 0.0090))
+    d.make("StockPin", bm, body, m_steel, "Push pin holding the stock collar to the receiver.")
+    # Domed rivets along the receiver sides (the pressing is riveted to its inner rails).
+    bm = bmesh.new()
+    for y in (-0.1350, -0.1000, -0.0650, 0.0880):
+        for side in (-1, 1):
+            _rivet(bm, y, 0.0840, side, 0.0178, 0.0016)
+    for y in (-0.1250, 0.0950):
+        for side in (-1, 1):
+            _rivet(bm, y, TOP_Z - 0.0020, side, R_TOP, 0.0014)
+    d.make("Rivets", bm, body, m_steel, "Domed rivets on the receiver sides.")
     d.box("DustCover", body, m_steel, (0.0196, 0.0320, BORE - 0.0050), (0.0014, 0.0580, 0.0110), bevel=0.0005,
           note="Ejection port dust cover, sprung open.")
 
@@ -272,20 +303,40 @@ def _build_gun():
               [(-0.1500, 0.0760), (0.0020, 0.0760), (0.0020, 0.0480), (-0.0300, 0.0440), (-0.0840, 0.0440), (-0.0900, 0.0560),
                (-0.1450, 0.0560), (-0.1500, 0.0620)], width=0.0300, bevel=0.0012, round=0.0030,
               note="Trigger housing under the receiver.")
-    d.profile("GripFrame", body, m_steel,
-              [(-0.0860, 0.0580), (-0.1450, 0.0580), (-0.1575, -0.0380), (-0.1180, -0.0400)], width=0.0200, bevel=0.0018,
-              round=0.0060, note="Grip frame.")
-    d.profile("GripPanels", body, m_wood,
-              [(-0.0905, 0.0520), (-0.1405, 0.0520), (-0.1525, -0.0340), (-0.1220, -0.0355)], width=0.0320, bevel=0.0045,
-              segments=3, round=0.0060, note="Wooden grip panels.")
-    for side in (-1, 1):
+    # Thin overlays (this lip, the magazine housing's rib and beads) are built only at the finer detail
+    # levels: in the far LODs they would collapse into stray triangles.
+    fine = d.EDGE_SEGMENTS >= 1
+    if fine:
         bm = bmesh.new()
-        prof = [(0.0152, 0.0), (0.0152, 0.0036), (0.0163, 0.0036), (0.0166, 0.0030), (0.0166, 0.0)]
+        for side in (-1, 1):       # rolled lip where the trigger housing closes against the receiver
+            d.bm_box(bm, (side * 0.0158, -0.0740, 0.0748), (0.0016, 0.1520, 0.0030))
+        d.make("HousingLip", bm, body, m_steel, "Rolled upper lip of the trigger housing.", bevel=0.0006)
+
+    # Pistol grip: built along its own raked axis (top centre (y -0.114, z 0.058), 77 degrees down
+    # and back, the AKM's grip line), then turned into place. Steel straps front and back, wooden
+    # panels proud of the sides, one screw through both panels.
+    def grip_part(name, mat, sections, power, note):
+        bm = bmesh.new()
+        m41.bm_loft(bm, sections, sides=32, power=power)
+        _rake(bm)
+        return d.make(name, bm, body, mat, note, 0.0, sharp=50.0)
+    grip_part("GripFrame", m_steel,
+              [(0.000, -0.0245, 0.0225, 0.0118), (0.012, -0.0205, 0.0195, 0.0122), (0.036, -0.0192, 0.0182, 0.0126),
+               (0.062, -0.0186, 0.0176, 0.0124), (0.088, -0.0182, 0.0174, 0.0120), (0.0975, -0.0172, 0.0164, 0.0112),
+               (0.1000, -0.0158, 0.0150, 0.0096)], 2.4, "Steel grip frame: front and back straps and the grip cap.")
+    grip_part("GripPanels", m_wood,
+                       [(0.006, -0.0170, 0.0150, 0.0128), (0.014, -0.0172, 0.0158, 0.0146), (0.036, -0.0166, 0.0152, 0.0154),
+                        (0.062, -0.0160, 0.0148, 0.0152), (0.084, -0.0156, 0.0146, 0.0146), (0.090, -0.0150, 0.0140, 0.0130)],
+                       3.2, "Wooden grip panels.")
+    bm = bmesh.new()
+    for side in (-1, 1):
+        prof = [(0.0140, 0.0), (0.0140, 0.0034), (0.0158, 0.0034), (0.0162, 0.0028), (0.0162, 0.0)]
         if side < 0:
             prof = [(-x, r) for x, r in prof][::-1]
-        d.bm_lathe(bm, prof, sides=12, axis="X", c=(-0.1260, 0.0100))
-        d.bm_box(bm, (side * 0.0166, -0.1260, 0.0100), (0.0005, 0.0052, 0.0009))
-        d.make("GripScrew_%s" % ("R" if side > 0 else "L"), bm, body, m_steel, "Grip screw.")
+        d.bm_lathe(bm, prof, sides=12, axis="X", c=(0.047, -0.0008))
+        d.bm_box(bm, (side * 0.0162, 0.047, -0.0008), (0.0005, 0.0050, 0.0009))
+    _rake(bm)
+    d.make("GripScrew", bm, body, m_steel, "Grip screw through both panels.")
     outer = [(-0.0850, 0.0450), (-0.0850, 0.0330), (-0.0800, 0.0285), (-0.0400, 0.0285), (-0.0320, 0.0340), (-0.0300, 0.0450)]
     inner = [(-0.0325, 0.0450), (-0.0345, 0.0350), (-0.0410, 0.0310), (-0.0790, 0.0310), (-0.0825, 0.0340), (-0.0825, 0.0450)]
     d.profile("TriggerGuard", body, m_steel, d.fillet(outer, 0.0030) + d.fillet(inner, 0.0025)[::1], width=0.0120,
@@ -297,7 +348,12 @@ def _build_gun():
     bm = bmesh.new()
     d.bm_lathe(bm, [(-0.0152, 0.0050), (-0.0172, 0.0050), (-0.0180, 0.0040), (-0.0180, 0.0)], sides=16, axis="X", c=(-0.1100, 0.0680))
     d.bm_box(bm, (-0.0172, -0.1020, 0.0700), (0.0018, 0.0190, 0.0040), rot=(12.0, 0, 0))
-    d.make("Selector", bm, body, m_steel, "Fire selector, left, above the grip.", bevel=0.0004)
+    d.make("Selector", bm, body, m_steel, "Safety lever, left, above the grip.", bevel=0.0004)
+    # Fire selector: a cross-bolt pushed through the housing from side to side, above the grip.
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(-0.0196, 0.0), (-0.0196, 0.0030), (-0.0188, 0.0040), (0.0188, 0.0040), (0.0196, 0.0030), (0.0196, 0.0)],
+               sides=16, axis="X", c=(-0.0880, 0.0660))
+    d.make("SelectorBolt", bm, body, m_steel, "Fire selector cross-bolt, pushed through from either side.")
     for nm, y, z, r in (("HingePin", -0.0050, 0.0560, 0.0030), ("SearPin", -0.0600, 0.0640, 0.0022)):
         bm = bmesh.new()
         d.bm_lathe(bm, [(-0.0156, 0.0), (-0.0156, r), (0.0156, r), (0.0156, 0.0)], sides=12, axis="X", c=(y, z))
@@ -313,18 +369,40 @@ def _build_gun():
     bm = bmesh.new()
     d.bm_lathe(bm, [(-0.0170, 0.0050), (-0.0200, 0.0050), (-0.0212, 0.0040), (-0.0212, 0.0)], sides=16, axis="X", c=(0.0050, 0.0560))
     d.make("MagCatch", bm, body, m_steel, "Magazine catch button, left.")
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0, 0.0370, 0.0145), (0.0376, 0.0756, 0.0030))        # flared lip round the mouth
+    if fine:
+        d.bm_box(bm, (0.0, 0.0735, 0.0450), (0.0120, 0.0030, 0.0600))    # stiffening rib down the front
+        for side in (-1, 1):                                             # pressed beads down the sides
+            d.bm_box(bm, (side * 0.0172, 0.0370, 0.0420), (0.0012, 0.0050, 0.0500))
+    d.make("MagWellDetail", bm, body, m_steel, "Magazine housing: flared mouth, front rib, side beads.", bevel=0.0006)
 
     # --- Stock ----------------------------------------------------------------------------------------
+    # Pear-shaped section: slim at the wrist behind the collar, fuller towards the butt.
     m41.loft("Stock", body, m_wood,
-             [(-0.1560, 0.0760, 0.1340, 0.0185), (-0.2000, 0.0600, 0.1330, 0.0200), (-0.2700, 0.0400, 0.1310, 0.0208),
-              (-0.3400, 0.0230, 0.1285, 0.0212), (-0.4000, 0.0100, 0.1260, 0.0212)], power=2.6,
+             [(-0.1520, 0.0640, 0.1345, 0.0170), (-0.1650, 0.0660, 0.1345, 0.0172), (-0.1900, 0.0620, 0.1338, 0.0180), (-0.2300, 0.0500, 0.1326, 0.0192),
+              (-0.2800, 0.0370, 0.1310, 0.0203), (-0.3350, 0.0240, 0.1290, 0.0210), (-0.3800, 0.0140, 0.1272, 0.0213),
+              (-0.4000, 0.0100, 0.1262, 0.0212)], power=2.4,
              note="Wooden stock. Sections are (y, bottom, top, half width).")
     m41.loft("ButtPlate", body, m_steel,
              [(-0.4000, 0.0090, 0.1270, 0.0217), (-0.4040, 0.0095, 0.1265, 0.0215), (-0.4060, 0.0120, 0.1240, 0.0202)],
              power=2.6, note="Steel butt plate.")
+    # Trap door in the butt plate (cleaning kit), its hinge pin, and the two plate screws.
     bm = bmesh.new()
-    m41.bm_torus(bm, (-0.0215, -0.3300, 0.0700), 0.0075, 0.0016, seg=16, sides=8)
+    d.bm_box(bm, (0.0, -0.4064, 0.0640), (0.0200, 0.0008, 0.0480))
+    d.bm_lathe(bm, [(-0.0110, 0.0), (-0.0110, 0.0016), (0.0110, 0.0016), (0.0110, 0.0)], sides=10, axis="X", c=(-0.4064, 0.0890))
+    for z in (0.0230, 0.1130):
+        d.bm_lathe(bm, [(-0.4060, 0.0), (-0.4060, 0.0030), (-0.4066, 0.0026), (-0.4069, 0.0)], sides=12, axis="Y", c=(0.0, z))
+    d.make("ButtTrap", bm, body, m_steel, "Butt plate trap door with its hinge, and the plate screws.", bevel=0.0003)
+    bm = bmesh.new()
+    m41.bm_torus(bm, (-0.0255, -0.3300, 0.0700), 0.0075, 0.0016, seg=16, sides=8)
     d.make("SlingLoopRear", bm, body, m_steel, "Rear sling loop on the left of the stock.")
+    bm = bmesh.new()
+    d.bm_box(bm, (-0.0214, -0.3300, 0.0700), (0.0014, 0.0300, 0.0110))
+    for y in (-0.3420, -0.3180):
+        d.bm_lathe(bm, [(-0.0221, 0.0), (-0.0221, 0.0018), (-0.0226, 0.0012), (-0.0228, 0.0)], sides=10, axis="X", c=(y, 0.0700))
+    d.bm_box(bm, (-0.0226, -0.3300, 0.0700), (0.0020, 0.0060, 0.0040))
+    d.make("SlingPlateRear", bm, body, m_steel, "Base plate of the rear sling loop, screwed to the stock.", bevel=0.0004)
 
     # --- Barrel, gas system, handguard ------------------------------------------------------------
     bm = bmesh.new()
@@ -344,12 +422,23 @@ def _build_gun():
     bm = bmesh.new()
     d.bm_lathe(bm, [(0.1050, 0.0), (0.1050, 0.0095), (0.3780, 0.0095), (0.3780, 0.0)], sides=24, c=(0.0, gz))
     d.make("GasTube", bm, body, m_steel, "Gas cylinder lying on top of the barrel.")
+    # Gas block: two rings, round the barrel and round the cylinder, joined by a web (a figure of
+    # eight seen from the front), then the gas cylinder nut with its four spanner notches.
     bm = bmesh.new()
-    d.bm_xsec(bm, [(-0.0115, BORE - 0.0100), (0.0115, BORE - 0.0100), (0.0115, gz + 0.0040), (0.0080, gz + 0.0115),
-                   (-0.0080, gz + 0.0115), (-0.0115, gz + 0.0040)], 0.3760, 0.4060)
-    d.bm_lathe(bm, [(0.4060, 0.0), (0.4060, 0.0078), (0.4150, 0.0074), (0.4165, 0.0058), (0.4165, 0.0)], sides=20, c=(0.0, gz))
-    d.make("GasBlock", bm, body, m_steel, "Gas block clamping barrel and cylinder, with the gas plug at the front.",
-           bevel=0.0010)
+    for zc in (BORE, gz):
+        d.bm_lathe(bm, [(0.3760, 0.0), (0.3760, 0.0098), (0.3775, 0.0112), (0.4045, 0.0112), (0.4060, 0.0098), (0.4060, 0.0)],
+                   sides=28, c=(0.0, zc))
+    d.bm_box(bm, (0.0, 0.3910, (BORE + gz) / 2), (0.0180, 0.0290, gz - BORE))
+    d.make("GasBlock", bm, body, m_steel, "Gas block clamping barrel and cylinder.")
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(0.4060, 0.0), (0.4060, 0.0090), (0.4160, 0.0090), (0.4175, 0.0078), (0.4175, 0.0)], sides=24, c=(0.0, gz))
+    nut = d.make("GasNut", bm, body, m_steel, "Gas cylinder nut.")
+    bm = bmesh.new()
+    for a in (45.0, 135.0, 225.0, 315.0):
+        r = math.radians(a)
+        d.bm_box(bm, (0.0095 * math.cos(r), 0.4140, gz + 0.0095 * math.sin(r)), (0.0040, 0.0080, 0.0040), rot=(0, a, 0))
+    notch = d.make("GasNut_NotchCutter", bm, cutters, None, "Boolean cutter: spanner notches.")
+    d.cut(nut, notch, "Notches")
     # Ventilated steel sleeve over the rear of the gas cylinder. The real one covers only the cylinder;
     # this one comes down round the barrel to z 0.076 because the AKM animation puts the left hand there.
     hg = [(-0.0120, 0.0760), (0.0120, 0.0760), (0.0150, 0.0880)] + _arc((0.0, gz), 0.0150, 0.0, 180.0, 14) + [(-0.0150, 0.0880)]
@@ -357,8 +446,10 @@ def _build_gun():
     d.bm_xsec(bm, hg, 0.1080, 0.2450)
     hand = d.make("Handguard", bm, body, m_steel, "Ventilated steel handguard sleeve over the gas cylinder.", bevel=0.0010)
     bm = bmesh.new()
-    for y in (0.1320, 0.1620, 0.1920, 0.2220):          # vent slots on both sides
-        d.bm_box(bm, (0.0, y, gz - 0.0030), (0.0400, 0.0200, 0.0065))
+    for y in (0.1320, 0.1620, 0.1920, 0.2220):          # vent slots on both sides, round-ended (one stadium each)
+        r, half, zc = 0.00325, 0.00675, gz - 0.0030
+        outline = _arc((y + half, zc), r, -90.0, 90.0, 8) + _arc((y - half, zc), r, 90.0, 270.0, 8)
+        d.bm_profile(bm, outline, 0.0400)
     vents = d.make("Handguard_VentCutter", bm, cutters, None, "Boolean cutter: vent slots.")
     d.cut(hand, vents, "Vents")
     bm = bmesh.new()
@@ -391,8 +482,21 @@ def _build_gun():
     d.bm_xsec(bm, [(-0.0070, top_z + 0.0075), (0.0070, top_z + 0.0075), (0.0070, z1), (0.0014, z1), (0.0, zn), (-0.0014, z1),
                    (-0.0070, z1)], 0.0240, 0.0270)
     d.make("RearSightNotch", bm, body, m_steel, "V notch. The sight line runs through it.", bevel=0.0002)
-    d.box("RearSightSlider", body, m_steel, (0.0, 0.0600, top_z + 0.0052), (0.0200, 0.0080, 0.0050), bevel=0.0006,
-          note="Range slider with its two buttons.")
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0, 0.0600, top_z + 0.0052), (0.0170, 0.0080, 0.0050))
+    for side in (-1, 1):
+        prof = [(0.0085, 0.0), (0.0085, 0.0024), (0.0108, 0.0024), (0.0112, 0.0018), (0.0112, 0.0)]
+        if side < 0:
+            prof = [(-x, r) for x, r in prof][::-1]
+        d.bm_lathe(bm, prof, sides=12, axis="X", c=(0.0600, top_z + 0.0052))
+    d.make("RearSightSlider", bm, body, m_steel, "Range slider with its two release buttons.", bevel=0.0004)
+    bm = bmesh.new()
+    for k in range(8):                                   # range graduations along both edges of the leaf
+        y = 0.0330 + 0.0072 * k
+        zt = top_z + 0.0082 - (0.0082 - 0.0048) * (y - 0.0260) / (0.0900 - 0.0260)
+        for side in (-1, 1):
+            d.bm_box(bm, (side * 0.0049, y, zt + 0.00015), (0.0012, 0.0006, 0.0003))
+    d.make("RearSightMarks", bm, body, m_steel, "Range graduations on the tangent leaf.")
     d.box("ScopeRail", body, m_steel, (0.0165, -0.0700, TOP_Z + 0.0165), (0.0050, 0.0900, 0.0070), bevel=0.0010,
           note="Scope mounting rail on the right of the receiver top.")
 

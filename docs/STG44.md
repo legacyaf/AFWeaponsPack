@@ -6,7 +6,7 @@ WW2-style assault rifle with its own curved magazine and its own scope. Fifth we
 |---|---|
 | Classes | `AF_StG44` (beech furniture), `AF_StG44_Gold` (gold floral furniture on black), `Mag_AFStG44_30Rnd` (magazine), `AF_ZF4Optic` (scope) |
 | Pack version | 0.12.0 (built, signed and checked in Object Builder on 2026-11-21; **not yet tested in game**, not uploaded) |
-| Size | rifle LOD 1: 10,544 triangles; LODs 2-9: 6,959 / 4,638 / 3,056 / 2,055 / 1,177 / 709 / 460 / 217; two 4096 px texture sets (`afstg44_body` steel, `afstg44_wood` stock and grip panels). Magazine LOD 1: 1,073 triangles, 2048 px (`afstg44_mag`). Scope LOD 1: 3,590 triangles, 1024 px (`afzf4`). Together about 47 MB of textures |
+| Size | rifle LOD 1: 15,162 triangles (realism pass, 2026-11-22); LODs 2-9: 10,006 / 6,671 / 3,940 / 2,860 / 1,635 / 1,153 / 686 / 365; two 4096 px texture sets (`afstg44_body` steel, `afstg44_wood` stock and grip panels). Magazine LOD 1: 1,073 triangles, 2048 px (`afstg44_mag`). Scope LOD 1: 3,590 triangles, 1024 px (`afzf4`). Together about 47 MB of textures |
 | Inherits | vanilla `AKM` (animations, sounds, recoil, handling); the magazine inherits `Mag_AKM_30Rnd`; the scope inherits `PUScopeOptic` |
 | Different from the AKM | its own magazine and scope, about 570 rounds a minute instead of 610, recoil x0.9, 4.6 kg, no stock, handguard or bayonet slots |
 | Attachments | its own scope (slot `weaponOpticsAFStG`, new in `CfgSlots`), AK suppressor, improvised suppressor, ghillie wrap |
@@ -51,6 +51,19 @@ All of these come from borrowing the AKM's animations.
 - **7.62x39, not 7.92x33.** It fires the AKM's ammunition from its own magazine, so no new cartridge is needed in loot.
 - **The handguard sleeve comes down round the barrel.** On the real rifle it covers only the gas cylinder; here it reaches z 0.076 because that is where the AKM puts the left hand.
 - **The magazine may clip during a reload.** The AKM animation draws its magazine out along a 20.7 degree lean; ours is longer and curves forward. To be checked in game.
+
+## Realism and LOD pass (2026-11-22)
+
+At the owner's request ("premium high end", "more realistic"). Not yet seen in game.
+
+- **Receiver:** one pressing with the side swage line and a rolled lower edge, instead of stuck-on strips; domed rivets; rear end cap and stock collar with a push pin.
+- **Grip:** a rounded grip on the AKM's grip line (so the hand still fits): steel front and back straps, wooden panels proud of the sides, one screw. Grooves were tried and left out (not sure enough of the real pattern).
+- **Controls:** cross-bolt fire selector above the grip, besides the safety lever.
+- **Magazine housing:** flared mouth, front stiffening rib, pressed side beads.
+- **Front end:** figure-of-eight gas block, gas cylinder nut with spanner notches, round-ended vent slots.
+- **Rear sight:** release buttons on the range slider, graduations on the leaf.
+- **Stock:** pear-shaped section, slimmer wrist, no gap at the receiver; butt plate trap door with hinge and two screws; rear sling loop on a screwed base plate.
+- **LODs** (`docs/img/stg_lods.jpg`, LOD 1-9 with the baked textures): thin overlays are built only at the finer detail levels. Two fixes in the shared exporter, which every weapon gets at its next export: faces of a reduced rebuild take their texture only from the same part of LOD 1 (attribute `af7_part`; before, a big face could take the bolt's texture through the ejection port), and a loose piece is never decimated below 12 triangles (`LOD_PIECE_MIN`; 6 folded a plain box).
 
 ## First in-game test (2026-11-22)
 
