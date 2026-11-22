@@ -1,14 +1,14 @@
 // Material for the AF StG 44 body ("Super" shader).
-// Lighting values are the vanilla Mosin's (dz\weapons\firearms\mosin9130\data\mosin_9130.rvmat):
-// specular 0.4, power 50, fresnel(0.6,0.6), env_land_co. Only the texture paths differ.
+// Lighting values are the vanilla AKM's (dz\weapons\firearms\akm\data\akm.rvmat, read 2026-11-22):
+// ambient 0.7, specular 0.79/0.75/0.74, power 70, fresnel(0.8,0.7), env_land_co. Only the texture paths differ.
 // Textures come from blender/afstg44_dayz_export.py, converted to .paa.
 
-ambient[] = {1, 1, 1, 1};
+ambient[] = {0.7, 0.7, 0.7, 1};
 diffuse[] = {1, 1, 1, 1};
 forcedDiffuse[] = {0, 0, 0, 0};
 emmisive[] = {0, 0, 0, 1};
-specular[] = {0.4, 0.4, 0.4, 1};
-specularPower = 50;
+specular[] = {0.79, 0.75, 0.74, 1};
+specularPower = 70;
 PixelShaderID = "Super";
 VertexShaderID = "Super";
 
@@ -44,7 +44,7 @@ class Stage5
 };
 class Stage6
 {
-	texture = "#(ai,32,128,1)fresnel(0.6,0.6)";
+	texture = "#(ai,32,128,1)fresnel(0.8,0.7)";
 	uvSource = "none";
 };
 class Stage7

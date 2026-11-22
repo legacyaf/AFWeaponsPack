@@ -203,14 +203,14 @@ def _phosphate(mat, muzzle_y, carried=True):
     N = P.N
     # 1. Mottled finish: cloudy lighter and darker patches, as a dipped coating comes out.
     cloud = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 4.0), 0.42), 2.6, clamp=True)
-    P.color(N.math("MULTIPLY", cloud, 0.55), (0.056, 0.057, 0.052))
+    P.color(N.math("MULTIPLY", cloud, 0.55), (0.024, 0.025, 0.023))
     blot = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(32.0, 3.0), 0.56), 4.0, clamp=True)
-    P.color(N.math("MULTIPLY", blot, 0.45), (0.022, 0.023, 0.024))
+    P.color(N.math("MULTIPLY", blot, 0.45), (0.0090, 0.0095, 0.0100))
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", cloud, 0.5), 0.10))
     # 2. Grime in the corners: dull brown-grey, rougher; a few rust specks deep in them.
     cav = _cavity(P, 0.010)
     grime = N.math("MULTIPLY", cav, N.math("ADD", 0.55, N.math("MULTIPLY", P.noise(60.0, 3.0), 0.6)), clamp=True)
-    P.color(N.math("MULTIPLY", grime, 0.70), (0.046, 0.036, 0.026))
+    P.color(N.math("MULTIPLY", grime, 0.70), (0.022, 0.017, 0.012))
     P.rough(N.math("MULTIPLY", grime, 0.14))
     rust = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.12, P.cells(380.0)), 18.0, clamp=True), cav)
     P.color(N.math("MULTIPLY", rust, 0.85), (0.095, 0.040, 0.016))
@@ -220,7 +220,7 @@ def _phosphate(mat, muzzle_y, carried=True):
     #    broken up so it chips rather than running as a clean line.
     chip = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(48.0, 6.0), 0.40), 3.5, clamp=True)
     soft = N.math("MULTIPLY", _edge(P, 0.0016, 3.0), chip)
-    P.color(N.math("MULTIPLY", soft, 0.55), (0.090, 0.090, 0.088))
+    P.color(N.math("MULTIPLY", soft, 0.55), (0.050, 0.050, 0.049))
     bare = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0009, 7.0), chip), 0.9, clamp=True)
     P.color(bare, (0.42, 0.42, 0.43))
     P.rough(N.math("MULTIPLY", bare, -0.30))
@@ -234,7 +234,7 @@ def _phosphate(mat, muzzle_y, carried=True):
         well = N.math("MULTIPLY", N.math("MULTIPLY", gt(P.py, 0.060), lt(P.py, 0.078)), lt(P.pz, 0.078))
         cock = N.math("MULTIPLY", P.band(P.py, 0.075, 0.020), gt(P.px, 0.020))
         zone = N.math("MAXIMUM", N.math("MAXIMUM", grip, guard), N.math("MAXIMUM", well, cock))
-        P.color(N.math("MULTIPLY", zone, 0.30), (0.075, 0.075, 0.072))
+        P.color(N.math("MULTIPLY", zone, 0.30), (0.034, 0.034, 0.033))
         P.rough(N.math("MULTIPLY", zone, -0.14))
         scr = N.math("MULTIPLY", N.math("MAXIMUM", _streaks(P, 1, 260.0, 0.70), _streaks(P, 2, 300.0, 0.72)), zone)
         P.color(N.math("MULTIPLY", scr, 0.65), (0.30, 0.30, 0.31))
@@ -242,9 +242,9 @@ def _phosphate(mat, muzzle_y, carried=True):
         P.dent(N.math("MULTIPLY", scr, -0.6), 0.00006)
     # 5. A few long scratches anywhere, very faint (kit and slings), and soot at the muzzle.
     stray = N.math("MULTIPLY", _streaks(P, 1, 90.0, 0.78), 0.35)
-    P.color(stray, (0.16, 0.16, 0.165))
+    P.color(stray, (0.10, 0.10, 0.104))
     soot = N.math("MULTIPLY", P.band(P.py, muzzle_y, 0.030), 0.75)
-    P.color(soot, (0.016, 0.015, 0.014))
+    P.color(soot, (0.007, 0.0065, 0.006))
     P.rough(N.math("MULTIPLY", soot, 0.12))
     return P
 
@@ -329,7 +329,9 @@ def _build_gun():
 
     # Phosphate is a matte, slightly green-grey coating, not polished steel: rougher and less
     # metallic than blueing. Wear, grime and scratches are layered on by _phosphate().
-    m_steel = d.material("Steel", (0.036, 0.038, 0.036), rough=0.60, metal=0.50, bump=0.03, bump_scale=1100,
+    # Levels set against the vanilla AKM's maps (measured 2026-11-22: colour median 0.106, gloss 0.61,
+    # specular 0.12): the first finish pass was 2.8 times too light and too dull in game sunlight.
+    m_steel = d.material("Steel", (0.0135, 0.0142, 0.0135), rough=0.40, metal=0.35, bump=0.03, bump_scale=1100,
                          rough_var=0.06, machining=0.02)
     m_bolt = d.material("BoltSteel", (0.30, 0.30, 0.31), rough=0.32, metal=1.0, rough_var=0.08,
                         wear_rgb=(0.50, 0.50, 0.51), scratches=0.20, machining=0.28)
@@ -633,7 +635,7 @@ def build_magazine():
         d.clean()
         body = d.collection("Body")
         d.collection("Moving")
-        m_steel = d.material("Steel", (0.034, 0.036, 0.034), rough=0.58, metal=0.50, bump=0.04, bump_scale=1000,
+        m_steel = d.material("Steel", (0.0130, 0.0137, 0.0130), rough=0.42, metal=0.35, bump=0.04, bump_scale=1000,
                              rough_var=0.06)
         m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
                              wear_rgb=(0.74, 0.55, 0.26))
@@ -681,7 +683,7 @@ def build_scope():
         body = d.collection("Body")
         d.collection("Moving")
         memory = d.collection("Memory")
-        m_steel = d.material("Steel", (0.020, 0.021, 0.022), rough=0.45, metal=0.70, bump=0.03, bump_scale=1200,
+        m_steel = d.material("Steel", (0.010, 0.0105, 0.011), rough=0.40, metal=0.45, bump=0.03, bump_scale=1200,
                              rough_var=0.06, machining=0.03)
         _phosphate(m_steel, 9.0, carried=False)
         # Tube: hollow, so that the eye looks through it. Outside and inside walls in one closed lathe.

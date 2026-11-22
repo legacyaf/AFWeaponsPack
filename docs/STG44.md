@@ -98,6 +98,16 @@ Run with the owner's go-ahead.
 - Third: the smaller panels were exported without a bake, and the exporter read the old panels back as body faces, so the scope view showed the texture sheet. Fixed in `af7_vanguard_dayz_export.py` (`lod1_from_p3d` now skips `RAW_QUADS` faces); the ZF4 was re-exported from the earlier file.
 - Fourth: crosshair and lens are back and centred. A smaller black square is still visible inside the eyepiece opening, now within the tube. Most likely the black corners of the vanilla PU reticle texture, which the game's own aiming view normally covers with its round optics mask; the test's still camera does not apply that mask, so this has to be judged by aiming in real play.
 
+## Finish test and steel calibration (2026-11-22)
+
+Run with the owner's go-ahead.
+
+- **Wood:** reads as oiled beech on the ground and in the hands. Kept as it is.
+- **Steel:** right in shade, but in full sun it read as flat light grey next to the vanilla AKM. Measured against the AKM's own maps (medians, Blender readout of the PNGs): our steel colour was about 1.8x the AKM's and less glossy, and the body material had a brighter ambient.
+- **Change:** all steel, wear, grime and soot colours in `afstg44_detailed.py` darkened; steel roughness 0.40, metallic 0.35. The body, magazine and ZF4 rvmats now use the AKM's lighting (ambient 0.7, specular 0.79/0.75/0.74, specularPower 70, fresnel 0.8/0.7). Wood rvmats unchanged.
+- **Measured after the bake:** body colour 0.111, magazine 0.119, AKM 0.090; gloss body 0.56, magazine 0.53, AKM 0.61; spec 0.122 vs 0.118. LOD 1 is 15,657 triangles. Build, signature and the O2 checks of all three models pass.
+- Not yet seen in game: needs one more run in sunlight.
+
 ## What still has to be checked in game
 
 Hand fit on the grip and handguard, magazine fit and the reload, bolt travel through the port, the iron-sight picture, the scope view (eye point, reticle, lens), suppressor positions, both finishes under game lighting, and that the vanilla AKM magazine and PU scope are refused. The test mission covers all of these. It waits until the AF Content Factory session can spare the game (owner's rule, 2026-11-21).
