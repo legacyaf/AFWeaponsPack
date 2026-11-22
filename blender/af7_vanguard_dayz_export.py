@@ -1150,7 +1150,11 @@ def lod1_from_p3d(path, col):
         for name, data in tags.items():
             if name.startswith("proxy:"):
                 proxy_faces.update(i for i in range(nfaces) if data[npts + i])
-        keep = [i for i in range(nfaces) if i not in proxy_faces]
+        # Flat panels added from RAW_QUADS (scope reticle, lens glass) are not part of the baked mesh:
+        # export() adds them again from the current table. Kept here they would come back with the
+        # body texture on them (seen on the AF ZF4 scope, 2026-11-22).
+        raw_tex = {q[2].lower().lstrip("\\") for q in RAW_QUADS}
+        keep = [i for i in range(nfaces) if i not in proxy_faces and face_tex[i].lstrip("\\") not in raw_tex]
         nreal = 1 + max(c[0] for i in keep for c in faces[i])
         me = bpy.data.meshes.new(PREFIX + "LOD_1")
         me.from_pydata([(p[0], p[2], p[1]) for p in pts[:nreal]], [], [[c[0] for c in faces[i]] for i in keep])
