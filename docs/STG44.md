@@ -63,6 +63,14 @@ Run with the AF Content Factory session's go-ahead (`test\AFStG44Test.ChernarusP
 
 Both fixes are built and signed but not yet seen in game.
 
+## Second in-game test (2026-11-22)
+
+Run with the owner's go-ahead.
+
+- **Both fixes confirmed:** the scope appears only on rifles that have one attached, and the magazine shows its own dark steel.
+- **Scope view:** taken from the ZF4's `eyescope` point. The crosshair is centred and the view through the lens is clear. A black square stuck out round the eyepiece: the flat lens and reticle panels are square and their corners poked through the tube. They are now smaller (corners inside the tube wall); rebuilt, not yet seen in game.
+- **Iron sights:** taken from the `eye` point looking at the muzzle, which tilts the camera about 4 degrees down compared with the game's own aiming view. The front sight shows above the rounded receiver top, but the top of the receiver fills the lower half of the picture. Worth a look in real play before deciding whether to lower the receiver top.
+
 ## What still has to be checked in game
 
 Hand fit on the grip and handguard, magazine fit and the reload, bolt travel through the port, the iron-sight picture, the scope view (eye point, reticle, lens), suppressor positions, both finishes under game lighting, and that the vanilla AKM magazine and PU scope are refused. The test mission covers all of these. It waits until the AF Content Factory session can spare the game (owner's rule, 2026-11-21).
