@@ -110,7 +110,7 @@ def _magazine_tables():
     ex.UV_PRIORITY = {"Round": 0.8, "RoundSlug": 0.8}
     ex.MEMORY = {}
     ex.PROXIES = {}
-    ex.GEOMETRY = [((-0.0145, -0.0320, -0.1500), (0.0145, 0.0680, 0.0360))]
+    ex.GEOMETRY = [((-0.0145, -0.0320, -0.1850), (0.0145, 0.1000, 0.0360))]
 
 
 def _scope_tables():

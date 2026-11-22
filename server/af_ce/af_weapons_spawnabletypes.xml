@@ -61,5 +61,22 @@
             <item name="Mag_AFP08_8Rnd" chance="1.00"/>
         </attachments>
     </type>
+    <!-- The StG 44 only takes its own magazine and its own scope. -->
+    <type name="AF_StG44">
+        <attachments chance="0.60">
+            <item name="Mag_AFStG44_30Rnd" chance="1.00"/>
+        </attachments>
+        <attachments chance="0.15">
+            <item name="AF_ZF4Optic" chance="1.00"/>
+        </attachments>
+    </type>
+    <type name="AF_StG44_Gold">
+        <attachments chance="1.00">
+            <item name="Mag_AFStG44_30Rnd" chance="1.00"/>
+        </attachments>
+        <attachments chance="1.00">
+            <item name="AF_ZF4Optic" chance="1.00"/>
+        </attachments>
+    </type>
 </spawnabletypes>
 

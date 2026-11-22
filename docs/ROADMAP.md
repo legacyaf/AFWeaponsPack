@@ -4,7 +4,7 @@ Agreed on 2026-11-19. Each weapon borrows a vanilla weapon's animations, so the 
 
 | Phase | Weapon | Role | Built on | Notes |
 |---|---|---|---|---|
-| 1 | StG 44 | Assault rifle | AKM | Next. Comes with its own scope attachment in the style of the ZF4. |
+| 1 | StG 44 | Assault rifle | AKM | Built for 0.12.0 with its own ZF4-style scope (`docs/STG44.md`); waiting for the in-game test. |
 | 1 | Kar98k-style carbine | Short bolt-action | CZ 527 or Mosin | Reuses most of the M41 work. |
 | 2 | Thompson M1A1 | .45 submachine gun | UMP-45 | Counterpart to the MP40. |
 | 2 | M1 Garand | Semi-automatic rifle | SKS | Internal magazine, loaded from the top. |

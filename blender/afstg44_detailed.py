@@ -304,10 +304,11 @@ def _build_gun():
         d.make(nm, bm, body, m_steel, "Cross pin through the trigger housing.")
 
     # --- Magazine well ------------------------------------------------------------------------------
-    well = d.box("MagWellCutter", cutters, None, (0.0, 0.0350, 0.0500), (0.0270, 0.0600, 0.0700), bevel=0,
+    # The StG's long magazine housing reaches well below the receiver.
+    well = d.box("MagWellCutter", cutters, None, (0.0, 0.0370, 0.0400), (0.0270, 0.0640, 0.0900), bevel=0,
                  note="Boolean cutter: magazine well.")
-    housing = d.box("MagWell", body, m_steel, (0.0, 0.0350, 0.0610), (0.0340, 0.0700, 0.0320), bevel=0.0018,
-                    note="Magazine well in front of the trigger guard.")
+    housing = d.box("MagWell", body, m_steel, (0.0, 0.0370, 0.0450), (0.0340, 0.0720, 0.0640), bevel=0.0018,
+                    note="Long magazine housing in front of the trigger guard.")
     d.cut(housing, well, "MagWell")
     bm = bmesh.new()
     d.bm_lathe(bm, [(-0.0170, 0.0050), (-0.0200, 0.0050), (-0.0212, 0.0040), (-0.0212, 0.0)], sides=16, axis="X", c=(0.0050, 0.0560))
@@ -337,25 +338,34 @@ def _build_gun():
         d.bm_lathe(bm, [(MUZZLE_Y - 0.0160 + 0.0032 * k, 0.0101), (MUZZLE_Y - 0.0146 + 0.0032 * k, 0.0101)], sides=24,
                    c=(0.0, BORE), cap=False)
     d.make("MuzzleNut", bm, body, m_steel, "Muzzle nut. Selection 'hide_barrel': hidden while a suppressor is fitted.")
-    gz = BORE + 0.0270
+    # As on the real rifle the gas cylinder lies right on top of the barrel all the way to the gas
+    # block behind the front sight, so the two read as one figure-of-eight.
+    gz = BORE + 0.0180
     bm = bmesh.new()
-    d.bm_lathe(bm, [(0.1050, 0.0), (0.1050, 0.0105), (0.3250, 0.0100), (0.3250, 0.0)], sides=24, c=(0.0, gz))
-    d.make("GasTube", bm, body, m_steel, "Gas tube above the barrel.")
+    d.bm_lathe(bm, [(0.1050, 0.0), (0.1050, 0.0095), (0.3780, 0.0095), (0.3780, 0.0)], sides=24, c=(0.0, gz))
+    d.make("GasTube", bm, body, m_steel, "Gas cylinder lying on top of the barrel.")
     bm = bmesh.new()
-    d.bm_xsec(bm, [(-0.0125, BORE - 0.0105), (0.0125, BORE - 0.0105), (0.0125, gz + 0.0060), (0.0085, gz + 0.0125),
-                   (-0.0085, gz + 0.0125), (-0.0125, gz + 0.0060)], 0.3200, 0.3480)
-    d.bm_lathe(bm, [(0.3480, 0.0), (0.3480, 0.0072), (0.3720, 0.0066), (0.3740, 0.0090), (0.3860, 0.0090), (0.3880, 0.0060),
-                    (0.3880, 0.0)], sides=20, c=(0.0, gz))
-    d.make("GasBlock", bm, body, m_steel, "Gas block, with the gas plug and its knob at the front.", bevel=0.0010)
+    d.bm_xsec(bm, [(-0.0115, BORE - 0.0100), (0.0115, BORE - 0.0100), (0.0115, gz + 0.0040), (0.0080, gz + 0.0115),
+                   (-0.0080, gz + 0.0115), (-0.0115, gz + 0.0040)], 0.3760, 0.4060)
+    d.bm_lathe(bm, [(0.4060, 0.0), (0.4060, 0.0078), (0.4150, 0.0074), (0.4165, 0.0058), (0.4165, 0.0)], sides=20, c=(0.0, gz))
+    d.make("GasBlock", bm, body, m_steel, "Gas block clamping barrel and cylinder, with the gas plug at the front.",
+           bevel=0.0010)
+    # Ventilated steel sleeve over the rear of the gas cylinder. The real one covers only the cylinder;
+    # this one comes down round the barrel to z 0.076 because the AKM animation puts the left hand there.
+    hg = [(-0.0120, 0.0760), (0.0120, 0.0760), (0.0150, 0.0880)] + _arc((0.0, gz), 0.0150, 0.0, 180.0, 14) + [(-0.0150, 0.0880)]
     bm = bmesh.new()
-    xs = [(-0.0200, 0.1150), (-0.0215, 0.0900), (-0.0170, 0.0740), (0.0170, 0.0740), (0.0215, 0.0900), (0.0200, 0.1150),
-          (0.0180, 0.1150), (0.0192, 0.0905), (0.0155, 0.0762), (-0.0155, 0.0762), (-0.0192, 0.0905), (-0.0180, 0.1150)]
-    d.bm_xsec(bm, xs, 0.1080, 0.2550)
-    for y in (0.1250, 0.1500, 0.1750, 0.2000, 0.2250):     # pressed ribs across the underside
-        d.bm_box(bm, (0.0, y, 0.0738), (0.0300, 0.0050, 0.0016))
-    d.make("Handguard", bm, body, m_steel, "Stamped steel handguard under the barrel.", bevel=0.0008)
+    d.bm_xsec(bm, hg, 0.1080, 0.2450)
+    hand = d.make("Handguard", bm, body, m_steel, "Ventilated steel handguard sleeve over the gas cylinder.", bevel=0.0010)
     bm = bmesh.new()
-    m41.bm_torus(bm, (-0.0150, 0.3340, BORE - 0.0080), 0.0070, 0.0015, seg=16, sides=8)
+    for y in (0.1320, 0.1620, 0.1920, 0.2220):          # vent slots on both sides
+        d.bm_box(bm, (0.0, y, gz - 0.0030), (0.0400, 0.0200, 0.0065))
+    vents = d.make("Handguard_VentCutter", bm, cutters, None, "Boolean cutter: vent slots.")
+    d.cut(hand, vents, "Vents")
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(0.2450, 0.0), (0.2450, 0.0105), (0.2530, 0.0105), (0.2560, 0.0095), (0.2560, 0.0)], sides=24, c=(0.0, gz))
+    d.make("HandguardCap", bm, body, m_steel, "Front cap of the handguard sleeve round the gas cylinder.")
+    bm = bmesh.new()
+    m41.bm_torus(bm, (-0.0175, 0.3910, BORE - 0.0040), 0.0070, 0.0015, seg=16, sides=8)
     d.make("SlingLoopFront", bm, body, m_steel, "Front sling loop on the left of the gas block.")
 
     # --- Sights --------------------------------------------------------------------------------------
@@ -410,8 +420,8 @@ def _build_gun():
 
 def _mag_centre(z):
     """Centre line of the curved magazine, in the rifle's coordinates."""
-    t = (0.0640 - z) / 0.1800
-    return 0.0350 + 0.0340 * t * t
+    t = (0.0640 - z) / 0.2140
+    return 0.0350 + 0.0650 * t * t
 
 
 def build_magazine():
@@ -428,7 +438,7 @@ def build_magazine():
         m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
         _phosphate(m_steel, 9.0, carried=False)
         oy, oz = MAG_AT[1], MAG_AT[2]
-        half, top, bottom, n = 0.0290, 0.0640, -0.1160, 10
+        half, top, bottom, n = 0.0285, 0.0640, -0.1500, 14
         zs = [top + (bottom - top) * k / n for k in range(n + 1)]
         front = [(_mag_centre(z) + half - oy, z - oz) for z in zs]
         rear = [(_mag_centre(z) - half - oy, z - oz) for z in zs]
@@ -437,7 +447,7 @@ def build_magazine():
         d.make("Body", bm, body, m_steel, "Curved magazine body.", bevel=0.0020, segments=2)
         bm = bmesh.new()
         for side in (-1, 1):
-            for k in (2, 4, 6, 8):
+            for k in (3, 5, 7, 9, 11):
                 z = zs[k]
                 d.bm_box(bm, (side * 0.0125, _mag_centre(z) - oy, z - oz), (0.0012, 0.0440, 0.0036))
         d.make("Ribs", bm, body, m_steel, "Ribs pressed across the sides.", bevel=0.0006)

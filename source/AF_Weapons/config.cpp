@@ -5,6 +5,7 @@
 // AF M41 "Pathfinder" - WW2-style bolt-action sniper rifle, 7.62x54R (inherits the Mosin 91/30).
 // AF MP40           - WW2-style 9 mm submachine gun with its own 32-round magazine (inherits the UMP-45).
 // AF P08            - toggle-lock 9 mm pistol with its own 8-round magazine (inherits the P1).
+// AF StG 44         - WW2-style assault rifle with its own curved magazine and ZF4 scope (inherits the AKM).
 //
 // Each weapon inherits a vanilla weapon (M4A1, Mosin 91/30, UMP-45, P1). That gives it that
 // weapon's animations, sounds, recoil and fire modes, so we only need to supply
@@ -22,10 +23,10 @@ class CfgPatches
 {
 	class AF_Weapons
 	{
-		units[] = {"AF_WeaponRepairKit"};
-		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold"};
+		units[] = {"AF_WeaponRepairKit", "AF_ZF4Optic"};
+		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold", "AF_StG44", "AF_StG44_Gold"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools"};
+		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools", "DZ_Weapons_Firearms_AKM", "DZ_Weapons_Optics"};
 	};
 };
 
@@ -37,7 +38,7 @@ class CfgMods
 		name = "Allied Forces Weapons Pack";
 		author = "Allied Forces";
 		type = "mod";
-		version = "0.11.0";
+		version = "0.12.0";
 		dependencies[] = {"World"};
 
 		// Scripts: the AF-7 script classes and the server licence check (scripts/4_World).
@@ -60,6 +61,11 @@ class CfgWeapons
 	class Mosin9130;
 	class UMP45;
 	class P1;
+	class AKM_Base;
+	class AKM: AKM_Base
+	{
+		class FullAuto;
+	};
 
 	class AF7_Vanguard: M4A1
 	{
@@ -409,6 +415,95 @@ class CfgWeapons
 			};
 		};
 	};
+
+	// AF StG 44: WW2-style assault rifle.
+	// Inherits the vanilla AKM: its animations, handling, recoil and sounds. The model is built in the
+	// AKM's own frame with the AKM's bone names. Different from the AKM: its own curved 30-round
+	// magazine (CfgMagazines below), its own ZF4-style scope (CfgVehicles below, slot
+	// weaponOpticsAFStG), a slower rate of fire and no stock, handguard or bayonet slots.
+	// Because of the AKM animations the cocking handle is on the right and it fires 7.62x39.
+	// From this weapon on: no AF logo, "legacy was here" scratched on the right of the receiver.
+	class AF_StG44: AKM
+	{
+		scope = 2;
+		displayName = "AF StG 44";
+		descriptionShort = "An Allied Forces assault rifle in the pattern of 1944: a stamped steel receiver, a beech stock and a long curved 30-round magazine. It fires 7.62x39mm, single shots or automatic at a steady rate. It takes its own ZF4 scope.";
+		weight = 4600;
+		model = "\AF_Weapons\afstg44\afstg44.p3d";
+		itemSize[] = {8, 3};
+
+		magazines[] = {"Mag_AFStG44_30Rnd"};
+
+		// The muzzle is 3.7 cm further forward than the AKM's, measured from the same origin.
+		WeaponLength = 0.937;
+		ObstructionDistance = 0.649;
+
+		// Slots the model has proxies for: ghillie wrap, its own scope, the AK suppressor and the
+		// improvised suppressor.
+		attachments[] = {"weaponWrap", "weaponOpticsAFStG", "weaponMuzzleAK", "suppressorImpro"};
+		hiddenSelections[] = {"camo", "hide_barrel", "camo1"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_wood.rvmat"};
+
+		// Iron sights: no depth-of-field blur when aiming (same choice as the other AF weapons).
+		PPDOFProperties[] = {0, 0.5, 50, 160, 4, 10};
+
+		// Heavier than the AKM, so it climbs a little less.
+		recoilModifier[] = {0.9, 0.9, 0.9};
+
+		class FullAuto: FullAuto
+		{
+			reloadTime = 0.105;      // about 570 rounds a minute (AKM: 0.098, about 610)
+		};
+
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 300;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_wood.rvmat"}},
+						{0.7, {"AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_wood.rvmat"}},
+						{0.5, {"AF_Weapons\afstg44\data\afstg44_body_damage.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afstg44\data\afstg44_body_damage.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afstg44\data\afstg44_body_destruct.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
+	// Gold floral finish: black stock and grips with the gold floral pattern, steel unchanged.
+	// Not in the loot tables by default.
+	class AF_StG44_Gold: AF_StG44
+	{
+		scope = 2;
+		displayName = "AF StG 44 (Gold)";
+		descriptionShort = "An Allied Forces StG 44 with gold floral furniture on black. It fires 7.62x39mm from its own curved 30-round magazine.";
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold.rvmat"};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 300;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold.rvmat"}},
+						{0.7, {"AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold.rvmat"}},
+						{0.5, {"AF_Weapons\afstg44\data\afstg44_body_gold_damage.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afstg44\data\afstg44_body_gold_damage.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afstg44\data\afstg44_body_gold_destruct.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
 };
 
 // Weapon repair kit. It looks like the game's weapon cleaning kit and is used the same way (combine it
@@ -423,6 +518,60 @@ class CfgVehicles
 		displayName = "AF Weapon Repair Kit";
 		descriptionShort = "An armourer's kit for Allied Forces weapons. Combine it with a weapon of the pack to repair it, even a ruined one. It does nothing for other weapons.";
 		repairKitType = 99;      // no item lists kit type 99, so the game's own cleaning recipe ignores this kit
+	};
+
+	// The AF StG 44's own scope, in the style of the 4x ZF4. It inherits the vanilla PU scope (its
+	// handling and the way the view works) and fits only the StG 44 (slot weaponOpticsAFStG).
+	class PUScopeOptic;
+	class AF_ZF4Optic: PUScopeOptic
+	{
+		scope = 2;
+		displayName = "AF ZF4 Scope";
+		descriptionShort = "A 4x telescopic sight on a side clamp mount, made for the AF StG 44. It fits no other weapon.";
+		model = "\AF_Weapons\afstg44\afzf4.p3d";
+		weight = 600;
+		itemSize[] = {3, 1};
+		inventorySlot[] = {"weaponOpticsAFStG"};
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afzf4_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afzf4.rvmat"};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 50;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afstg44\data\afzf4.rvmat"}},
+						{0.7, {"AF_Weapons\afstg44\data\afzf4.rvmat"}},
+						{0.5, {"AF_Weapons\afstg44\data\afzf4_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afstg44\data\afzf4_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afstg44\data\afzf4_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+		class OpticsInfo
+		{
+			memoryPointCamera = "eyeScope";
+			cameraDir = "cameraDir";
+			modelOptics = "-";
+			opticsDisablePeripherialVision = 0.67;
+			opticsFlare = 1;
+			opticsPPEffects[] = {"OpticsCHAbera3", "OpticsBlur1"};
+			opticsZoomMin = "0.3926/4";
+			opticsZoomMax = "0.3926/4";
+			opticsZoomInit = "0.3926/4";
+			distanceZoomMin = 100;
+			distanceZoomMax = 800;
+			discreteDistance[] = {100, 200, 300, 400, 500, 600, 700, 800};
+			discreteDistanceInitIndex = 0;
+			PPMaskProperties[] = {0.5, 0.5, 0.35, 0.05};
+			PPLensProperties[] = {0.5, 0.15, 0, 0};
+			PPBlurProperties = 0.6;
+		};
 	};
 };
 
@@ -490,5 +639,47 @@ class CfgMagazines
 				};
 			};
 		};
+	};
+
+	// The AF StG 44's own magazine. It inherits the AKM magazine (same slot, handling, sounds and
+	// ammunition) and changes the model.
+	class Mag_AKM_30Rnd;
+	class Mag_AFStG44_30Rnd: Mag_AKM_30Rnd
+	{
+		scope = 2;
+		displayName = "AF StG 44 30rd Magazine";
+		descriptionShort = "A long, curved 30-round steel magazine for the AF StG 44. It holds 7.62x39mm rounds.";
+		model = "\AF_Weapons\afstg44\afstg44_mag.p3d";
+		weight = 400;
+		itemSize[] = {1, 3};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 100;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afstg44\data\afstg44_mag.rvmat"}},
+						{0.7, {"AF_Weapons\afstg44\data\afstg44_mag.rvmat"}},
+						{0.5, {"AF_Weapons\afstg44\data\afstg44_mag_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afstg44\data\afstg44_mag_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afstg44\data\afstg44_mag_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+};
+
+// The scope slot only the AF StG 44 has, so its scope fits nothing else and other scopes do not fit it.
+class CfgSlots
+{
+	class Slot_weaponOpticsAFStG
+	{
+		name = "weaponOpticsAFStG";
+		displayName = "Optics";
+		ghostIcon = "set:dayz_inventory image:weaponoptics";
 	};
 };
