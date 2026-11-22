@@ -144,39 +144,132 @@ def scratch_image(name, text, px=44, ss=2, seed=7):
     return img, Wd / Hd
 
 
+# ----------------------------------------------------------------------------
+# Finishes. Built the way a texture artist layers a used service rifle: base finish with its own
+# mottling, then grime that settles in the corners (ambient occlusion), then wear that goes
+# through the finish on edges and high points only, then polish and fine scratches only where
+# hands and kit rub. Edge (bevel) and corner (AO) masks only exist in Cycles, i.e. in the bake.
+# ----------------------------------------------------------------------------
+
+def _set_metal(P, mask, value):
+    sock = P._tap("METAL")
+    src = sock.links[0].from_socket
+    N = P.N
+    P.nt.links.new(N.math("ADD", src, N.math("MULTIPLY", mask, N.math("SUBTRACT", value, src))), sock)
+
+
+def _edge(P, radius, gain):
+    """1 on convex edges (bevel normal against true normal), 0 on flats."""
+    N = P.N
+    bev = N.new("ShaderNodeBevel", samples=8)
+    bev.inputs["Radius"].default_value = radius
+    dot = N.new("ShaderNodeVectorMath", operation="DOT_PRODUCT")
+    P.nt.links.new(P.geo.outputs["Normal"], dot.inputs[0])
+    P.nt.links.new(bev.outputs[0], dot.inputs[1])
+    return N.math("MULTIPLY", N.math("SUBTRACT", 1.0, dot.outputs["Value"]), gain, clamp=True)
+
+
+def _cavity(P, distance):
+    """1 deep in corners and crevices, 0 in the open."""
+    N = P.N
+    ao = N.new("ShaderNodeAmbientOcclusion")
+    ao.samples = 16
+    ao.inputs["Distance"].default_value = distance
+    return N.math("MULTIPLY", N.math("SUBTRACT", N.math("SUBTRACT", 1.0, ao.outputs["AO"]), 0.20), 2.0, clamp=True)
+
+
+def _streaks(P, along, scale, cut):
+    """Fine scratches running mostly along one axis (0 = x, 1 = y, 2 = z)."""
+    N = P.N
+    stretch = [scale, scale, scale]
+    stretch[along] = scale / 40.0
+    mp = N.new("ShaderNodeMapping")
+    mp.inputs["Rotation"].default_value = (0.25, 0.10, 0.15)
+    mp.inputs["Scale"].default_value = stretch
+    P.nt.links.new(P.geo.outputs["Position"], mp.inputs["Vector"])
+    n = N.new("ShaderNodeTexNoise")
+    n.inputs["Scale"].default_value = 1.0
+    n.inputs["Detail"].default_value = 1.0
+    P.nt.links.new(mp.outputs[0], n.inputs["Vector"])
+    return N.math("MULTIPLY", N.math("SUBTRACT", n.outputs[0], cut), 14.0, clamp=True)
+
+
 def _phosphate(mat, muzzle_y, carried=True):
-    """Grey-black phosphate over stamped steel: thin and brown where it is carried, rust specks.
-    carried=False (magazine, scope): no worn zones, only the patches and specks."""
+    """Wartime phosphate (parkerized) finish on stamped and machined steel: matte grey-black with a
+    faint green cast and cloudy mottling. Grime and a little rust in the corners, bare bright steel
+    on worn edges, polish and scratches where it is handled, soot at the muzzle.
+    carried=False (magazine, scope): no handling zones."""
     P = m41._Post(mat)
     N = P.N
-    plum = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(22.0, 5.0), 0.54), 4.0, clamp=True)
-    P.color(N.math("MULTIPLY", plum, 0.30), (0.052, 0.034, 0.026))
-    P.rough(N.math("MULTIPLY", plum, 0.08))
+    # 1. Mottled finish: cloudy lighter and darker patches, as a dipped coating comes out.
+    cloud = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 4.0), 0.42), 2.6, clamp=True)
+    P.color(N.math("MULTIPLY", cloud, 0.55), (0.056, 0.057, 0.052))
+    blot = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(32.0, 3.0), 0.56), 4.0, clamp=True)
+    P.color(N.math("MULTIPLY", blot, 0.45), (0.022, 0.023, 0.024))
+    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", cloud, 0.5), 0.10))
+    # 2. Grime in the corners: dull brown-grey, rougher; a few rust specks deep in them.
+    cav = _cavity(P, 0.010)
+    grime = N.math("MULTIPLY", cav, N.math("ADD", 0.55, N.math("MULTIPLY", P.noise(60.0, 3.0), 0.6)), clamp=True)
+    P.color(N.math("MULTIPLY", grime, 0.70), (0.046, 0.036, 0.026))
+    P.rough(N.math("MULTIPLY", grime, 0.14))
+    rust = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.12, P.cells(380.0)), 18.0, clamp=True), cav)
+    P.color(N.math("MULTIPLY", rust, 0.85), (0.095, 0.040, 0.016))
+    P.rough(N.math("MULTIPLY", rust, 0.25))
+    P.dent(N.math("MULTIPLY", rust, -1.0), 0.00010)
+    # 3. Edge wear: finish rubbed thin round the edges, through to bright steel on the sharpest,
+    #    broken up so it chips rather than running as a clean line.
+    chip = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(48.0, 6.0), 0.40), 3.5, clamp=True)
+    soft = N.math("MULTIPLY", _edge(P, 0.0016, 3.0), chip)
+    P.color(N.math("MULTIPLY", soft, 0.55), (0.090, 0.090, 0.088))
+    bare = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0009, 7.0), chip), 0.9, clamp=True)
+    P.color(bare, (0.42, 0.42, 0.43))
+    P.rough(N.math("MULTIPLY", bare, -0.30))
+    _set_metal(P, bare, 1.0)
     if carried:
-        zone = N.math("MAXIMUM", N.math("GREATER_THAN", P.py, muzzle_y - 0.045), N.math("MULTIPLY", N.math("LESS_THAN", P.pz, 0.035), 0.6))
-        thin = N.math("MULTIPLY", zone, N.math("MULTIPLY", N.math("SUBTRACT", P.noise(80.0, 6.0), 0.50), 5.0, clamp=True))
-        P.color(N.math("MULTIPLY", thin, 0.40), (0.28, 0.28, 0.30))
-        P.rough(N.math("MULTIPLY", thin, -0.06))
-    speck = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.13, P.cells(420.0)), 22.0, clamp=True),
-                   N.math("MULTIPLY", N.math("SUBTRACT", P.noise(14.0, 2.0), 0.57), 8.0, clamp=True))
-    P.color(N.math("MULTIPLY", speck, 0.8), (0.090, 0.038, 0.016))
-    P.rough(N.math("MULTIPLY", speck, 0.25))
-    P.dent(N.math("MULTIPLY", speck, -1.0), 0.00012)
+        # 4. Handling: grip straps, handguard, front of the magazine housing, cocking handle.
+        lt = lambda a, b: N.math("LESS_THAN", a, b)
+        gt = lambda a, b: N.math("GREATER_THAN", a, b)
+        grip = N.math("MULTIPLY", P.band(P.py, -0.125, 0.040), lt(P.pz, 0.072))
+        guard = N.math("MULTIPLY", P.band(P.py, 0.175, 0.085), lt(P.pz, BORE + 0.004))
+        well = N.math("MULTIPLY", N.math("MULTIPLY", gt(P.py, 0.060), lt(P.py, 0.078)), lt(P.pz, 0.078))
+        cock = N.math("MULTIPLY", P.band(P.py, 0.075, 0.020), gt(P.px, 0.020))
+        zone = N.math("MAXIMUM", N.math("MAXIMUM", grip, guard), N.math("MAXIMUM", well, cock))
+        P.color(N.math("MULTIPLY", zone, 0.30), (0.075, 0.075, 0.072))
+        P.rough(N.math("MULTIPLY", zone, -0.14))
+        scr = N.math("MULTIPLY", N.math("MAXIMUM", _streaks(P, 1, 260.0, 0.70), _streaks(P, 2, 300.0, 0.72)), zone)
+        P.color(N.math("MULTIPLY", scr, 0.65), (0.30, 0.30, 0.31))
+        P.rough(N.math("MULTIPLY", scr, -0.12))
+        P.dent(N.math("MULTIPLY", scr, -0.6), 0.00006)
+    # 5. A few long scratches anywhere, very faint (kit and slings), and soot at the muzzle.
+    stray = N.math("MULTIPLY", _streaks(P, 1, 90.0, 0.78), 0.35)
+    P.color(stray, (0.16, 0.16, 0.165))
+    soot = N.math("MULTIPLY", P.band(P.py, muzzle_y, 0.030), 0.75)
+    P.color(soot, (0.016, 0.015, 0.014))
+    P.rough(N.math("MULTIPLY", soot, 0.12))
     return P
 
 
 def _stock_wood(mat):
-    """Laminated beech stock: handling marks and small dents, no checkering."""
+    """Oiled beech: darker and smoother where the cheek and hands rest, dents with dirt in them,
+    edges rubbed back to lighter wood, grime in the corners. Kept off the gold floral skin."""
     P = m41._Post(mat)
     N = P.N
-    held = N.math("MULTIPLY", P.band(P.py, -0.19, 0.07), N.math("ADD", 0.45, N.math("MULTIPLY", P.noise(28.0, 4.0), 0.9)), clamp=True)
-    P.color(N.math("MULTIPLY", N.math("MULTIPLY", held, 0.50), P.plain), (0.030, 0.011, 0.005))
-    P.rough(N.math("MULTIPLY", held, -0.12))
+    plain = P.plain
+    held = N.math("MULTIPLY", N.math("MAXIMUM", P.band(P.py, -0.19, 0.07), P.band(P.py, -0.125, 0.040)),
+                  N.math("ADD", 0.45, N.math("MULTIPLY", P.noise(28.0, 4.0), 0.9)), clamp=True)
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", held, 0.45), plain), (0.030, 0.011, 0.005))
+    P.rough(N.math("MULTIPLY", held, -0.14))
     ding = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.085, P.cells(70.0, (1.0, 0.4, 1.0))), 14.0, clamp=True),
                   N.math("MULTIPLY", N.math("SUBTRACT", P.noise(9.0, 2.0), 0.45), 6.0, clamp=True))
-    P.color(N.math("MULTIPLY", N.math("MULTIPLY", ding, 0.45), P.plain), (0.022, 0.008, 0.004))
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", ding, 0.55), plain), (0.020, 0.008, 0.004))
     P.rough(N.math("MULTIPLY", ding, 0.10))
     P.dent(N.math("MULTIPLY", ding, -1.0), 0.0003)
+    rub = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0025, 3.0),
+                                    N.math("MULTIPLY", N.math("SUBTRACT", P.noise(30.0, 5.0), 0.35), 3.0, clamp=True)), plain)
+    P.color(N.math("MULTIPLY", rub, 0.55), (0.25, 0.13, 0.060))
+    P.rough(N.math("MULTIPLY", rub, 0.08))
+    grime = N.math("MULTIPLY", _cavity(P, 0.012), plain)
+    P.color(N.math("MULTIPLY", grime, 0.6), (0.030, 0.018, 0.010))
     return P
 
 
@@ -234,14 +327,16 @@ def _build_gun():
     proxies = d.collection("Proxies")
     cutters = d.collection("Cutters")
 
-    m_steel = d.material("Steel", (0.030, 0.032, 0.036), rough=0.46, metal=1.0, bump=0.04, bump_scale=1000,
-                         rough_var=0.10, wear=0.75, wear_rgb=(0.36, 0.36, 0.38), scratches=0.55, machining=0.04)
-    m_bolt = d.material("BoltSteel", (0.38, 0.38, 0.39), rough=0.28, metal=1.0, rough_var=0.06,
-                        wear_rgb=(0.60, 0.60, 0.61), scratches=0.35, machining=0.28)
-    m_wood = m41.woodify(d.material("Beech", (0.17, 0.085, 0.036), rough=0.48, metal=0.0, bump=0.05, bump_scale=950,
-                                    rough_var=0.08, wear=0.40, wear_rgb=(0.33, 0.20, 0.10), scratches=0.30,
-                                    skin_img=d.pattern_image()),
-                         dark=(0.062, 0.026, 0.011), light=(0.190, 0.086, 0.034))
+    # Phosphate is a matte, slightly green-grey coating, not polished steel: rougher and less
+    # metallic than blueing. Wear, grime and scratches are layered on by _phosphate().
+    m_steel = d.material("Steel", (0.036, 0.038, 0.036), rough=0.60, metal=0.50, bump=0.03, bump_scale=1100,
+                         rough_var=0.06, machining=0.02)
+    m_bolt = d.material("BoltSteel", (0.30, 0.30, 0.31), rough=0.32, metal=1.0, rough_var=0.08,
+                        wear_rgb=(0.50, 0.50, 0.51), scratches=0.20, machining=0.28)
+    # Oiled wartime beech: a deeper red-brown than raw beech.
+    m_wood = m41.woodify(d.material("Beech", (0.12, 0.05, 0.022), rough=0.55, metal=0.0, bump=0.05, bump_scale=950,
+                                    rough_var=0.08, scratches=0.08, skin_img=d.pattern_image()),
+                         dark=(0.052, 0.020, 0.009), light=(0.150, 0.062, 0.025))
     steel = _phosphate(m_steel, MUZZLE_Y)
     _stock_wood(m_wood)
     lettering = (0.12, 0.12, 0.125)
@@ -462,12 +557,15 @@ def _build_gun():
     # --- Sights --------------------------------------------------------------------------------------
     bm = bmesh.new()
     d.bm_lathe(bm, [(0.4250, 0.0075), (0.4262, 0.0102), (0.4440, 0.0102), (0.4452, 0.0075)], sides=24, c=(0.0, BORE), cap=False)
-    d.bm_profile(bm, [(0.4270, BORE + 0.0090), (0.4430, BORE + 0.0090), (0.4400, SIGHT_Z - 0.0125), (0.4300, SIGHT_Z - 0.0125)], 0.0080)
-    d.make("FrontSightBase", bm, body, m_steel, "Front sight band and its tall base.", bevel=0.0006)
+    # Tall base flaring out to the band, carrying a sheet-steel hood: a short tunnel over the post,
+    # as on the real rifle (a thin ring on a stalk reads as an AK).
+    d.bm_profile(bm, [(0.4255, BORE + 0.0085), (0.4445, BORE + 0.0085), (0.4425, BORE + 0.0150), (0.4400, SIGHT_Z - 0.0125),
+                      (0.4300, SIGHT_Z - 0.0125), (0.4275, BORE + 0.0150)], 0.0095)
+    d.make("FrontSightBase", bm, body, m_steel, "Front sight band and its tall base.", bevel=0.0007)
     bm = bmesh.new()
-    d.bm_lathe(bm, [(0.4280, 0.0100), (0.4280, 0.0114), (0.4420, 0.0114), (0.4420, 0.0100)], sides=24, c=(0.0, SIGHT_Z - 0.0010),
-               closed=True, cap=False)
-    d.make("FrontSightHood", bm, body, m_steel, "Front sight hood.")
+    d.bm_lathe(bm, [(0.4250, 0.0098), (0.4250, 0.0121), (0.4262, 0.0124), (0.4438, 0.0124), (0.4450, 0.0121), (0.4450, 0.0098)],
+               sides=28, c=(0.0, SIGHT_Z - 0.0010), closed=True, cap=False)
+    d.make("FrontSightHood", bm, body, m_steel, "Front sight hood: a short sheet-steel tunnel over the post.")
     d.box("FrontSightPost", body, m_steel, (0.0, 0.4350, SIGHT_Z - 0.0055), (0.0018, 0.0024, 0.0110), bevel=0.0002,
           note="Front sight post; its top is on the sight line.")
     top_z = TOP_Z + R_TOP
@@ -535,8 +633,8 @@ def build_magazine():
         d.clean()
         body = d.collection("Body")
         d.collection("Moving")
-        m_steel = d.material("Steel", (0.028, 0.030, 0.034), rough=0.46, metal=1.0, bump=0.04, bump_scale=1000,
-                             rough_var=0.10, wear=0.85, wear_rgb=(0.38, 0.38, 0.40), scratches=0.6)
+        m_steel = d.material("Steel", (0.034, 0.036, 0.034), rough=0.58, metal=0.50, bump=0.04, bump_scale=1000,
+                             rough_var=0.06)
         m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
                              wear_rgb=(0.74, 0.55, 0.26))
         m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
@@ -583,8 +681,8 @@ def build_scope():
         body = d.collection("Body")
         d.collection("Moving")
         memory = d.collection("Memory")
-        m_steel = d.material("Steel", (0.028, 0.030, 0.034), rough=0.42, metal=1.0, bump=0.03, bump_scale=1200,
-                             rough_var=0.10, wear=0.80, wear_rgb=(0.38, 0.38, 0.40), scratches=0.55, machining=0.05)
+        m_steel = d.material("Steel", (0.020, 0.021, 0.022), rough=0.45, metal=0.70, bump=0.03, bump_scale=1200,
+                             rough_var=0.06, machining=0.03)
         _phosphate(m_steel, 9.0, carried=False)
         # Tube: hollow, so that the eye looks through it. Outside and inside walls in one closed lathe.
         m_black = d.material("Black", (0.004, 0.004, 0.004), rough=0.92, metal=0.0)

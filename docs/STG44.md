@@ -6,7 +6,7 @@ WW2-style assault rifle with its own curved magazine and its own scope. Fifth we
 |---|---|
 | Classes | `AF_StG44` (beech furniture), `AF_StG44_Gold` (gold floral furniture on black), `Mag_AFStG44_30Rnd` (magazine), `AF_ZF4Optic` (scope) |
 | Pack version | 0.12.0 (built, signed and checked in Object Builder on 2026-11-21; **not yet tested in game**, not uploaded) |
-| Size | rifle LOD 1: 15,162 triangles (realism pass, 2026-11-22); LODs 2-9: 10,006 / 6,671 / 3,940 / 2,860 / 1,635 / 1,153 / 686 / 365; two 4096 px texture sets (`afstg44_body` steel, `afstg44_wood` stock and grip panels). Magazine LOD 1: 1,073 triangles, 2048 px (`afstg44_mag`). Scope LOD 1: 3,590 triangles, 1024 px (`afzf4`). Together about 47 MB of textures |
+| Size | rifle LOD 1: 15,657 triangles (finish pass, 2026-11-22); LODs 2-9: 10,333 / 6,889 / 4,018 / 2,950 / 1,675 / 1,189 / 706 / 373; two 4096 px texture sets (`afstg44_body` steel, `afstg44_wood` stock and grip panels). Magazine LOD 1: 1,073 triangles, 2048 px (`afstg44_mag`). Scope LOD 1: 3,590 triangles, 1024 px (`afzf4`). Together about 47 MB of textures |
 | Inherits | vanilla `AKM` (animations, sounds, recoil, handling); the magazine inherits `Mag_AKM_30Rnd`; the scope inherits `PUScopeOptic` |
 | Different from the AKM | its own magazine and scope, about 570 rounds a minute instead of 610, recoil x0.9, 4.6 kg, no stock, handguard or bayonet slots |
 | Attachments | its own scope (slot `weaponOpticsAFStG`, new in `CfgSlots`), AK suppressor, improvised suppressor, ghillie wrap |
@@ -64,6 +64,15 @@ At the owner's request ("premium high end", "more realistic"). Not yet seen in g
 - **Rear sight:** release buttons on the range slider, graduations on the leaf.
 - **Stock:** pear-shaped section, slimmer wrist, no gap at the receiver; butt plate trap door with hinge and two screws; rear sling loop on a screwed base plate.
 - **LODs** (`docs/img/stg_lods.jpg`, LOD 1-9 with the baked textures): thin overlays are built only at the finer detail levels. Two fixes in the shared exporter, which every weapon gets at its next export: faces of a reduced rebuild take their texture only from the same part of LOD 1 (attribute `af7_part`; before, a big face could take the bolt's texture through the ejection port), and a loose piece is never decimated below 12 triangles (`LOD_PIECE_MIN`; 6 folded a plain box).
+
+## Finish pass (2026-11-22)
+
+At the owner's request ("as if you were a professional DayZ texture and 3D model artist"). Not yet seen in game.
+
+- **Steel** (`_phosphate` in `afstg44_detailed.py`): matte phosphate (roughness 0.60, metal 0.50) with cloudy mottling; grime and rust specks in the corners (ambient occlusion); the finish rubbed thin on edges and through to bright steel only on the sharpest, broken into chips (bevel mask); polish and fine scratches only where hands rub (grip, handguard, front of the magazine housing, cocking handle); a few faint long scratches; soot at the muzzle. The old blanket scratch layer (white flecks on every face) is gone.
+- **Wood** (`_stock_wood`): oiled red-brown beech; darker and smoother where cheek and hands rest; dents with dirt in them; rubbed lighter edges; grime in the corners. None of it on the gold skin.
+- **Front sight:** a longer, thicker sheet-steel hood on a broader, flared base.
+- **Preview caveat:** Blender's preview turns the matte half-metal steel milky grey under its grey sky. The baked colour map itself is dark (mean 0.21 in the stored colour, against 0.17 for the previous bake), and the in-game specular is lower than before (0.15 against 0.24). How dark it reads has to be judged in game.
 
 ## First in-game test (2026-11-22)
 
