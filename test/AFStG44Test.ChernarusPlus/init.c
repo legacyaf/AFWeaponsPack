@@ -177,6 +177,9 @@ void main()
 	AddShot("lod_05m", Vector(four[0], four[1] + 2.5, four[2] - 4.0), four, 0.95);
 	AddShot("lod_12m", Vector(four[0], four[1] + 6.0, four[2] - 10.0), four, 0.95);
 	AddShot("lod_25m", Vector(four[0], four[1] + 12.0, four[2] - 22.0), four, 0.95);
+	// The same 25 m, zoomed in: the far model large enough to judge its shading (if the game picks the
+	// level by distance; if it allows for the zoom, this shows a nearer level instead).
+	AddShot("lod_25m_zoom", Vector(four[0], four[1] + 12.0, four[2] - 22.0), four, 0.10);
 	Print("[AFTest] " + g_ShotName.Count().ToString() + " shots planned");
 }
 class CustomMission: MissionGameplay

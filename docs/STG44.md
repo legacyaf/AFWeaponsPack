@@ -164,6 +164,7 @@ The same check suggested three further map changes, not made, to be judged on th
 - Ejection port, LODs 6 to 9: the farthest rebuilds have no port cut, and their receiver side read the empty texture area where LOD 1 has its port, which was black. The edge padding of the same day filled it with the steel round it; the black rectangle is gone (re-rendered).
 - Magazine collision box: now the whole magazine as measured, z -0.1866 to 0.0410 (was -0.1850 to 0.0360: 1.2 mm short of the floor-plate catch and 4.6 mm short of the top round).
 - Left: on LOD 9 the trigger guard decimates to a thin sheet that catches the light as a small pale sliver.
+- In game (14:25, run limit raised to 480 s so the distance shots are reached; new zoomed 25 m shot): the far models show a smooth stock and no dark port (`docs/img/stg_far_ingame.png`).
 
 Not yet seen in game.
 
