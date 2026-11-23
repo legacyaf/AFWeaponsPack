@@ -132,7 +132,22 @@ Audit first, then one bake. An independent reviewer (a sub-agent, read-only) che
 
 **Measured after the bake** (medians of the PNGs): body colour 0.118 (AKM 0.102 by the same readout), gloss 0.565, specular 0.122 with worn steel at 0.541; no normal-map texel with blue below 0.5 on any of the three models. Build, signature and the O2 checks of all three models pass.
 
-**One repair after the bake.** The handguard holes baked mid grey (0.067), because the handling layers were painted over them. `afstg44_detailed.py` now paints holes last; for this bake `blender/afstg44_fix_holes.py` darkened them in the two body colour maps (to 0.012). My first mask for that repair was too wide and also darkened the insides of the port and magazine well (66,788 texels); it was undone by the inverse multiplication, which leaves those texels within about 3 grey levels of the bake, and about 320 of them black. A fresh bake would remove that residue.
+**Second bake, same day.** The reviewer's check of the first bake found it read factory-new: bare-steel specular on 1.6 % of the body sheet (all of it the bolt carrier), one steel tone, wood still orange, and the magazine a slab from below. The first bake's handguard holes had also come out mid grey (0.067) because the handling layers were painted over them. Changed, tested in a 1024 bake, measured, then baked in full:
+- Edge wear in two bands broken by a flake noise: a wide band of thinned finish, and inside it a core of bare steel that is weakest where the rifle is sheltered and never quite absent.
+- Rims of the pressed detail rub through sooner; stronger mottling and dark oily patches in the steel colour; wider gloss breakup.
+- Wood 15 % less saturated and 10 % darker, with grain ridges in the normal and the gloss.
+- Holes painted last (median colour 0.024 in the bake; `blender/afstg44_fix_holes.py` was a one-off for the first bake and is not needed).
+- Magazine floor plate has its retaining plate and catch button (magazine LOD 1: 1,143 triangles, was 933).
+
+| Body sheet, used texels | first bake | second bake |
+|---|---|---|
+| colour p5 / p50 / p95 | 0.094 / 0.118 / 0.180 | 0.097 / 0.124 / 0.278 |
+| gloss p5 / p50 / p95 | 0.427 / 0.553 / 0.667 | 0.416 / 0.565 / 0.722 |
+| specular above 0.3 (bare steel) | 1.6 % | 2.5 % |
+| specular 0.15 to 0.3 (thinned finish) | 1.2 % | 7.5 % |
+| wood mean rgb | 0.263 0.193 0.130 | 0.254 0.179 0.134 |
+
+No normal-map texel with blue below 0.5 on any sheet; LOD 1 unchanged at 14,446 triangles; build, signature and the three O2 checks pass.
 
 **Known, left:** the far LODs (6 to 9) fold the stock's belly into one crease; the Blender previews draw the magazine about 10 mm to the right of where the game puts it.
 

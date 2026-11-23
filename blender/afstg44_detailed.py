@@ -390,15 +390,17 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
     N = P.N
     # 1. Mottled finish: cloudy lighter and darker patches, as a dipped coating comes out.
     cloud = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 4.0), 0.42), 2.6, clamp=True)
-    P.color(N.math("MULTIPLY", cloud, 0.75), (0.030, 0.031, 0.028))
+    P.color(N.math("MULTIPLY", cloud, 0.85), (0.040, 0.041, 0.037))
     blot = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(32.0, 3.0), 0.56), 4.0, clamp=True)
-    P.color(N.math("MULTIPLY", blot, 0.45), (0.0090, 0.0095, 0.0100))
+    P.color(N.math("MULTIPLY", blot, 0.70), (0.0080, 0.0085, 0.0090))
+    oily = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(9.0, 2.0), 0.50), 5.0, clamp=True)
+    P.color(N.math("MULTIPLY", oily, 0.55), (0.0070, 0.0075, 0.0080))
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", cloud, 0.5), 0.10))
     # Gloss breakup, in the gloss only: oily patches and the long wipe marks of a rag. Flat, even
     # gloss is what makes a surface look computer-made in sunlight (the vanilla AKM's gloss map
     # varies about a third more than the first finish pass did).
-    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", P.noise(11.0, 3.0), 0.5), 0.56))
-    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", _wipe(P, 1, 55.0), 0.5), 0.32))
+    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", P.noise(11.0, 3.0), 0.5), 0.85))
+    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", _wipe(P, 1, 55.0), 0.5), 0.42))
     # 2. Grime in the corners: dull brown-grey, rougher; a few rust specks deep in them.
     cav = _cavity(P, 0.010)
     grime = N.math("MULTIPLY", cav, N.math("ADD", 0.55, N.math("MULTIPLY", P.noise(60.0, 3.0), 0.6)), clamp=True)
@@ -421,7 +423,7 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
     # mouth of the magazine housing).
     lt = lambda a, b: N.math("LESS_THAN", a, b)
     gt = lambda a, b: N.math("GREATER_THAN", a, b)
-    exposed = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(5.0, 2.0), 0.42), 3.2, clamp=True)
+    exposed = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(5.0, 2.0), 0.36), 3.2, clamp=True)
     if carried:
         mouth = N.math("MULTIPLY", N.math("MULTIPLY", lt(P.pz, 0.020), gt(P.pz, 0.008)),
                        N.math("MULTIPLY", gt(P.py, 0.0), lt(P.py, 0.075)))
@@ -434,20 +436,24 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
         P.color(N.math("MULTIPLY", N.math("MULTIPLY", dirt, dusty), 0.30), DUST)
         P.rough(N.math("MULTIPLY", dirt, 0.14))
         P.color(N.math("MULTIPLY", N.math("MULTIPLY", rub, chip), 0.55), (0.050, 0.050, 0.049))
-        worn = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", rub, 0.55), 2.2, clamp=True), chip), exposed)
-        P.color(N.math("MULTIPLY", worn, 0.5), BARE)
+        worn = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", rub, 0.35), 2.2, clamp=True), chip),
+                      N.math("ADD", 0.25, N.math("MULTIPLY", exposed, 0.75)))
+        P.color(N.math("MULTIPLY", worn, 0.8), BARE)
         P.rough(N.math("MULTIPLY", worn, -0.25))
-        _set_metal(P, N.math("MULTIPLY", worn, 0.7), 1.0)
+        _set_metal(P, worn, 1.0)
         holes.append(hole)
     # 3. Edge wear: finish rubbed thin round the edges, through to bright steel on the sharpest,
     #    broken up so it chips rather than running as a clean line.
     #    Not every edge: only where the rifle is exposed to knocks and rubbing. A broad noise picks
     #    the worn stretches, and the ends and corners that always catch it are added by position
     #    (muzzle, butt plate, mouth of the magazine housing).
-    soft = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0016, 3.0), chip),
-                  N.math("ADD", 0.30, N.math("MULTIPLY", exposed, 0.70)))
-    P.color(N.math("MULTIPLY", soft, 0.55), (0.050, 0.050, 0.049))
-    bare = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0009, 7.0), chip), 0.9, clamp=True), exposed)
+    flake = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(48.0, 6.0), 0.30), 3.0, clamp=True)
+    soft = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0024, 4.0), flake),
+                  N.math("ADD", 0.45, N.math("MULTIPLY", exposed, 0.55)))
+    P.color(N.math("MULTIPLY", soft, 0.70), (0.070, 0.069, 0.066))
+    P.rough(N.math("MULTIPLY", soft, -0.10))
+    bare = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0012, 9.0), flake), 1.0, clamp=True),
+                  N.math("ADD", 0.25, N.math("MULTIPLY", exposed, 0.75)))
     P.color(bare, BARE)
     P.rough(N.math("MULTIPLY", bare, -0.30))
     _set_metal(P, bare, 1.0)
@@ -483,6 +489,10 @@ def _stock_wood(mat):
     P = m41._Post(mat)
     N = P.N
     plain = P.plain
+    for scale, depth, gloss in ((420.0, 0.00010, 0.16), (1500.0, 0.00005, 0.08)):      # open grain, then pores
+        grain = N.math("SUBTRACT", _wipe(P, 1, scale), 0.5)
+        P.dent(N.math("MULTIPLY", grain, plain), depth)
+        P.rough(N.math("MULTIPLY", N.math("MULTIPLY", grain, gloss), plain))
     held = N.math("MULTIPLY", N.math("MAXIMUM", P.band(P.py, -0.19, 0.07), P.band(P.py, -0.125, 0.040)),
                   N.math("ADD", 0.45, N.math("MULTIPLY", P.noise(28.0, 4.0), 0.9)), clamp=True)
     P.color(N.math("MULTIPLY", N.math("MULTIPLY", held, 0.45), plain), (0.030, 0.011, 0.005))
@@ -564,9 +574,9 @@ def _build_gun():
     m_bolt = d.material("BoltSteel", (0.30, 0.30, 0.31), rough=0.32, metal=1.0, rough_var=0.08,
                         wear_rgb=(0.50, 0.50, 0.51), scratches=0.20, machining=0.28)
     # Oiled wartime beech: a deeper red-brown than raw beech.
-    m_wood = m41.woodify(d.material("Beech", (0.108, 0.052, 0.030), rough=0.50, metal=0.0, bump=0.05, bump_scale=950,
+    m_wood = m41.woodify(d.material("Beech", (0.091, 0.048, 0.031), rough=0.50, metal=0.0, bump=0.05, bump_scale=950,
                                     rough_var=0.14, scratches=0.08, skin_img=d.pattern_image()),
-                         dark=(0.047, 0.021, 0.012), light=(0.135, 0.064, 0.033))
+                         dark=(0.040, 0.020, 0.013), light=(0.114, 0.059, 0.036))
     steel = _phosphate(m_steel, MUZZLE_Y, sheets=[(detail_sheet(1), 1, GUN_WINDOW, 0.010),
                                                   (detail_sheet(-1), -1, GUN_WINDOW, 0.010)])
     _stock_wood(m_wood)
@@ -881,6 +891,11 @@ def build_magazine():
         zb = bottom - oz
         d.box("FloorPlate", body, m_steel, (0.0, _mag_centre(bottom) - oy, zb - 0.0018), (0.0285, 2 * half + 0.0040, 0.0040),
               bevel=0.0010, note="Floor plate.")
+        bm = bmesh.new()
+        d.bm_box(bm, (0.0, _mag_centre(bottom) - oy, zb - 0.0043), (0.0200, 2 * half - 0.0100, 0.0012))
+        d.bm_lathe(bm, [(zb - 0.0062, 0.0), (zb - 0.0062, 0.0030), (zb - 0.0052, 0.0040), (zb - 0.0040, 0.0040)], sides=12, axis="Z",
+                   c=(0.0, _mag_centre(bottom) - oy + 0.0120))
+        d.make("FloorPlateLock", bm, body, m_steel, "Retaining plate and its catch button under the floor plate.", bevel=0.0004)
         base = (_mag_centre(top) - 0.0260 - oy, top - oz + 0.0010)
         for nm, mat, prof in (("Round", m_brass, ROUND_CASE), ("RoundSlug", m_jacket, ROUND_SLUG)):
             bm = bmesh.new()
