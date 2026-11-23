@@ -54,7 +54,7 @@ All of these come from borrowing the AKM's animations.
 
 ## Realism and LOD pass (2026-11-22)
 
-At the owner's request ("premium high end", "more realistic"). Not yet seen in game.
+At the owner's request ("premium high end", "more realistic"). **In game, 2026-11-23 11:15** (test mission AFStG44Test, Chernarus, midday sun; second bake with edge padding). The handguard now reads as part of the rifle and the stock as slimmer; steel is dark gunmetal and the wood brown rather than orange. The wear is subtle at normal viewing distance: worn rims and edges show close up, the rifle reads as well kept rather than hard used. No seams visible at the distances photographed. Unchanged and still open: the scope view shows a black square round the reticle, and in the iron-sight view the back of the receiver fills the lower part of the picture. The first raised-rifle pictures were taken before the world had loaded (menu overlay) and are not usable.
 
 - **Receiver:** one pressing with the side swage line and a rolled lower edge, instead of stuck-on strips; domed rivets; rear end cap and stock collar with a push pin.
 - **Grip:** a rounded grip on the AKM's grip line (so the hand still fits): steel front and back straps, wooden panels proud of the sides, one screw. Grooves were tried and left out (not sure enough of the real pattern).
