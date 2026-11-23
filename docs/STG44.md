@@ -159,7 +159,11 @@ No normal-map texel with blue below 0.5 on any sheet; LOD 1 unchanged at 14,446 
 
 The same check suggested three further map changes, not made, to be judged on the in-game view: specular following gloss on the flats (79.5 % of body texels share one specular value), a higher specular for the wood, and darker dust in corners under direct sun.
 
-**Known, left:** the far LODs (6 to 9) fold the stock's belly into one crease; the Blender previews draw the magazine about 10 mm to the right of where the game puts it.
+**Distance models and collision (2026-11-23, no bake).**
+- Stock crease, LODs 6 to 9: the coarse stock is left with a few broad facets, and the edge between the side and the belly was marked hard, so the belly showed as a darker wedge. The exporter can now shade chosen texture sets smooth in the distance LODs (`SOFT_SETS`, the beech set here; edges sharper than 80 degrees, the stock's end faces, stay hard), and leaves those vertices out of the area weighting. The wedge is gone from LODs 6 to 8; on LOD 9 (about 360 triangles) the stock is a plain block with a faint lighter belly.
+- Ejection port, LODs 6 to 9: the farthest rebuilds have no port cut, and their receiver side read the empty texture area where LOD 1 has its port, which was black. The edge padding of the same day filled it with the steel round it; the black rectangle is gone (re-rendered).
+- Magazine collision box: now the whole magazine as measured, z -0.1866 to 0.0410 (was -0.1850 to 0.0360: 1.2 mm short of the floor-plate catch and 4.6 mm short of the top round).
+- Left: on LOD 9 the trigger guard decimates to a thin sheet that catches the light as a small pale sliver.
 
 Not yet seen in game.
 

@@ -50,6 +50,7 @@ def _common():
     ex.FIRE_MATERIAL = "dz\\data\\data\\penetration\\metalplate.rvmat"
     ex.RAW_QUADS = ()
     ex.LOD1_EDIT = None
+    ex.SOFT_SETS = ()
     # Steel as on the MP40 and P08, whose level was settled against vanilla guns in the in-game tests.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
     # Bare steel shines (the vanilla AKM's specular map reaches 0.7 at its 90th percentile); parts
@@ -80,6 +81,7 @@ def _gun_tables():
         "SlingLoopFront": 0.7, "SlingLoopRear": 0.7,
     }
     ex.LOD1_EDIT = _reshape_notch
+    ex.SOFT_SETS = (1,)                               # the beech set: stock and grip panels
     ex.MEMORY = {"Mem_Muzzle": "usti hlavne", "Mem_BarrelEnd": "konec hlavne", "Mem_Eye": "eye",
                  "Mem_CaseStart": "nabojnicestart", "Mem_CaseEnd": "nabojniceend"}
     # (p3d path, up axis, dir axis, extra selections). In the vanilla model's 3x3 proxy matrix the second
@@ -154,7 +156,9 @@ def _magazine_tables():
     ex.UV_PRIORITY = {"Round": 0.8, "RoundSlug": 0.8}
     ex.MEMORY = {}
     ex.PROXIES = {}
-    ex.GEOMETRY = [((-0.0145, -0.0320, -0.1850), (0.0145, 0.1000, 0.0360))]
+    # The whole magazine, measured (2026-11-23): floor plate catch button down to z -0.1862, top
+    # round up to z 0.0406.
+    ex.GEOMETRY = [((-0.0145, -0.0320, -0.1866), (0.0145, 0.1000, 0.0410))]
 
 
 def _scope_tables():

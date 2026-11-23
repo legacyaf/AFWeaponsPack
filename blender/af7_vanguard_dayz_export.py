@@ -79,6 +79,8 @@ SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
 SPEC_WORN = 0.0      # extra specular where the metal is bare (metal above 0.6), so wear shows as shine
 AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
 LOD1_EDIT = None     # optional f(lod1, M): a small shape change to LOD 1 kept from the .p3d (no re-bake)
+SOFT_SETS = ()       # texture sets (index) shaded smooth all over in the distance LODs, e.g. a wooden stock
+SOFT_MAX_ANGLE = 80.0  # ... except edges sharper than this (the stock's end faces)
 EDGE_PAD = False     # fill unused texels from the islands round them (af_pad.py), against dark seams in the mips
 
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
@@ -486,7 +488,33 @@ def build_lod1(col, M):
     return ob
 
 
-def smooth_normals(ob):
+def _soften(me, sets):
+    """Distance LODs: a coarse rounded part (the stock) is left with a few broad facets that meet at
+    more than SHARP_ANGLE, and each shows as a flat band with a hard line (the 'crease' along the
+    StG 44's stock belly from LOD 6 on). Edges between two faces of the given texture sets are made
+    smooth unless they are sharper than SOFT_MAX_ANGLE. Returns the indices of the vertices of those
+    faces, so the area weighting can leave them out (it would pull them back to the big side facets)."""
+    import bmesh as _bm
+    fs = poly_sets(me)
+    soft = [k in sets for k in fs]
+    bm = _bm.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    sharp = me.attributes.get("sharp_edge")
+    cleared = 0
+    if sharp is not None:
+        for e in bm.edges:
+            lf = e.link_faces
+            if len(lf) == 2 and soft[lf[0].index] and soft[lf[1].index] and                     math.degrees(e.calc_face_angle(0.0)) < SOFT_MAX_ANGLE and sharp.data[e.index].value:
+                sharp.data[e.index].value = False
+                cleared += 1
+    verts = {v.index for f in bm.faces if soft[f.index] for v in f.verts}
+    bm.free()
+    print("AF7 softened %d edges on %d vertices (sets %s)" % (cleared, len(verts), sorted(sets)))
+    return verts
+
+
+def smooth_normals(ob, soft_sets=()):
     """Face-area-weighted normals. With plain angle smoothing a rounded edge drags the shading of
     the flat faces next to it; weighted by area, the flats keep their own direction and the
     rounding carries the whole turn. Binarize keeps the normals stored in the .p3d (checked
@@ -498,12 +526,20 @@ def smooth_normals(ob):
         poly.use_smooth = True
     if hasattr(me, "set_sharp_from_angle"):
         me.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
+    soft = _soften(me, soft_sets) if soft_sets else set()
     activate(ob)
     mod = ob.modifiers.new("AFWeightedNormal", "WEIGHTED_NORMAL")
     mod.mode = "FACE_AREA"
     mod.weight = 50
     mod.keep_sharp = True
+    group = None
+    if soft:
+        group = ob.vertex_groups.new(name="AFWeighted")
+        group.add([v.index for v in me.vertices if v.index not in soft], 1.0, "REPLACE")
+        mod.vertex_group = group.name
     bpy.ops.object.modifier_apply(modifier=mod.name)
+    if group is not None and ob.vertex_groups.get("AFWeighted") is not None:
+        ob.vertex_groups.remove(ob.vertex_groups["AFWeighted"])
     return ob
 
 
@@ -750,7 +786,7 @@ def decimated(src, col, name, ratio, min_size=0.0):
             bpy.ops.object.join()
     me = ob.data
     ob.name = me.name = name
-    smooth_normals(ob)
+    smooth_normals(ob, SOFT_SETS if min_size > 0.0 else ())
     return ob
 
 
