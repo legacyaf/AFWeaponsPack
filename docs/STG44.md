@@ -149,6 +149,10 @@ Audit first, then one bake. An independent reviewer (a sub-agent, read-only) che
 
 No normal-map texel with blue below 0.5 on any sheet; LOD 1 unchanged at 14,446 triangles; build, signature and the three O2 checks pass.
 
+**Edge padding (reviewer's fourth check).** The texels no face uses were black in the colour maps (12 % of the body sheet, 27 % of the wood, 23 % of the magazine, 19 % of the scope), with only an 8-pixel bake margin round each island; smaller mip levels would average that black into the island edges and show dark seams at a distance. `blender/af_pad.py` fills unused texels from the islands round them (used texels are unchanged, asserted). The exporter does it from now on for this rifle (`EDGE_PAD`); `blender/afstg44_pad_maps.py` applied it once to this bake. After padding, "used texels" can no longer be read from the colour map, so the statistics above cannot be re-measured from the committed PNGs.
+
+The same check suggested three further map changes, not made, to be judged on the in-game view: specular following gloss on the flats (79.5 % of body texels share one specular value), a higher specular for the wood, and darker dust in corners under direct sun.
+
 **Known, left:** the far LODs (6 to 9) fold the stock's belly into one crease; the Blender previews draw the magazine about 10 mm to the right of where the game puts it.
 
 Not yet seen in game.

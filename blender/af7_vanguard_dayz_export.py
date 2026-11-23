@@ -78,6 +78,7 @@ UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are un
 SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
 SPEC_WORN = 0.0      # extra specular where the metal is bare (metal above 0.6), so wear shows as shine
 AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
+EDGE_PAD = False     # fill unused texels from the islands round them (af_pad.py), against dark seams in the mips
 
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
 # normal and ambient-shadow maps; it only gets its own _co and _smdi (af7_body_gold_co.png ...).
@@ -916,6 +917,10 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
             key = suffix.strip("_") + "_" if suffix else ""
             outputs += [(key + "co", co, "sRGB"), (key + "smdi", smdi, "Non-Color")]
 
+        if EDGE_PAD:
+            import af_pad
+            valid = result["color"][k][..., :3].max(-1) > 0.0
+            outputs = [(suffix, data if suffix == "nohq" else af_pad.pad(data, valid), cs) for suffix, data, cs in outputs]
         files = {}
         for suffix, data, cs in outputs:
             path = os.path.join(tex_dir, "%s_%s.png" % (tex_name, suffix))

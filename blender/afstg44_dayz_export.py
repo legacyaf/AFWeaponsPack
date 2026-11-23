@@ -53,6 +53,7 @@ def _common():
     # Bare steel shines (the vanilla AKM's specular map reaches 0.7 at its 90th percentile); parts
     # seen through openings are not left pitch black by the ambient-shadow map.
     ex.SPEC_WORN, ex.AO_FLOOR = 0.30, 0.30
+    ex.EDGE_PAD = True
 
 
 def _gun_tables():
