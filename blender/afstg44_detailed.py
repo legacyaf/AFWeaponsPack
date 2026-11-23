@@ -815,11 +815,13 @@ def _build_gun():
     d.profile("RearSightLeaf", body, m_steel,
               [(0.0260, top_z + 0.0060), (0.0900, top_z + 0.0030), (0.0900, top_z + 0.0048), (0.0260, top_z + 0.0082)],
               width=0.0110, bevel=0.0004, note="Tangent leaf.")
-    z1, zn = SIGHT_Z + 0.0020, SIGHT_Z - 0.0012
+    # Notch shoulders on the sight line, level with the post's top, and a V 4.4 mm wide: the post shows
+    # in it with light on both sides (the first notch, 2 mm higher and 2.8 mm wide, hid the post in game).
+    z1, zn = SIGHT_Z, SIGHT_Z - 0.0021
     bm = bmesh.new()
-    d.bm_xsec(bm, [(-0.0070, top_z + 0.0075), (0.0070, top_z + 0.0075), (0.0070, z1), (0.0014, z1), (0.0, zn), (-0.0014, z1),
+    d.bm_xsec(bm, [(-0.0070, top_z + 0.0075), (0.0070, top_z + 0.0075), (0.0070, z1), (0.0022, z1), (0.0, zn), (-0.0022, z1),
                    (-0.0070, z1)], 0.0240, 0.0270)
-    d.make("RearSightNotch", bm, body, m_steel, "V notch. The sight line runs through it.", bevel=0.0002)
+    d.make("RearSightNotch", bm, body, m_steel, "V notch. The sight line runs along its shoulders.", bevel=0.0002)
     bm = bmesh.new()
     d.bm_box(bm, (0.0, 0.0600, top_z + 0.0052), (0.0170, 0.0080, 0.0050))
     for side in (-1, 1):

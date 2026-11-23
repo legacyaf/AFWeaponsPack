@@ -78,6 +78,7 @@ UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are un
 SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
 SPEC_WORN = 0.0      # extra specular where the metal is bare (metal above 0.6), so wear shows as shine
 AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
+LOD1_EDIT = None     # optional f(lod1, M): a small shape change to LOD 1 kept from the .p3d (no re-bake)
 EDGE_PAD = False     # fill unused texels from the islands round them (af_pad.py), against dark seams in the mips
 
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
@@ -1334,6 +1335,8 @@ def export(bake=True, tex_size=TEX_SIZE):
     if lod1 is not None:
         print("AF7 kept LOD 1 and its UVs from", p3d_path)
         tag_parts_from_build(lod1, col, M)
+        if LOD1_EDIT:
+            LOD1_EDIT(lod1, M)
         loaded = []
         for tex_name, _names in texture_sets():
             files = {}

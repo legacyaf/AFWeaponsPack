@@ -19,6 +19,7 @@ WHAT IT MAKES
   source/AF_Weapons/afstg44/afstg44.p3d, afstg44_mag.p3d and afzf4.p3d
 """
 
+import math
 import os
 import sys
 
@@ -48,6 +49,7 @@ def _common():
     ex.MOD_DIR = "af_weapons\\afstg44"
     ex.FIRE_MATERIAL = "dz\\data\\data\\penetration\\metalplate.rvmat"
     ex.RAW_QUADS = ()
+    ex.LOD1_EDIT = None
     # Steel as on the MP40 and P08, whose level was settled against vanilla guns in the in-game tests.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
     # Bare steel shines (the vanilla AKM's specular map reaches 0.7 at its 90th percentile); parts
@@ -77,6 +79,7 @@ def _gun_tables():
         "Barrel": 0.7, "GasTube": 0.8, "Stock": 0.9, "ButtPlate": 0.7, "HingePin": 0.8, "SearPin": 0.8,
         "SlingLoopFront": 0.7, "SlingLoopRear": 0.7,
     }
+    ex.LOD1_EDIT = _reshape_notch
     ex.MEMORY = {"Mem_Muzzle": "usti hlavne", "Mem_BarrelEnd": "konec hlavne", "Mem_Eye": "eye",
                  "Mem_CaseStart": "nabojnicestart", "Mem_CaseEnd": "nabojniceend"}
     # (p3d path, up axis, dir axis, extra selections). In the vanilla model's 3x3 proxy matrix the second
@@ -95,6 +98,43 @@ def _gun_tables():
                    ((-0.020, -0.150, 0.044), (0.022, 0.105, 0.152)),       # receiver and trigger housing
                    ((-0.016, -0.158, -0.040), (0.016, -0.086, 0.058)),     # pistol grip
                    ((-0.022, 0.105, 0.072), (0.022, 0.470, 0.152))]        # handguard, barrel and sights
+
+
+NOTCH = dict(zb=0.1461, z_old=0.1520, z_new=0.1500, x_old=0.0014, x_new=0.0022, x_out=0.0070)
+
+
+def _reshape_notch(lod1, M):
+    """The rear sight's V notch as first built sat 2 mm above the front post and was 2.8 mm wide: in
+    game the post hid behind it. Its top is now on the sight line (the post's top) and the V is 4.4 mm
+    wide. This moves the vertices of the notch in LOD 1 as kept from the .p3d, so the baked textures
+    stay valid (the notch's own texels stretch a little; they are plain steel). afstg44_detailed.py
+    builds the same shape, for the distance LODs and for the next bake."""
+    import zlib
+    me = lod1.data
+    part = me.attributes.get("af7_part")
+    pid = zlib.crc32(b"RearSightNotch") & 0x7FFFFFFF
+    mine = {p.index for p in me.polygons if part.data[p.index].value == pid}
+    owner = {}
+    for p in me.polygons:
+        for v in p.vertices:
+            owner.setdefault(v, set()).add(p.index in mine)
+    verts = [v for v, s in owner.items() if s == {True}]
+    shared = sum(1 for v, s in owner.items() if s == {True, False})
+    n = NOTCH
+    Mi = M.inverted()
+    for i in verts:
+        w = Mi @ me.vertices[i].co
+        if w.z > n["zb"]:
+            w.z = n["zb"] + (w.z - n["zb"]) * (n["z_new"] - n["zb"]) / (n["z_old"] - n["zb"])
+        ax = abs(w.x)
+        if ax <= n["x_old"]:
+            ax *= n["x_new"] / n["x_old"]
+        elif ax < n["x_out"]:
+            ax = n["x_new"] + (ax - n["x_old"]) * (n["x_out"] - n["x_new"]) / (n["x_out"] - n["x_old"])
+        w.x = ax if w.x >= 0 else -ax
+        me.vertices[i].co = M @ w
+    me.update()
+    print("STG rear sight notch reshaped: %d faces, %d vertices moved, %d shared with other parts (left)" % (len(mine), len(verts), shared))
 
 
 def _magazine_tables():
@@ -137,18 +177,22 @@ def _scope_tables():
     ex.PROXIES = {}
     ex.GEOMETRY = [((-0.016, model.SCOPE_REAR, -0.026), (0.020, model.SCOPE_FRONT, 0.026))]
     # Reticle in the middle of the tube, lens glass at both ends: the vanilla PU scope's own textures.
-    # The panels are square: half-sizes are kept under the tube's outer radius / sqrt(2), so the corners stay
-    # inside the tube wall (bigger ones poked through as a black square in the first in-game scope view).
-    def disc(y, r):
-        return ((-r, y, -r), (r, y, -r), (r, y, r), (-r, y, r))
-    uv = ((0.0, 1.0), (1.0, 1.0), (1.0, 0.0), (0.0, 0.0))
-    ex.RAW_QUADS = (
-        (disc(model.SCOPE_REAR + 0.0400, 0.0088), uv, OPTICS + "reticle_pu_ca.paa", OPTICS + "forceddiffuse.rvmat", 3.0),
-        (disc(model.SCOPE_REAR + 0.0030, 0.0102), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
-         OPTICS + "lensglass_standard.rvmat", 3.0),
-        (disc(model.SCOPE_FRONT - 0.0030, 0.0102), uv, "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa",
-         OPTICS + "lensglass_standard.rvmat", 3.0),
-    )
+    # Round, not square: each is a fan of quads filling the bore exactly where it sits (the square
+    # reticle showed its black corners as a black square round the view, in game on 2026-11-22/23).
+    # The reticle texture's clear circle reaches about 0.96 of its width, so the disc edge is mapped there.
+    def disc(y, r, texture, material, uv_r=0.5, n=12):
+        quads = []
+        for k in range(n):
+            a = [2 * math.pi * (k + t / 2.0) / n + math.pi for t in (0, 1, 2)]
+            pts = [(0.0, 0.0)] + [(r * math.cos(t), r * math.sin(t)) for t in a]
+            corners = tuple((x, y, z) for x, z in pts)
+            uvs = tuple((0.5 + uv_r * x / r, 0.5 - uv_r * z / r) for x, z in pts)
+            quads.append((corners, uvs, texture, material, 3.0))
+        return tuple(quads)
+    clear = "dz\\weapons\\attachments\\data\\scope_alpha_clear_ca.paa"
+    ex.RAW_QUADS = (disc(model.SCOPE_REAR + 0.0400, 0.0107, OPTICS + "reticle_pu_ca.paa", OPTICS + "forceddiffuse.rvmat", 0.48)
+                    + disc(model.SCOPE_REAR + 0.0030, 0.0117, clear, OPTICS + "lensglass_standard.rvmat")
+                    + disc(model.SCOPE_FRONT - 0.0030, 0.0125, clear, OPTICS + "lensglass_standard.rvmat"))
 
 
 def export(bake=True, tex_size=ex.TEX_SIZE):
