@@ -50,6 +50,9 @@ def _common():
     ex.RAW_QUADS = ()
     # Steel as on the MP40 and P08, whose level was settled against vanilla guns in the in-game tests.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
+    # Bare steel shines (the vanilla AKM's specular map reaches 0.7 at its 90th percentile); parts
+    # seen through openings are not left pitch black by the ambient-shadow map.
+    ex.SPEC_WORN, ex.AO_FLOOR = 0.30, 0.30
 
 
 def _gun_tables():
@@ -68,7 +71,7 @@ def _gun_tables():
     ex.HIDE_BARREL = ("MuzzleNut",)
     ex.UV_PRIORITY = {
         "Receiver": 1.4, "RearSightBase": 1.4, "RearSightLeaf": 1.4, "RearSightNotch": 1.6, "RearSightSlider": 1.4,
-        "FrontSightPost": 1.5, "FrontSightHood": 1.2, "CockingHandle": 1.4, "BoltCarrier": 1.2, "Weapon_Trigger": 1.3,
+        "FrontSightPost": 1.5, "FrontSightHood": 1.2, "CockingHandle": 1.4, "BoltCarrier": 0.5, "Weapon_Trigger": 1.3,
         "TriggerHousing": 1.2, "MagWell": 1.2, "ScopeRail": 1.2, "Selector": 1.2,
         "Barrel": 0.7, "GasTube": 0.8, "Stock": 0.9, "ButtPlate": 0.7, "HingePin": 0.8, "SearPin": 0.8,
         "SlingLoopFront": 0.7, "SlingLoopRear": 0.7,
@@ -87,7 +90,7 @@ def _gun_tables():
         "Proxy_Wrap2": (WRAP, (0, 1, 0), (0, 0, -1), ()),
     }
     # Collision boxes in the working frame (min xyz, max xyz)
-    ex.GEOMETRY = [((-0.021, -0.406, 0.010), (0.021, -0.152, 0.134)),      # stock
+    ex.GEOMETRY = [((-0.019, -0.406, 0.016), (0.019, -0.152, 0.136)),      # stock
                    ((-0.020, -0.150, 0.044), (0.022, 0.105, 0.152)),       # receiver and trigger housing
                    ((-0.016, -0.158, -0.040), (0.016, -0.086, 0.058)),     # pistol grip
                    ((-0.022, 0.105, 0.072), (0.022, 0.470, 0.152))]        # handguard, barrel and sights

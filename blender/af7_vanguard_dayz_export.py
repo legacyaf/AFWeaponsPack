@@ -76,6 +76,8 @@ UV_MAX_LENGTH = 0.40   # parts longer than this (metres, along the rifle) are un
 # _smdi levels for the standard finish: specular = SPEC_BASE + SPEC_METAL * metal,
 # gloss = (1 - rough) * GLOSS_SCALE, colour map multiplied by CO_SCALE.
 SPEC_BASE, SPEC_METAL, GLOSS_SCALE, CO_SCALE = 0.05, 0.12, 0.75, 0.85
+SPEC_WORN = 0.0      # extra specular where the metal is bare (metal above 0.6), so wear shows as shine
+AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
 
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
 # normal and ambient-shadow maps; it only gets its own _co and _smdi (af7_body_gold_co.png ...).
@@ -880,8 +882,14 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
         ao = np.clip(result["ao"][k], 0, 1)
         one = np.ones_like(ao)
         base_metal = np.clip(result["metal"][k], 0, 1)
-        amb = np.stack([one, ao, one, one], axis=-1)           # green = ambient shadow
+        amb = np.stack([one, AO_FLOOR + (1.0 - AO_FLOOR) * ao, one, one], axis=-1)   # green = ambient shadow
         nohq = result["normal"][k]
+        # Faces buried inside another part (end caps, a plate under a cover) bake with the normal
+        # pointing into the surface. Never valid in a tangent map: make those texels flat.
+        buried = nohq[..., 2] < 0.5
+        if buried.any():
+            nohq[buried] = (0.5, 0.5, 1.0, 1.0)[:nohq.shape[-1]]
+            print("AF7 normal map: %d buried texels flattened in set %d" % (int(buried.sum()), k))
         nohq[..., 3] = 1
         outputs = [("nohq", nohq, "Non-Color"), ("as", amb, "Non-Color")]
 
@@ -893,7 +901,7 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
             co[..., 3] = 1
             # Levels matched to the vanilla m4_body_smdi (specular median 0.13, gloss median 0.39).
             # Anything much higher washes the rifle out to white under DayZ's lighting.
-            spec = np.clip(SPEC_BASE + SPEC_METAL * metal, 0, 1)
+            spec = np.clip(SPEC_BASE + SPEC_METAL * metal + SPEC_WORN * np.clip((metal - 0.6) / 0.4, 0, 1), 0, 1)
             gloss = np.clip((1.0 - rough) * GLOSS_SCALE, 0, 1)
             if not suffix:
                 co[..., :3] *= CO_SCALE                        # DayZ lights colour maps brightly

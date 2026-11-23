@@ -49,7 +49,7 @@ All of these come from borrowing the AKM's animations.
 
 - **Cocking handle on the right.** The real one is on the left; the AKM animation puts the hand on the right.
 - **7.62x39, not 7.92x33.** It fires the AKM's ammunition from its own magazine, so no new cartridge is needed in loot.
-- **The handguard sleeve comes down round the barrel.** On the real rifle it covers only the gas cylinder; here it reaches z 0.076 because that is where the AKM puts the left hand.
+- **The handguard is deeper than the real one.** As on the real rifle it is a stamped shell round the barrel only, with the gas cylinder bare above it (corrected 2026-11-23; the first version sleeved the gas cylinder). Its underside is at z 0.076, lower than the real one, because that is where the AKM puts the left hand.
 - **The magazine may clip during a reload.** The AKM animation draws its magazine out along a 20.7 degree lean; ours is longer and curves forward. To be checked in game.
 
 ## Realism and LOD pass (2026-11-22)
@@ -107,6 +107,36 @@ Run with the owner's go-ahead.
 - **Change:** all steel, wear, grime and soot colours in `afstg44_detailed.py` darkened; steel roughness 0.40, metallic 0.35. The body, magazine and ZF4 rvmats now use the AKM's lighting (ambient 0.7, specular 0.79/0.75/0.74, specularPower 70, fresnel 0.8/0.7). Wood rvmats unchanged.
 - **Measured after the bake:** body colour 0.111, magazine 0.119, AKM 0.090; gloss body 0.56, magazine 0.53, AKM 0.61; spec 0.122 vs 0.118. LOD 1 is 15,657 triangles. Build, signature and the O2 checks of all three models pass.
 - **In game (19:04 run, owner's and Factory's go-ahead, nothing else running):** in sunlight the steel now reads as dark gunmetal, on the ground and in the hands, in line with the vanilla AKM; the wood is unchanged. The close-up and sight pictures from that run are unusable: they were taken before the world had loaded (untextured world, main menu over the scene, the vanilla AKM equally white), so they say nothing about our textures. The scope and iron-sight views still need a clean look.
+
+## Polish pass (2026-11-23)
+
+Audit first, then one bake. An independent reviewer (a sub-agent, read-only) checked the work twice before the bake; its findings were tested against the model and the vanilla AKM's maps before use.
+
+**Shape**
+- Handguard: a stamped shell round the barrel, butted against the receiver, six cooling holes; gas cylinder bare above it. (Owner: "looks detached"; reviewer: it was on the wrong tube, which made the rifle read as an AK.)
+- Gas block moved back to y 0.336-0.366; the gas plug runs out into the ball-ended stacking rod above the barrel.
+- Stock: half width 16-18.5 mm (was 17-21), rounder section (power 2.15), straight belly from the wrist to a toe at z 0.018. (Owner: "way too wide and blocky".)
+- The lower rivet row and the stuck-on beads of the magazine housing are gone; the magazine's cross ribs are replaced by two lengthwise flutes.
+- LOD 1 is 14,446 triangles (was 15,657).
+
+**Pressed detail** (`_Pen`, `detail_sheet`, `magazine_sheet`, `_sheet`)
+- The detail sheet steel carries is drawn once as a height map of each side (10 px/mm) and projected onto the side faces: receiver flute and swage crease, spot welds, a bead round the trigger-housing panel, selector letters E and D, sunk panels and a bead on the magazine housing, a rib on the dust cover, the handguard holes, the magazine flutes. The bake turns it into the normal map.
+- Dirt and rub masks are derived from the same heights (creases collect dirt, raised rims lose finish), so colour, gloss and normal agree.
+
+**Finish**
+- Wear shows as shine, not as a white outline: bare steel is colour 0.22 with full metal, and the exporter's new `SPEC_WORN` lifts its specular to 0.54 (the vanilla AKM's specular reaches 0.71 at its 90th percentile; ours was a flat 0.12).
+- Edge wear only where the rifle is exposed: a broad noise plus the muzzle, the butt plate and the mouth of the magazine housing.
+- Gloss breakup in the gloss only (oily patches, wipe marks); dry dust in corners; stamps are recesses with dust in them instead of pale paint.
+- Wood about a fifth less saturated (it read orange in game).
+- Exporter: `AO_FLOOR` 0.30 (the bolt carrier seen through the port was at 0.13), bolt carrier texel priority 0.5, and normal-map texels pointing into the surface (faces buried in another part: 74,877 on the body sheet) are flattened.
+
+**Measured after the bake** (medians of the PNGs): body colour 0.118 (AKM 0.102 by the same readout), gloss 0.565, specular 0.122 with worn steel at 0.541; no normal-map texel with blue below 0.5 on any of the three models. Build, signature and the O2 checks of all three models pass.
+
+**One repair after the bake.** The handguard holes baked mid grey (0.067), because the handling layers were painted over them. `afstg44_detailed.py` now paints holes last; for this bake `blender/afstg44_fix_holes.py` darkened them in the two body colour maps (to 0.012). My first mask for that repair was too wide and also darkened the insides of the port and magazine well (66,788 texels); it was undone by the inverse multiplication, which leaves those texels within about 3 grey levels of the bake, and about 320 of them black. A fresh bake would remove that residue.
+
+**Known, left:** the far LODs (6 to 9) fold the stock's belly into one crease; the Blender previews draw the magazine about 10 mm to the right of where the game puts it.
+
+Not yet seen in game.
 
 ## What still has to be checked in game
 

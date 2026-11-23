@@ -145,6 +145,177 @@ def scratch_image(name, text, px=44, ss=2, seed=7):
 
 
 # ----------------------------------------------------------------------------
+# Pressed-detail sheets. Sheet steel carries its detail as shallow pressings, not as separate
+# parts: flutes, beads, spot welds, struck letters. They are drawn here once as a height map of
+# each side of the rifle (the "high-poly" source) and projected onto the side faces, where the
+# bake turns them into the normal map. Two masks are derived from the same heights, as a texture
+# artist's generators do: where dirt settles (concave creases, recess floors) and where the
+# finish rubs off (convex rims, tops of beads).
+# ----------------------------------------------------------------------------
+
+GUN_WINDOW = (-0.156, 0.012, 0.406, 0.124)      # side window of the rifle: y0, z0, width, height (m)
+MAG_WINDOW = (-0.034, -0.188, 0.134, 0.226)     # side window of the magazine, in its own frame
+SHEET_PX = 10000.0                              # pixels per metre
+SHEET_HMAX = 0.0006                             # height at red = 1; red = 0 is a hole right through
+_SHEET_GLYPHS = {"E": [[(4, 6), (0, 6), (0, 0), (4, 0)], [(0, 3.1), (3, 3.1)]],
+                 "D": [[(0, 0), (0, 6), (2.4, 6), (4, 4.4), (4, 1.6), (2.4, 0), (0, 0)]]}
+
+
+def _blur(a, passes):
+    for _ in range(passes):
+        a = (a + np.roll(a, 1, 0) + np.roll(a, -1, 0)) / 3.0
+        a = (a + np.roll(a, 1, 1) + np.roll(a, -1, 1)) / 3.0
+    return a
+
+
+class _Pen:
+    """Draws pressings into a height map of one side, seen square on (u along +Y, v along +Z)."""
+
+    def __init__(self, window):
+        y0, z0, w, h = window
+        self.W, self.H = int(w * SHEET_PX), int(h * SHEET_PX)
+        zz, yy = np.mgrid[0:self.H, 0:self.W]
+        self.Y = (y0 + (yy + 0.5) / SHEET_PX).astype(np.float32)
+        self.Z = (z0 + (zz + 0.5) / SHEET_PX).astype(np.float32)
+        self.hm = np.zeros((self.H, self.W), dtype=np.float32)
+
+    @staticmethod
+    def ease(t):
+        t = np.clip(t, 0.0, 1.0)
+        return t * t * (3.0 - 2.0 * t)
+
+    def rbox(self, yc, zc, hy, hz, r):
+        qy, qz = np.abs(self.Y - yc) - (hy - r), np.abs(self.Z - zc) - (hz - r)
+        return np.hypot(np.maximum(qy, 0), np.maximum(qz, 0)) + np.minimum(np.maximum(qy, qz), 0) - r
+
+    def seg(self, a, b):
+        (ay, az), (by, bz) = a, b
+        dy, dz = by - ay, bz - az
+        t = np.clip(((self.Y - ay) * dy + (self.Z - az) * dz) / max(dy * dy + dz * dz, 1e-12), 0.0, 1.0)
+        return np.hypot(self.Y - ay - t * dy, self.Z - az - t * dz)
+
+    def press(self, sd, depth, slope):      # flat-floored pressing with sloping walls
+        np.add(self.hm, depth * self.ease(0.5 - sd / slope), out=self.hm)
+
+    def bead(self, dist, r, height):        # round-topped bead (height < 0: a round-bottomed flute)
+        np.add(self.hm, height * 0.5 * (1.0 + np.cos(np.pi * np.clip(dist / r, 0.0, 1.0))), out=self.hm)
+
+    def weld(self, y, z):                   # spot weld: a shallow dimple with a faint raised ring
+        dist = np.hypot(self.Y - y, self.Z - z)
+        np.add(self.hm, -0.00022 * self.ease(1.0 - dist / 0.0022)
+               + 0.00006 * np.exp(-((dist - 0.0026) / 0.00060) ** 2), out=self.hm)
+
+    def hole(self, y, z, r):                # a hole right through the sheet
+        inside = self.ease(0.5 - (np.hypot(self.Y - y, self.Z - z) - r) / 0.0006)
+        self.hm = (self.hm * (1.0 - inside) - SHEET_HMAX * inside).astype(np.float32)
+
+    def image(self, name, file_name):
+        """Red = height, green = rub mask (convex rims, bead tops), blue = dirt mask (creases)."""
+        mm = _blur(self.hm * 1000.0, 1)
+        lap = (np.roll(mm, 3, 0) + np.roll(mm, -3, 0) + np.roll(mm, 3, 1) + np.roll(mm, -3, 1) - 4.0 * mm)
+        lap /= max(float(np.percentile(np.abs(lap), 99.7)), 1e-6)
+        rub = np.clip(_blur(np.clip(-lap, 0, 1), 2) * 1.6 + 0.25 * np.clip(mm / 0.30, 0, 1), 0, 1)
+        rub *= np.clip(1.0 + mm / 0.05, 0.0, 1.0)
+        dirt = np.clip(_blur(np.clip(lap, 0, 1), 3) * 1.8 + 0.12 * np.clip(-mm / 0.30, 0, 1), 0, 1)
+        rgba = np.ones((self.H, self.W, 4), dtype=np.float32)
+        rgba[..., 0] = np.clip(0.5 + self.hm / (2.0 * SHEET_HMAX), 0, 1)
+        rgba[..., 1] = rub
+        rgba[..., 2] = dirt
+        img = bpy.data.images.get(name)
+        if img:
+            bpy.data.images.remove(img)
+        img = bpy.data.images.new(name, self.W, self.H, alpha=True)
+        img.colorspace_settings.name = "Non-Color"
+        img.pixels.foreach_set(rgba.ravel())
+        try:
+            img.filepath_raw = os.path.join(_here(), "textures", file_name)
+            img.file_format = "PNG"
+            img.save()
+            img.pack()
+        except Exception as exc:
+            print("Detail sheet not saved to disk:", exc)
+        return img
+
+
+def detail_sheet(side):
+    """The rifle's side (side +1 right, -1 left)."""
+    pen = _Pen(GUN_WINDOW)
+    right = side > 0
+    # Receiver: a long stiffening flute pressed into the upper wall, the swage crease where the
+    # pressing steps in, and a row of spot welds below it.
+    y_a, y_b = (-0.140, -0.018) if right else (-0.140, 0.085)      # right: stops short of the ejection port
+    pen.press(pen.rbox((y_a + y_b) / 2, 0.1070, (y_b - y_a) / 2, 0.0028, 0.0028), -0.00045, 0.0016)
+    for y_a, y_b in (((-0.1490, 0.0000), (0.0640, 0.1040)) if right else ((-0.1490, 0.1040),)):   # not across the dust cover
+        pen.bead(pen.seg((y_a, 0.0936), (y_b, 0.0936)), 0.0011, -0.00028)
+    y = -0.1400
+    while y < (-0.006 if right else 0.082):
+        pen.weld(y, 0.0890)
+        y += 0.0220
+    # Trigger housing: a bead pressed round a long panel, welds along the top, the selector letter.
+    pen.bead(np.abs(pen.rbox(-0.0480, 0.0550, 0.0280, 0.0050, 0.0025)), 0.0013, 0.00035)
+    for y in (-0.0450, -0.0300, -0.0150):
+        pen.weld(y, 0.0705)
+    letter, size = ("D" if right else "E"), 0.0045 / 6.0
+    dist = np.full((pen.H, pen.W), 1e9, dtype=np.float32)
+    for poly in _SHEET_GLYPHS[letter]:
+        pts = [((-0.0815 + gx * size) if right else (-0.0795 - gx * size), 0.0643 + gz * size) for gx, gz in poly]
+        for a, b in zip(pts, pts[1:]):
+            np.minimum(dist, pen.seg(a, b), out=dist)
+    np.add(pen.hm, -0.00016 * pen.ease(1.5 - dist / 0.00030), out=pen.hm)
+    # Magazine housing: a sunk panel either side of a pressed bead (left: clear of the catch).
+    pen.press(pen.rbox(0.0185, 0.0440, 0.0115, 0.0210, 0.0030) if right else pen.rbox(0.0215, 0.0440, 0.0085, 0.0210, 0.0030),
+              -0.00035, 0.0018)
+    pen.press(pen.rbox(0.0555, 0.0440, 0.0115, 0.0210, 0.0030), -0.00035, 0.0018)
+    pen.bead(pen.seg((0.0370, 0.0230), (0.0370, 0.0650)), 0.0017, 0.00040)
+    # Handguard: the stamped shell round the barrel, with its row of cooling holes.
+    for k in range(6):
+        pen.hole(0.1320 + 0.0180 * k, 0.0945, 0.0026)
+    if right:                                                     # dust cover: a rib down its length
+        pen.bead(pen.seg((0.0110, 0.0925), (0.0530, 0.0925)), 0.0015, 0.00030)
+    return pen.image(PREFIX + "Sheet_" + ("R" if right else "L"), "afstg44_sheet_%s.png" % ("r" if right else "l"))
+
+
+def magazine_sheet():
+    """The magazine's side (both sides alike): two long flutes pressed lengthwise, following the
+    curve, as on the real magazine (ribs across the body are the AK's look)."""
+    pen = _Pen(MAG_WINDOW)
+    oy, oz = MAG_AT[1], MAG_AT[2]
+    zw = pen.Z + oz                                              # the rifle's z
+    t = (0.0640 - zw) / 0.2140
+    centre = 0.0350 + 0.0650 * t * t - oy                        # _mag_centre, in the magazine's frame
+    lean = np.sqrt(1.0 + (2.0 * 0.0650 * t / 0.2140) ** 2)       # the curve leans: measure across it
+    ends = pen.ease((0.0050 - zw) / 0.0040) * pen.ease((zw + 0.1380) / 0.0040)   # below the housing .. above the floor plate
+    for off in (-0.0115, 0.0115):
+        dist = np.abs(pen.Y - centre - off) / lean
+        np.add(pen.hm, -0.00042 * np.sqrt(np.clip(1.0 - (dist / 0.0024) ** 2, 0.0, 1.0)) * ends, out=pen.hm)
+    for zw_weld in (-0.020, -0.060, -0.100):                     # spot welds down the rear spine
+        tt = (0.0640 - zw_weld) / 0.2140
+        pen.weld(0.0350 + 0.0650 * tt * tt - oy - 0.0235, zw_weld - oz)
+    return pen.image(MAG_PREFIX + "Sheet", "afstg44_sheet_mag.png")
+
+
+def _sheet(P, img, side, window, x_min):
+    """Project a detail sheet onto the faces of one side. Returns (dirt, rub, hole) masks."""
+    N = P.N
+    y0, z0, w, h = window
+    u = N.math("DIVIDE", N.math("SUBTRACT", P.py, y0), w)
+    v = N.math("DIVIDE", N.math("SUBTRACT", P.pz, z0), h)
+    uv = N.new("ShaderNodeCombineXYZ")
+    P.nt.links.new(u, uv.inputs[0])
+    P.nt.links.new(v, uv.inputs[1])
+    tex = N.new("ShaderNodeTexImage", image=img, extension="CLIP", interpolation="Cubic")
+    P.nt.links.new(uv.outputs[0], tex.inputs[0])
+    sep = N.new("ShaderNodeSeparateColor")
+    P.nt.links.new(tex.outputs["Color"], sep.inputs[0])
+    gate = N.math("MULTIPLY", N.math("GREATER_THAN", N.math("MULTIPLY", P.px, float(side)), x_min),
+                  N.math("GREATER_THAN", N.math("MULTIPLY", P.nx, float(side)), 0.55))
+    gate = N.math("MULTIPLY", gate, tex.outputs["Alpha"])
+    P.dent(N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", sep.outputs[0], 0.5), 2.0), gate), SHEET_HMAX)
+    hole = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.04, sep.outputs[0]), 60.0, clamp=True), gate)
+    return N.math("MULTIPLY", sep.outputs[2], gate), N.math("MULTIPLY", sep.outputs[1], gate), hole
+
+
+# ----------------------------------------------------------------------------
 # Finishes. Built the way a texture artist layers a used service rifle: base finish with its own
 # mottling, then grime that settles in the corners (ambient occlusion), then wear that goes
 # through the finish on edges and high points only, then polish and fine scratches only where
@@ -194,7 +365,23 @@ def _streaks(P, along, scale, cut):
     return N.math("MULTIPLY", N.math("SUBTRACT", n.outputs[0], cut), 14.0, clamp=True)
 
 
-def _phosphate(mat, muzzle_y, carried=True):
+def _wipe(P, along, scale):
+    """Soft streaks along one axis, 0..1 around 0.5: wipe marks, seen only in the gloss."""
+    N = P.N
+    stretch = [scale, scale, scale]
+    stretch[along] = scale / 14.0
+    mp = N.new("ShaderNodeMapping")
+    mp.inputs["Rotation"].default_value = (0.05, 0.03, 0.08)
+    mp.inputs["Scale"].default_value = stretch
+    P.nt.links.new(P.geo.outputs["Position"], mp.inputs["Vector"])
+    n = N.new("ShaderNodeTexNoise")
+    n.inputs["Scale"].default_value = 1.0
+    n.inputs["Detail"].default_value = 2.0
+    P.nt.links.new(mp.outputs[0], n.inputs["Vector"])
+    return n.outputs[0]
+
+
+def _phosphate(mat, muzzle_y, carried=True, sheets=()):
     """Wartime phosphate (parkerized) finish on stamped and machined steel: matte grey-black with a
     faint green cast and cloudy mottling. Grime and a little rust in the corners, bare bright steel
     on worn edges, polish and scratches where it is handled, soot at the muzzle.
@@ -203,10 +390,15 @@ def _phosphate(mat, muzzle_y, carried=True):
     N = P.N
     # 1. Mottled finish: cloudy lighter and darker patches, as a dipped coating comes out.
     cloud = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 4.0), 0.42), 2.6, clamp=True)
-    P.color(N.math("MULTIPLY", cloud, 0.55), (0.024, 0.025, 0.023))
+    P.color(N.math("MULTIPLY", cloud, 0.75), (0.030, 0.031, 0.028))
     blot = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(32.0, 3.0), 0.56), 4.0, clamp=True)
     P.color(N.math("MULTIPLY", blot, 0.45), (0.0090, 0.0095, 0.0100))
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", cloud, 0.5), 0.10))
+    # Gloss breakup, in the gloss only: oily patches and the long wipe marks of a rag. Flat, even
+    # gloss is what makes a surface look computer-made in sunlight (the vanilla AKM's gloss map
+    # varies about a third more than the first finish pass did).
+    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", P.noise(11.0, 3.0), 0.5), 0.56))
+    P.rough(N.math("MULTIPLY", N.math("SUBTRACT", _wipe(P, 1, 55.0), 0.5), 0.32))
     # 2. Grime in the corners: dull brown-grey, rougher; a few rust specks deep in them.
     cav = _cavity(P, 0.010)
     grime = N.math("MULTIPLY", cav, N.math("ADD", 0.55, N.math("MULTIPLY", P.noise(60.0, 3.0), 0.6)), clamp=True)
@@ -216,19 +408,51 @@ def _phosphate(mat, muzzle_y, carried=True):
     P.color(N.math("MULTIPLY", rust, 0.85), (0.095, 0.040, 0.016))
     P.rough(N.math("MULTIPLY", rust, 0.25))
     P.dent(N.math("MULTIPLY", rust, -1.0), 0.00010)
+    # Dry dust caught in the same corners, in patches: lighter than the finish, which is what lets a
+    # dark gun show its shapes.
+    dusty = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(19.0, 4.0), 0.48), 4.0, clamp=True)
+    DUST = (0.060, 0.052, 0.042)
+    # Bare steel: told by its shine (metal -> the specular map), not by a white line in the colour.
+    BARE = (0.22, 0.22, 0.225)
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", cav, dusty), 0.22), DUST)
+    chip = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(48.0, 6.0), 0.40), 3.5, clamp=True)
+    # Where the rifle is exposed to knocks and rubbing: a broad noise picks the worn stretches; on
+    # the rifle itself the ends that always catch it are added by position (muzzle, butt plate,
+    # mouth of the magazine housing).
+    lt = lambda a, b: N.math("LESS_THAN", a, b)
+    gt = lambda a, b: N.math("GREATER_THAN", a, b)
+    exposed = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(5.0, 2.0), 0.42), 3.2, clamp=True)
+    if carried:
+        mouth = N.math("MULTIPLY", N.math("MULTIPLY", lt(P.pz, 0.020), gt(P.pz, 0.008)),
+                       N.math("MULTIPLY", gt(P.py, 0.0), lt(P.py, 0.075)))
+        exposed = N.math("MAXIMUM", exposed, N.math("MAXIMUM", N.math("MAXIMUM", gt(P.py, muzzle_y - 0.050), lt(P.py, -0.395)), mouth))
+    # 2b. The pressed detail: dirt and dust in the pressings, finish rubbed off their rims.
+    holes = []
+    for img, side, window, x_min in sheets:
+        dirt, rub, hole = _sheet(P, img, side, window, x_min)
+        P.color(N.math("MULTIPLY", dirt, 0.60), (0.022, 0.017, 0.012))
+        P.color(N.math("MULTIPLY", N.math("MULTIPLY", dirt, dusty), 0.30), DUST)
+        P.rough(N.math("MULTIPLY", dirt, 0.14))
+        P.color(N.math("MULTIPLY", N.math("MULTIPLY", rub, chip), 0.55), (0.050, 0.050, 0.049))
+        worn = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", rub, 0.55), 2.2, clamp=True), chip), exposed)
+        P.color(N.math("MULTIPLY", worn, 0.5), BARE)
+        P.rough(N.math("MULTIPLY", worn, -0.25))
+        _set_metal(P, N.math("MULTIPLY", worn, 0.7), 1.0)
+        holes.append(hole)
     # 3. Edge wear: finish rubbed thin round the edges, through to bright steel on the sharpest,
     #    broken up so it chips rather than running as a clean line.
-    chip = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(48.0, 6.0), 0.40), 3.5, clamp=True)
-    soft = N.math("MULTIPLY", _edge(P, 0.0016, 3.0), chip)
+    #    Not every edge: only where the rifle is exposed to knocks and rubbing. A broad noise picks
+    #    the worn stretches, and the ends and corners that always catch it are added by position
+    #    (muzzle, butt plate, mouth of the magazine housing).
+    soft = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0016, 3.0), chip),
+                  N.math("ADD", 0.30, N.math("MULTIPLY", exposed, 0.70)))
     P.color(N.math("MULTIPLY", soft, 0.55), (0.050, 0.050, 0.049))
-    bare = N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0009, 7.0), chip), 0.9, clamp=True)
-    P.color(bare, (0.42, 0.42, 0.43))
+    bare = N.math("MULTIPLY", N.math("MULTIPLY", N.math("MULTIPLY", _edge(P, 0.0009, 7.0), chip), 0.9, clamp=True), exposed)
+    P.color(bare, BARE)
     P.rough(N.math("MULTIPLY", bare, -0.30))
     _set_metal(P, bare, 1.0)
     if carried:
         # 4. Handling: grip straps, handguard, front of the magazine housing, cocking handle.
-        lt = lambda a, b: N.math("LESS_THAN", a, b)
-        gt = lambda a, b: N.math("GREATER_THAN", a, b)
         grip = N.math("MULTIPLY", P.band(P.py, -0.125, 0.040), lt(P.pz, 0.072))
         guard = N.math("MULTIPLY", P.band(P.py, 0.175, 0.085), lt(P.pz, BORE + 0.004))
         well = N.math("MULTIPLY", N.math("MULTIPLY", gt(P.py, 0.060), lt(P.py, 0.078)), lt(P.pz, 0.078))
@@ -237,7 +461,7 @@ def _phosphate(mat, muzzle_y, carried=True):
         P.color(N.math("MULTIPLY", zone, 0.30), (0.034, 0.034, 0.033))
         P.rough(N.math("MULTIPLY", zone, -0.14))
         scr = N.math("MULTIPLY", N.math("MAXIMUM", _streaks(P, 1, 260.0, 0.70), _streaks(P, 2, 300.0, 0.72)), zone)
-        P.color(N.math("MULTIPLY", scr, 0.65), (0.30, 0.30, 0.31))
+        P.color(N.math("MULTIPLY", scr, 0.40), (0.14, 0.14, 0.145))
         P.rough(N.math("MULTIPLY", scr, -0.12))
         P.dent(N.math("MULTIPLY", scr, -0.6), 0.00006)
     # 5. A few long scratches anywhere, very faint (kit and slings), and soot at the muzzle.
@@ -246,6 +470,10 @@ def _phosphate(mat, muzzle_y, carried=True):
     soot = N.math("MULTIPLY", P.band(P.py, muzzle_y, 0.030), 0.75)
     P.color(soot, (0.007, 0.0065, 0.006))
     P.rough(N.math("MULTIPLY", soot, 0.12))
+    for hole in holes:           # holes last of all: the dark inside of the shell, under no other layer
+        P.color(hole, (0.002, 0.002, 0.002))
+        P.rough(N.math("MULTIPLY", hole, 0.40))
+        _set_metal(P, hole, 0.0)
     return P
 
 
@@ -336,16 +564,18 @@ def _build_gun():
     m_bolt = d.material("BoltSteel", (0.30, 0.30, 0.31), rough=0.32, metal=1.0, rough_var=0.08,
                         wear_rgb=(0.50, 0.50, 0.51), scratches=0.20, machining=0.28)
     # Oiled wartime beech: a deeper red-brown than raw beech.
-    m_wood = m41.woodify(d.material("Beech", (0.12, 0.05, 0.022), rough=0.55, metal=0.0, bump=0.05, bump_scale=950,
-                                    rough_var=0.08, scratches=0.08, skin_img=d.pattern_image()),
-                         dark=(0.052, 0.020, 0.009), light=(0.150, 0.062, 0.025))
-    steel = _phosphate(m_steel, MUZZLE_Y)
+    m_wood = m41.woodify(d.material("Beech", (0.108, 0.052, 0.030), rough=0.50, metal=0.0, bump=0.05, bump_scale=950,
+                                    rough_var=0.14, scratches=0.08, skin_img=d.pattern_image()),
+                         dark=(0.047, 0.021, 0.012), light=(0.135, 0.064, 0.033))
+    steel = _phosphate(m_steel, MUZZLE_Y, sheets=[(detail_sheet(1), 1, GUN_WINDOW, 0.010),
+                                                  (detail_sheet(-1), -1, GUN_WINDOW, 0.010)])
     _stock_wood(m_wood)
-    lettering = (0.12, 0.12, 0.125)
+    # Struck letters are the finish's own colour; they read by their depth, and by the dust in them.
+    lettering = (0.045, 0.040, 0.034)
     img, asp = m41.stamp_image("StgModel", ["AF STG 44"])
-    steel.stamp(img, asp, -0.0550, 0.0050, -1, 0.0810, rgb=lettering)
+    steel.stamp(img, asp, -0.0550, 0.0050, -1, 0.0810, rgb=lettering, strength=0.5, depth=0.00035)
     img, asp = m41.stamp_image("StgSerial", ["No 5830"])
-    steel.stamp(img, asp, 0.0150, 0.0036, -1, 0.0570, rgb=lettering)
+    steel.stamp(img, asp, 0.0500, 0.0046, -1, 0.0796, rgb=lettering, strength=0.5, depth=0.00035)
     # Scratched by hand on the right of the receiver, behind the ejection port: bright bare steel.
     img, asp = scratch_image("Legacy", "legacy was here")
     steel.stamp(img, asp, -0.1300, 0.0062, 1, 0.0790, rgb=(0.46, 0.46, 0.48), strength=0.85, depth=0.00012)
@@ -374,9 +604,6 @@ def _build_gun():
     d.make("StockPin", bm, body, m_steel, "Push pin holding the stock collar to the receiver.")
     # Domed rivets along the receiver sides (the pressing is riveted to its inner rails).
     bm = bmesh.new()
-    for y in (-0.1350, -0.1000, -0.0650, 0.0880):
-        for side in (-1, 1):
-            _rivet(bm, y, 0.0840, side, 0.0178, 0.0016)
     for y in (-0.1250, 0.0950):
         for side in (-1, 1):
             _rivet(bm, y, TOP_Z - 0.0020, side, R_TOP, 0.0014)
@@ -470,35 +697,35 @@ def _build_gun():
     d.bm_box(bm, (0.0, 0.0370, 0.0145), (0.0376, 0.0756, 0.0030))        # flared lip round the mouth
     if fine:
         d.bm_box(bm, (0.0, 0.0735, 0.0450), (0.0120, 0.0030, 0.0600))    # stiffening rib down the front
-        for side in (-1, 1):                                             # pressed beads down the sides
-            d.bm_box(bm, (side * 0.0172, 0.0370, 0.0420), (0.0012, 0.0050, 0.0500))
-    d.make("MagWellDetail", bm, body, m_steel, "Magazine housing: flared mouth, front rib, side beads.", bevel=0.0006)
+    d.make("MagWellDetail", bm, body, m_steel, "Magazine housing: flared mouth, front rib.", bevel=0.0006)
 
     # --- Stock ----------------------------------------------------------------------------------------
-    # Pear-shaped section: slim at the wrist behind the collar, fuller towards the butt.
+    # The stock comes out of the collar at the collar's own size; its top carries the receiver's line
+    # straight back and its belly runs in one straight line down to the toe. Slim, with flat-ish sides
+    # and well rounded top and bottom.
     m41.loft("Stock", body, m_wood,
-             [(-0.1520, 0.0640, 0.1345, 0.0170), (-0.1650, 0.0660, 0.1345, 0.0172), (-0.1900, 0.0620, 0.1338, 0.0180), (-0.2300, 0.0500, 0.1326, 0.0192),
-              (-0.2800, 0.0370, 0.1310, 0.0203), (-0.3350, 0.0240, 0.1290, 0.0210), (-0.3800, 0.0140, 0.1272, 0.0213),
-              (-0.4000, 0.0100, 0.1262, 0.0212)], power=2.4,
+             [(-0.1520, 0.0700, 0.1350, 0.0160), (-0.1650, 0.0673, 0.1350, 0.0162), (-0.1900, 0.0620, 0.1344, 0.0166),
+              (-0.2300, 0.0536, 0.1332, 0.0172), (-0.2800, 0.0432, 0.1316, 0.0178), (-0.3350, 0.0316, 0.1296, 0.0183),
+              (-0.3800, 0.0222, 0.1278, 0.0185), (-0.4000, 0.0180, 0.1268, 0.0184)], power=2.15,
              note="Wooden stock. Sections are (y, bottom, top, half width).")
     m41.loft("ButtPlate", body, m_steel,
-             [(-0.4000, 0.0090, 0.1270, 0.0217), (-0.4040, 0.0095, 0.1265, 0.0215), (-0.4060, 0.0120, 0.1240, 0.0202)],
-             power=2.6, note="Steel butt plate.")
+             [(-0.4000, 0.0170, 0.1276, 0.0189), (-0.4040, 0.0175, 0.1271, 0.0187), (-0.4060, 0.0200, 0.1246, 0.0175)],
+             power=2.3, note="Steel butt plate.")
     # Trap door in the butt plate (cleaning kit), its hinge pin, and the two plate screws.
     bm = bmesh.new()
-    d.bm_box(bm, (0.0, -0.4064, 0.0640), (0.0200, 0.0008, 0.0480))
-    d.bm_lathe(bm, [(-0.0110, 0.0), (-0.0110, 0.0016), (0.0110, 0.0016), (0.0110, 0.0)], sides=10, axis="X", c=(-0.4064, 0.0890))
-    for z in (0.0230, 0.1130):
+    d.bm_box(bm, (0.0, -0.4064, 0.0700), (0.0180, 0.0008, 0.0440))
+    d.bm_lathe(bm, [(-0.0100, 0.0), (-0.0100, 0.0016), (0.0100, 0.0016), (0.0100, 0.0)], sides=10, axis="X", c=(-0.4064, 0.0930))
+    for z in (0.0320, 0.1130):
         d.bm_lathe(bm, [(-0.4060, 0.0), (-0.4060, 0.0030), (-0.4066, 0.0026), (-0.4069, 0.0)], sides=12, axis="Y", c=(0.0, z))
     d.make("ButtTrap", bm, body, m_steel, "Butt plate trap door with its hinge, and the plate screws.", bevel=0.0003)
     bm = bmesh.new()
-    m41.bm_torus(bm, (-0.0255, -0.3300, 0.0700), 0.0075, 0.0016, seg=16, sides=8)
+    m41.bm_torus(bm, (-0.0228, -0.3300, 0.0800), 0.0075, 0.0016, seg=16, sides=8)
     d.make("SlingLoopRear", bm, body, m_steel, "Rear sling loop on the left of the stock.")
     bm = bmesh.new()
-    d.bm_box(bm, (-0.0214, -0.3300, 0.0700), (0.0014, 0.0300, 0.0110))
+    d.bm_box(bm, (-0.0187, -0.3300, 0.0800), (0.0014, 0.0300, 0.0110))
     for y in (-0.3420, -0.3180):
-        d.bm_lathe(bm, [(-0.0221, 0.0), (-0.0221, 0.0018), (-0.0226, 0.0012), (-0.0228, 0.0)], sides=10, axis="X", c=(y, 0.0700))
-    d.bm_box(bm, (-0.0226, -0.3300, 0.0700), (0.0020, 0.0060, 0.0040))
+        d.bm_lathe(bm, [(-0.0194, 0.0), (-0.0194, 0.0018), (-0.0199, 0.0012), (-0.0201, 0.0)], sides=10, axis="X", c=(y, 0.0800))
+    d.bm_box(bm, (-0.0199, -0.3300, 0.0800), (0.0020, 0.0060, 0.0040))
     d.make("SlingPlateRear", bm, body, m_steel, "Base plate of the rear sling loop, screwed to the stock.", bevel=0.0004)
 
     # --- Barrel, gas system, handguard ------------------------------------------------------------
@@ -513,47 +740,48 @@ def _build_gun():
         d.bm_lathe(bm, [(MUZZLE_Y - 0.0160 + 0.0032 * k, 0.0101), (MUZZLE_Y - 0.0146 + 0.0032 * k, 0.0101)], sides=24,
                    c=(0.0, BORE), cap=False)
     d.make("MuzzleNut", bm, body, m_steel, "Muzzle nut. Selection 'hide_barrel': hidden while a suppressor is fitted.")
-    # As on the real rifle the gas cylinder lies right on top of the barrel all the way to the gas
-    # block behind the front sight, so the two read as one figure-of-eight.
+    # As on the real rifle the gas cylinder lies bare on top of the barrel, from the receiver to the
+    # gas block two thirds of the way along; the barrel runs on alone to the front sight.
     gz = BORE + 0.0180
     bm = bmesh.new()
-    d.bm_lathe(bm, [(0.1050, 0.0), (0.1050, 0.0095), (0.3780, 0.0095), (0.3780, 0.0)], sides=24, c=(0.0, gz))
+    d.bm_lathe(bm, [(0.1050, 0.0), (0.1050, 0.0095), (0.3380, 0.0095), (0.3380, 0.0)], sides=24, c=(0.0, gz))
     d.make("GasTube", bm, body, m_steel, "Gas cylinder lying on top of the barrel.")
     # Gas block: two rings, round the barrel and round the cylinder, joined by a web (a figure of
-    # eight seen from the front), then the gas cylinder nut with its four spanner notches.
+    # eight seen from the front), then the gas plug with its four spanner notches.
     bm = bmesh.new()
     for zc in (BORE, gz):
-        d.bm_lathe(bm, [(0.3760, 0.0), (0.3760, 0.0098), (0.3775, 0.0112), (0.4045, 0.0112), (0.4060, 0.0098), (0.4060, 0.0)],
+        d.bm_lathe(bm, [(0.3360, 0.0), (0.3360, 0.0098), (0.3375, 0.0112), (0.3645, 0.0112), (0.3660, 0.0098), (0.3660, 0.0)],
                    sides=28, c=(0.0, zc))
-    d.bm_box(bm, (0.0, 0.3910, (BORE + gz) / 2), (0.0180, 0.0290, gz - BORE))
+    d.bm_box(bm, (0.0, 0.3510, (BORE + gz) / 2), (0.0180, 0.0290, gz - BORE))
     d.make("GasBlock", bm, body, m_steel, "Gas block clamping barrel and cylinder.")
     bm = bmesh.new()
-    d.bm_lathe(bm, [(0.4060, 0.0), (0.4060, 0.0090), (0.4160, 0.0090), (0.4175, 0.0078), (0.4175, 0.0)], sides=24, c=(0.0, gz))
-    nut = d.make("GasNut", bm, body, m_steel, "Gas cylinder nut.")
+    d.bm_lathe(bm, [(0.3660, 0.0), (0.3660, 0.0090), (0.3760, 0.0090), (0.3775, 0.0078), (0.3775, 0.0)], sides=24, c=(0.0, gz))
+    nut = d.make("GasNut", bm, body, m_steel, "Gas plug.")
     bm = bmesh.new()
     for a in (45.0, 135.0, 225.0, 315.0):
         r = math.radians(a)
-        d.bm_box(bm, (0.0095 * math.cos(r), 0.4140, gz + 0.0095 * math.sin(r)), (0.0040, 0.0080, 0.0040), rot=(0, a, 0))
+        d.bm_box(bm, (0.0095 * math.cos(r), 0.3740, gz + 0.0095 * math.sin(r)), (0.0040, 0.0080, 0.0040), rot=(0, a, 0))
     notch = d.make("GasNut_NotchCutter", bm, cutters, None, "Boolean cutter: spanner notches.")
     d.cut(nut, notch, "Notches")
-    # Ventilated steel sleeve over the rear of the gas cylinder. The real one covers only the cylinder;
-    # this one comes down round the barrel to z 0.076 because the AKM animation puts the left hand there.
-    hg = [(-0.0120, 0.0760), (0.0120, 0.0760), (0.0150, 0.0880)] + _arc((0.0, gz), 0.0150, 0.0, 180.0, 14) + [(-0.0150, 0.0880)]
+    # The stacking rod: the gas plug runs out forward into a thin rod with a ball end, above the barrel.
     bm = bmesh.new()
-    d.bm_xsec(bm, hg, 0.1080, 0.2450)
-    hand = d.make("Handguard", bm, body, m_steel, "Ventilated steel handguard sleeve over the gas cylinder.", bevel=0.0010)
+    d.bm_lathe(bm, [(0.3775, 0.0), (0.3775, 0.0036), (0.3800, 0.0022), (0.4080, 0.0022), (0.4094, 0.0033), (0.4120, 0.0039),
+                    (0.4146, 0.0033), (0.4160, 0.0)], sides=12, c=(0.0, gz))
+    d.make("StackingRod", bm, body, m_steel, "Stacking rod on the gas plug.")
+    # Handguard: a stamped steel shell round the barrel only, from the receiver to short of the gas
+    # block, with a row of cooling holes (drawn in the detail sheet). Its underside is at z 0.076,
+    # where the AKM animation puts the left hand.
+    def shell(grow):
+        return (_arc((0.0, 0.0910), 0.0150 + grow, 180.0, 360.0, 14)
+                + [(0.0150 + grow, 0.0990), (0.0100 + grow, 0.1075 + grow), (-0.0100 - grow, 0.1075 + grow), (-0.0150 - grow, 0.0990)])
     bm = bmesh.new()
-    for y in (0.1320, 0.1620, 0.1920, 0.2220):          # vent slots on both sides, round-ended (one stadium each)
-        r, half, zc = 0.00325, 0.00675, gz - 0.0030
-        outline = _arc((y + half, zc), r, -90.0, 90.0, 8) + _arc((y - half, zc), r, 90.0, 270.0, 8)
-        d.bm_profile(bm, outline, 0.0400)
-    vents = d.make("Handguard_VentCutter", bm, cutters, None, "Boolean cutter: vent slots.")
-    d.cut(hand, vents, "Vents")
+    d.bm_xsec(bm, shell(0.0), 0.1040, 0.2450)
+    d.make("Handguard", bm, body, m_steel, "Stamped steel handguard shell round the barrel.", bevel=0.0010)
     bm = bmesh.new()
-    d.bm_lathe(bm, [(0.2450, 0.0), (0.2450, 0.0105), (0.2530, 0.0105), (0.2560, 0.0095), (0.2560, 0.0)], sides=24, c=(0.0, gz))
-    d.make("HandguardCap", bm, body, m_steel, "Front cap of the handguard sleeve round the gas cylinder.")
+    d.bm_xsec(bm, shell(0.0007), 0.2425, 0.2465)
+    d.make("HandguardCap", bm, body, m_steel, "Front band of the handguard.", bevel=0.0005)
     bm = bmesh.new()
-    m41.bm_torus(bm, (-0.0175, 0.3910, BORE - 0.0040), 0.0070, 0.0015, seg=16, sides=8)
+    m41.bm_torus(bm, (-0.0175, 0.3510, BORE - 0.0040), 0.0070, 0.0015, seg=16, sides=8)
     d.make("SlingLoopFront", bm, body, m_steel, "Front sling loop on the left of the gas block.")
 
     # --- Sights --------------------------------------------------------------------------------------
@@ -640,7 +868,8 @@ def build_magazine():
         m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
                              wear_rgb=(0.74, 0.55, 0.26))
         m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
-        _phosphate(m_steel, 9.0, carried=False)
+        sheet = magazine_sheet()
+        _phosphate(m_steel, 9.0, carried=False, sheets=[(sheet, 1, MAG_WINDOW, 0.008), (sheet, -1, MAG_WINDOW, 0.008)])
         oy, oz = MAG_AT[1], MAG_AT[2]
         half, top, bottom, n = 0.0285, 0.0640, -0.1500, 14
         zs = [top + (bottom - top) * k / n for k in range(n + 1)]
@@ -649,12 +878,6 @@ def build_magazine():
         bm = bmesh.new()
         d.bm_profile(bm, front + rear[::-1], 0.0250)
         d.make("Body", bm, body, m_steel, "Curved magazine body.", bevel=0.0020, segments=2)
-        bm = bmesh.new()
-        for side in (-1, 1):
-            for k in (3, 5, 7, 9, 11):
-                z = zs[k]
-                d.bm_box(bm, (side * 0.0125, _mag_centre(z) - oy, z - oz), (0.0012, 0.0440, 0.0036))
-        d.make("Ribs", bm, body, m_steel, "Ribs pressed across the sides.", bevel=0.0006)
         zb = bottom - oz
         d.box("FloorPlate", body, m_steel, (0.0, _mag_centre(bottom) - oy, zb - 0.0018), (0.0285, 2 * half + 0.0040, 0.0040),
               bevel=0.0010, note="Floor plate.")
