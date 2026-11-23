@@ -182,6 +182,10 @@ void main()
 class CustomMission: MissionGameplay
 {
 	protected Camera m_AFCam;
+	EntityAI m_AFCamEnt;
+	string m_AFCamFrom, m_AFCamTo;
+	float m_AFCamFov;
+	int m_AFTrackUntil;
 	protected int m_AFIndex = -1;
 
 	override void OnInit()
@@ -208,8 +212,37 @@ class CustomMission: MissionGameplay
 			Print("[AFTest] FAILED sight view " + name + ": memory point missing");
 			return;
 		}
-		vector eye = ent.ModelToWorld(ent.GetMemoryPointPos(from));
-		vector ahead = ent.ModelToWorld(ent.GetMemoryPointPos(towards));
+		m_AFCamEnt = ent;
+		m_AFCamFrom = from;
+		m_AFCamTo = towards;
+		m_AFCamFov = fov;
+		AFPlaceCam(name);
+		m_AFTrackUntil = GetGame().GetTime() + 2200;       // follow the eye point until after the picture
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFTrackCam, 0, true);
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFShotNamed, 1500, false, name);
+	}
+
+	//! Every frame while a sight picture is being taken: keep the camera on the swaying weapon's eye point.
+	void AFTrackCam()
+	{
+		if (!m_AFCamEnt || !m_AFCam || GetGame().GetTime() > m_AFTrackUntil)
+		{
+			GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).Remove(this.AFTrackCam);
+			return;
+		}
+		vector eye = m_AFCamEnt.ModelToWorld(m_AFCamEnt.GetMemoryPointPos(m_AFCamFrom));
+		vector ahead = m_AFCamEnt.ModelToWorld(m_AFCamEnt.GetMemoryPointPos(m_AFCamTo));
+		m_AFCam.SetPosition(eye);
+		m_AFCam.LookAt(eye + vector.Direction(eye, ahead).Normalized() * 20.0);
+	}
+
+	//! Puts the still camera on the memory point as the weapon is now. The held weapon sways, so AFTrackCam
+	//! repeats this every frame until the picture is taken: placed once, 1.5 s before the picture, the camera
+	//! was off the eye point by the sway and the front post hid behind the rear notch (2026-11-23).
+	void AFPlaceCam(string name)
+	{
+		vector eye = m_AFCamEnt.ModelToWorld(m_AFCamEnt.GetMemoryPointPos(m_AFCamFrom));
+		vector ahead = m_AFCamEnt.ModelToWorld(m_AFCamEnt.GetMemoryPointPos(m_AFCamTo));
 		vector dir = vector.Direction(eye, ahead).Normalized();
 		if (!m_AFCam)
 		{
@@ -218,9 +251,8 @@ class CustomMission: MissionGameplay
 		}
 		m_AFCam.SetPosition(eye);
 		m_AFCam.LookAt(eye + dir * 20.0);
-		m_AFCam.SetFOV(fov);
+		m_AFCam.SetFOV(m_AFCamFov);
 		Print("[AFTest] sight view " + name + " eye=" + eye.ToString() + " dir=" + dir.ToString());
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFShotNamed, 1500, false, name);
 	}
 
 	void AFShotNamed(string name)
