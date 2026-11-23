@@ -106,7 +106,7 @@ Run with the owner's go-ahead.
 - **Steel:** right in shade, but in full sun it read as flat light grey next to the vanilla AKM. Measured against the AKM's own maps (medians, Blender readout of the PNGs): our steel colour was about 1.8x the AKM's and less glossy, and the body material had a brighter ambient.
 - **Change:** all steel, wear, grime and soot colours in `afstg44_detailed.py` darkened; steel roughness 0.40, metallic 0.35. The body, magazine and ZF4 rvmats now use the AKM's lighting (ambient 0.7, specular 0.79/0.75/0.74, specularPower 70, fresnel 0.8/0.7). Wood rvmats unchanged.
 - **Measured after the bake:** body colour 0.111, magazine 0.119, AKM 0.090; gloss body 0.56, magazine 0.53, AKM 0.61; spec 0.122 vs 0.118. LOD 1 is 15,657 triangles. Build, signature and the O2 checks of all three models pass.
-- Not yet seen in game: needs one more run in sunlight.
+- **In game (19:04 run, owner's and Factory's go-ahead, nothing else running):** in sunlight the steel now reads as dark gunmetal, on the ground and in the hands, in line with the vanilla AKM; the wood is unchanged. The close-up and sight pictures from that run are unusable: they were taken before the world had loaded (untextured world, main menu over the scene, the vanilla AKM equally white), so they say nothing about our textures. The scope and iron-sight views still need a clean look.
 
 ## What still has to be checked in game
 
