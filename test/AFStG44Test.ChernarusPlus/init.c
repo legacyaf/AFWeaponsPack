@@ -12,6 +12,8 @@ ref TStringArray g_ShotName = new TStringArray;
 ref TVectorArray g_ShotCam = new TVectorArray;
 ref TVectorArray g_ShotTarget = new TVectorArray;
 ref TFloatArray g_ShotFov = new TFloatArray;
+ref TFloatArray g_ShotHour = new TFloatArray;      // -1: leave the time of day as it is
+ref TFloatArray g_ShotOvercast = new TFloatArray;  // -1: leave the sky as it is
 PlayerBase g_AFPlayer;
 Weapon_Base g_AFHeld;
 Magazine g_AFSpare;
@@ -22,6 +24,25 @@ void AddShot(string name, vector cam, vector target, float fov)
 	g_ShotCam.Insert(cam);
 	g_ShotTarget.Insert(target);
 	g_ShotFov.Insert(fov);
+	g_ShotHour.Insert(-1);
+	g_ShotOvercast.Insert(-1);
+}
+
+//! The same view as an earlier shot, under another light: `hour` (decimal) and `overcast` (0..1).
+void AddLightShot(string name, string like, float hour, float overcast)
+{
+	int i = g_ShotName.Find(like);
+	if (i < 0)
+	{
+		Print("[AFTest] FAILED light shot " + name + ": no shot " + like);
+		return;
+	}
+	g_ShotName.Insert(name);
+	g_ShotCam.Insert(g_ShotCam.Get(i));
+	g_ShotTarget.Insert(g_ShotTarget.Get(i));
+	g_ShotFov.Insert(g_ShotFov.Get(i));
+	g_ShotHour.Insert(hour);
+	g_ShotOvercast.Insert(overcast);
 }
 
 // Each rifle stands on the ground along the X axis, 1.6 m from the next, all on one line.
@@ -180,6 +201,18 @@ void main()
 	// The same 25 m, zoomed in: the far model large enough to judge its shading (if the game picks the
 	// level by distance; if it allows for the zoom, this shows a nearer level instead).
 	AddShot("lod_25m_zoom", Vector(four[0], four[1] + 12.0, four[2] - 22.0), four, 0.10);
+	// Lighting series for the art review: the rifle close up, beside the vanilla AKM, and the gold
+	// finish, under a full overcast at noon, in low evening sun and in early morning light.
+	float hours[3] = {12.0, 18.75, 6.5};
+	float skies[3] = {0.95, 0.0, 0.25};
+	string tags[3] = {"overcast", "evening", "morning"};
+	for (int L = 0; L < 3; L++)
+	{
+		AddLightShot("light_" + tags[L] + "_stg_close", "stg_close", hours[L], skies[L]);
+		AddLightShot("light_" + tags[L] + "_stg_a", "stg_a", hours[L], skies[L]);
+		AddLightShot("light_" + tags[L] + "_akm_a", "ref_akm_a", hours[L], skies[L]);
+		AddLightShot("light_" + tags[L] + "_gold_close", "stg_gold_close", hours[L], skies[L]);
+	}
 	Print("[AFTest] " + g_ShotName.Count().ToString() + " shots planned");
 }
 class CustomMission: MissionGameplay
@@ -387,7 +420,22 @@ class CustomMission: MissionGameplay
 		m_AFCam.SetPosition(g_ShotCam.Get(m_AFIndex));
 		m_AFCam.LookAt(g_ShotTarget.Get(m_AFIndex));
 		m_AFCam.SetFOV(g_ShotFov.Get(m_AFIndex));
-		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFShoot, 2500, false);
+		int wait = 2500;
+		float hour = g_ShotHour.Get(m_AFIndex);
+		float sky = g_ShotOvercast.Get(m_AFIndex);
+		if (hour >= 0 || sky >= 0)
+		{
+			if (hour >= 0)
+			{
+				int hh = Math.Floor(hour);
+				GetGame().GetWorld().SetDate(2026, 6, 15, hh, Math.Round((hour - hh) * 60));
+			}
+			if (sky >= 0)
+				GetGame().GetWeather().GetOvercast().Set(sky, 0, 0);
+			Print("[AFTest] light " + g_ShotName.Get(m_AFIndex) + " hour=" + hour.ToString() + " overcast=" + sky.ToString());
+			wait = 6000;           // let the sky and the lighting settle
+		}
+		GetGame().GetCallQueue(CALL_CATEGORY_SYSTEM).CallLater(this.AFShoot, wait, false);
 	}
 
 	void AFShoot()

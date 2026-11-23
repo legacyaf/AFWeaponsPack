@@ -381,7 +381,47 @@ def _wipe(P, along, scale):
     return n.outputs[0]
 
 
-def _phosphate(mat, muzzle_y, carried=True, sheets=()):
+# Where the rifle is handled, carried and knocked (centre, half sizes, strength), in the working frame.
+# A professional finish places its wear by use, not by noise: the thumb on the selector and the
+# magazine catch, the hand on the cocking handle, magazines going into the housing, the sling at its
+# loops, the support hand under the handguard, clothing against the left side when slung on the back.
+RIFLE_ZONES = (
+    ((-0.0190, -0.1060, 0.0690), (0.0070, 0.0170, 0.0110), 1.00),   # selector lever: the thumb
+    ((0.0220, 0.0750, 0.1210), (0.0090, 0.0180, 0.0110), 1.00),     # cocking handle and the slot behind it
+    ((-0.0210, 0.0050, 0.0560), (0.0060, 0.0110, 0.0110), 0.90),    # magazine catch: the thumb
+    ((0.0000, 0.0370, 0.0120), (0.0240, 0.0450, 0.0100), 0.80),     # mouth of the magazine housing
+    ((0.0000, -0.0580, 0.0290), (0.0110, 0.0320, 0.0070), 0.90),    # bottom of the trigger guard
+    ((-0.0175, 0.3510, 0.0936), (0.0120, 0.0150, 0.0130), 1.00),    # front sling loop: the sling
+    ((-0.0190, -0.3300, 0.0800), (0.0070, 0.0280, 0.0150), 1.00),   # rear sling plate
+    ((0.0000, 0.1750, 0.0800), (0.0200, 0.0700, 0.0120), 0.70),     # under the handguard: the support hand
+    ((-0.0200, -0.0500, 0.1100), (0.0070, 0.0900, 0.0300), 0.35),   # left of the receiver: slung, against clothing
+    ((0.0000, 0.4350, 0.1500), (0.0150, 0.0130, 0.0170), 0.80),     # front sight hood: snags on everything
+)
+MAG_ZONES = (
+    ((0.0000, 0.0300, 0.0330), (0.0170, 0.0450, 0.0090), 1.00),     # feed lips: rounds and the magazine well
+    ((0.0000, 0.0650, -0.1810), (0.0170, 0.0360, 0.0070), 1.00),    # floor plate: dropped, stood on its end
+    ((0.0000, 0.0400, -0.0800), (0.0170, 0.0600, 0.0450), 0.30),    # the body: hands and pouches
+)
+SCOPE_ZONES = (
+    ((0.0000, -0.0900, 0.0000), (0.0170, 0.0080, 0.0170), 0.80),    # eyepiece rim
+    ((0.0000, 0.0850, 0.0000), (0.0170, 0.0060, 0.0170), 0.80),     # objective rim
+    ((0.0000, 0.0010, 0.0260), (0.0100, 0.0100, 0.0050), 0.80),     # elevation drum: the fingers
+)
+
+
+def _spot(P, centre, half):
+    """Soft ellipsoid: 1 at `centre`, fading to 0 at `half` (half sizes along x, y, z)."""
+    N = P.N
+    d = None
+    for sock, c, h in zip((P.px, P.py, P.pz), centre, half):
+        t = N.math("DIVIDE", N.math("SUBTRACT", sock, c), h)
+        t = N.math("MULTIPLY", t, t)
+        d = t if d is None else N.math("ADD", d, t)
+    f = N.math("SUBTRACT", 1.0, d, clamp=True)
+    return N.math("MULTIPLY", f, f)
+
+
+def _phosphate(mat, muzzle_y, carried=True, sheets=(), zones=()):
     """Wartime phosphate (parkerized) finish on stamped and machined steel: matte grey-black with a
     faint green cast and cloudy mottling. Grime and a little rust in the corners, bare bright steel
     on worn edges, polish and scratches where it is handled, soot at the muzzle.
@@ -428,6 +468,13 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
         mouth = N.math("MULTIPLY", N.math("MULTIPLY", lt(P.pz, 0.020), gt(P.pz, 0.008)),
                        N.math("MULTIPLY", gt(P.py, 0.0), lt(P.py, 0.075)))
         exposed = N.math("MAXIMUM", exposed, N.math("MAXIMUM", N.math("MAXIMUM", gt(P.py, muzzle_y - 0.050), lt(P.py, -0.395)), mouth))
+    # Use: the zones where hands, kit and the sling work the finish (RIFLE_ZONES etc.).
+    handled = None
+    for centre, half, k in zones:
+        z = N.math("MULTIPLY", _spot(P, centre, tuple(h * 0.6 for h in half)), k)
+        handled = z if handled is None else N.math("MAXIMUM", handled, z)
+    if handled is not None:
+        exposed = N.math("MAXIMUM", exposed, handled)
     # 2b. The pressed detail: dirt and dust in the pressings, finish rubbed off their rims.
     holes = []
     for img, side, window, x_min in sheets:
@@ -442,6 +489,21 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
         P.rough(N.math("MULTIPLY", worn, -0.25))
         _set_metal(P, worn, 1.0)
         holes.append(hole)
+    if carried:
+        # 2c. Direction: the top of the rifle is handled and wiped (a little lighter and glossier),
+        #     oil runs down and gathers along the bottom of the receiver and its seams (darker, glossy).
+        sep = N.new("ShaderNodeSeparateXYZ")
+        P.nt.links.new(P.geo.outputs["Normal"], sep.inputs[0])
+        up = N.math("MULTIPLY", N.math("SUBTRACT", sep.outputs["Z"], 0.45), 2.5, clamp=True)
+        broad = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(9.0, 2.0), 0.25), 2.0, clamp=True)
+        top = N.math("MULTIPLY", up, broad)
+        P.color(N.math("MULTIPLY", top, 0.22), (0.034, 0.034, 0.033))
+        P.rough(N.math("MULTIPLY", top, -0.10))
+        low = N.math("MULTIPLY", P.band(P.pz, 0.0930, 0.0120), lt(P.py, 0.105))
+        oil = N.math("MULTIPLY", N.math("MAXIMUM", low, N.math("MULTIPLY", cav, 0.6)),
+                     N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 3.0), 0.30), 2.2, clamp=True))
+        P.color(N.math("MULTIPLY", oil, 0.40), (0.0060, 0.0062, 0.0060))
+        P.rough(N.math("MULTIPLY", oil, -0.16))
     # 3. Edge wear: finish rubbed thin round the edges, through to bright steel on the sharpest,
     #    broken up so it chips rather than running as a clean line.
     #    Not every edge: only where the rifle is exposed to knocks and rubbing. A broad noise picks
@@ -470,6 +532,21 @@ def _phosphate(mat, muzzle_y, carried=True, sheets=()):
         P.color(N.math("MULTIPLY", scr, 0.40), (0.14, 0.14, 0.145))
         P.rough(N.math("MULTIPLY", scr, -0.12))
         P.dent(N.math("MULTIPLY", scr, -0.6), 0.00006)
+    if handled is not None:
+        # 4b. Use wear on the flats of the handled zones: the finish polished thin (a dark, oily
+        #     sheen with steel showing through, i.e. part metal), broken up so it is never a clean
+        #     disc, and scratches that run the way the hand or the sling moves.
+        patchy = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(26.0, 5.0), 0.30), 2.5, clamp=True)
+        convex = _edge(P, 0.0040, 2.5)
+        polish = N.math("MULTIPLY", N.math("MULTIPLY", handled, patchy), convex)
+        P.rough(N.math("MULTIPLY", polish, -0.22))
+        # Scratches only towards the middle of a zone (handled squared), few and long: a scatter.
+        used = N.math("MULTIPLY", N.math("MAXIMUM", _streaks(P, 1, 120.0, 0.76), _streaks(P, 2, 130.0, 0.78)),
+                      N.math("MULTIPLY", handled, handled))
+        P.color(N.math("MULTIPLY", used, 0.30), BARE)
+        P.rough(N.math("MULTIPLY", used, -0.20))
+        _set_metal(P, N.math("MULTIPLY", used, 0.8), 1.0)
+        P.dent(N.math("MULTIPLY", used, -0.8), 0.00005)
     # 5. A few long scratches anywhere, very faint (kit and slings), and soot at the muzzle.
     stray = N.math("MULTIPLY", _streaks(P, 1, 90.0, 0.78), 0.35)
     P.color(stray, (0.10, 0.10, 0.104))
@@ -493,6 +570,23 @@ def _stock_wood(mat):
         grain = N.math("SUBTRACT", _wipe(P, 1, scale), 0.5)
         P.dent(N.math("MULTIPLY", grain, plain), depth)
         P.rough(N.math("MULTIPLY", N.math("MULTIPLY", grain, gloss), plain))
+    # Beech's own figure: broad growth bands along the stock, and the ray flecks that mark beech out
+    # from every other gunstock wood: small lens-shaped flecks, a little darker and denser, with their
+    # own sheen (they catch the light differently from the grain round them).
+    bands = N.math("MULTIPLY", N.math("SUBTRACT", _wipe(P, 1, 38.0), 0.5), 2.0)
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", N.math("MAXIMUM", bands, 0.0), 0.55), plain), (0.050, 0.024, 0.014))
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", N.math("MAXIMUM", N.math("MULTIPLY", bands, -1.0), 0.0), 0.35), plain),
+            (0.140, 0.074, 0.044))
+    fleck = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.10, P.cells(520.0, (1.0, 0.22, 1.0))), 16.0, clamp=True),
+                   N.math("MULTIPLY", N.math("SUBTRACT", P.noise(14.0, 2.0), 0.35), 3.0, clamp=True))
+    P.color(N.math("MULTIPLY", N.math("MULTIPLY", fleck, 0.65), plain), (0.062, 0.029, 0.016))
+    P.rough(N.math("MULTIPLY", N.math("MULTIPLY", fleck, -0.18), plain))
+    P.dent(N.math("MULTIPLY", fleck, 0.6), 0.00004)
+    # Use: fine scratches across the grain on the sides (kit, the ground), lighter where they cut the oil.
+    across = N.math("MULTIPLY", N.math("MAXIMUM", _streaks(P, 2, 160.0, 0.80), _streaks(P, 0, 180.0, 0.82)), plain)
+    P.color(N.math("MULTIPLY", across, 0.12), (0.20, 0.11, 0.060))
+    P.rough(N.math("MULTIPLY", across, 0.06))
+    P.dent(N.math("MULTIPLY", across, -0.7), 0.00005)
     held = N.math("MULTIPLY", N.math("MAXIMUM", P.band(P.py, -0.19, 0.07), P.band(P.py, -0.125, 0.040)),
                   N.math("ADD", 0.45, N.math("MULTIPLY", P.noise(28.0, 4.0), 0.9)), clamp=True)
     P.color(N.math("MULTIPLY", N.math("MULTIPLY", held, 0.45), plain), (0.030, 0.011, 0.005))
@@ -577,7 +671,7 @@ def _build_gun():
     m_wood = m41.woodify(d.material("Beech", (0.091, 0.048, 0.031), rough=0.50, metal=0.0, bump=0.05, bump_scale=950,
                                     rough_var=0.14, scratches=0.08, skin_img=d.pattern_image()),
                          dark=(0.040, 0.020, 0.013), light=(0.114, 0.059, 0.036))
-    steel = _phosphate(m_steel, MUZZLE_Y, sheets=[(detail_sheet(1), 1, GUN_WINDOW, 0.010),
+    steel = _phosphate(m_steel, MUZZLE_Y, zones=RIFLE_ZONES, sheets=[(detail_sheet(1), 1, GUN_WINDOW, 0.010),
                                                   (detail_sheet(-1), -1, GUN_WINDOW, 0.010)])
     _stock_wood(m_wood)
     # Struck letters are the finish's own colour; they read by their depth, and by the dust in them.
@@ -881,7 +975,8 @@ def build_magazine():
                              wear_rgb=(0.74, 0.55, 0.26))
         m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)
         sheet = magazine_sheet()
-        _phosphate(m_steel, 9.0, carried=False, sheets=[(sheet, 1, MAG_WINDOW, 0.008), (sheet, -1, MAG_WINDOW, 0.008)])
+        _phosphate(m_steel, 9.0, carried=False, zones=MAG_ZONES,
+                   sheets=[(sheet, 1, MAG_WINDOW, 0.008), (sheet, -1, MAG_WINDOW, 0.008)])
         oy, oz = MAG_AT[1], MAG_AT[2]
         half, top, bottom, n = 0.0285, 0.0640, -0.1500, 14
         zs = [top + (bottom - top) * k / n for k in range(n + 1)]
@@ -925,7 +1020,7 @@ def build_scope():
         memory = d.collection("Memory")
         m_steel = d.material("Steel", (0.010, 0.0105, 0.011), rough=0.40, metal=0.45, bump=0.03, bump_scale=1200,
                              rough_var=0.06, machining=0.03)
-        _phosphate(m_steel, 9.0, carried=False)
+        _phosphate(m_steel, 9.0, carried=False, zones=SCOPE_ZONES)
         # Tube: hollow, so that the eye looks through it. Outside and inside walls in one closed lathe.
         m_black = d.material("Black", (0.004, 0.004, 0.004), rough=0.92, metal=0.0)
         bm = bmesh.new()

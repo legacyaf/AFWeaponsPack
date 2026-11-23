@@ -81,6 +81,20 @@ AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
 LOD1_EDIT = None     # optional f(lod1, M): a small shape change to LOD 1 kept from the .p3d (no re-bake)
 SOFT_SETS = ()       # texture sets (index) shaded smooth all over in the distance LODs, e.g. a wooden stock
 SOFT_MAX_ANGLE = 80.0  # ... except edges sharper than this (the stock's end faces)
+# High-to-low bake. HIGH_DETAIL: a detail level (as af7_vanguard_detailed.DETAIL_LEVELS) finer than
+# FULL; with it and REBUILD, the weapon is rebuilt at that level once more and the normal and ambient
+# maps are baked from that rebuild onto LOD 1 (selected to active), as a texture artist bakes a high
+# poly onto the game mesh. HIGH_EDGE_STEPS replaces the chamfer step table for that rebuild.
+HIGH_DETAIL = None
+HIGH_EDGE_STEPS = None
+HIGH_CAGE, HIGH_RAY = 0.0020, 0.0040    # metres: cage extrusion and maximum ray distance
+HIGH_OB = None
+# Specular that follows the surface: SPEC_VAR scales it with the gloss (oily, polished patches shine
+# more, dry dusty ones less) and SPEC_CAVITY dims it in corners by the ambient shadow. 0 = one level
+# per material, as before. SPEC_SET_BASE: base specular per texture set (e.g. oiled wood).
+SPEC_VAR = 0.0
+SPEC_CAVITY = 0.0
+SPEC_SET_BASE = {}
 EDGE_PAD = False     # fill unused texels from the islands round them (af_pad.py), against dark seams in the mips
 
 # Texture sets to bake: (file suffix, value of the AF7_SKIN node). The gold skin shares the
@@ -424,6 +438,39 @@ def lod_from_variants(lod1, variants, col, name, ratio, min_size, M):
     bpy.data.objects.remove(base, do_unlink=True)
     bpy.data.meshes.remove(data)
     ob["af_source"] = "rebuild '%s'" % level
+    return ob
+
+
+def build_high():
+    """The weapon rebuilt at HIGH_DETAIL, as one mesh in the working frame: the bake source for the
+    normal and ambient maps. None if HIGH_DETAIL or REBUILD is not set. The weapon is left rebuilt at
+    full detail."""
+    if HIGH_DETAIL is None or REBUILD is None:
+        return None
+    import af7_vanguard_detailed as detail
+    saved_steps = detail.EDGE_STEPS
+    try:
+        detail.set_detail(HIGH_DETAIL)
+        if HIGH_EDGE_STEPS:
+            detail.EDGE_STEPS = HIGH_EDGE_STEPS
+        REBUILD()
+        col = dayz_collection()
+        ob = build_lod1(col, Matrix.Identity(4))
+        # Out of the weapon's own collections and names, so the rebuild below leaves it alone.
+        ob.name = ob.data.name = "AFHigh_" + PREFIX.rstrip("_")
+        col.objects.unlink(ob)
+        bpy.context.scene.collection.objects.link(ob)
+        ob.data.use_fake_user = True
+        plain = bpy.data.materials.get("AFHighPlain") or bpy.data.materials.new("AFHighPlain")
+        for i in range(len(ob.data.materials)):
+            ob.data.materials[i] = plain        # shape only: no bump, no procedural layers
+        ob.hide_render = True
+        ob.hide_viewport = True
+        print("AF7 high-detail bake source '%s': %d triangles" % (HIGH_DETAIL[0], len(ob.data.polygons)))
+    finally:
+        detail.EDGE_STEPS = saved_steps
+        detail.set_detail(detail.FULL)
+        REBUILD()
     return ob
 
 
@@ -813,6 +860,21 @@ def _save(name, rgba, path, colorspace):
     return img
 
 
+def _blend_normals(shape, detail):
+    """Reoriented normal mapping: the detail map's normals turned onto the shape map's, the way
+    texture artists combine a baked high-poly normal map with a detail (bump) map. Both RGBA, 0..1."""
+    t = shape[..., :3] * 2.0 - 1.0
+    u = detail[..., :3] * 2.0 - 1.0
+    t[..., 2] += 1.0
+    u[..., 0] *= -1.0
+    u[..., 1] *= -1.0
+    r = t * (np.sum(t * u, axis=-1) / np.maximum(t[..., 2], 1e-4))[..., None] - u
+    r /= np.maximum(np.linalg.norm(r, axis=-1), 1e-6)[..., None]
+    out = shape.copy()
+    out[..., :3] = r * 0.5 + 0.5
+    return out
+
+
 def bake_textures(ob, tex_dir, size=TEX_SIZE):
     scene = bpy.context.scene
     mats = [m for m in ob.data.materials if m]
@@ -902,12 +964,47 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
         bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT", normal_r="POS_X", normal_g="NEG_Y", normal_b="POS_Z")
         result["normal"] = grab(imgs)
         print("AF7 baked normal")
+        high = HIGH_OB if HIGH_OB is not None and HIGH_OB.name in bpy.data.objects else None
+        if high is not None:
+            # From here on the high-detail rebuild is the source: rays go out from LOD 1 (pushed out by
+            # the cage) and take the normal and the ambient shadow of the rebuild's surface.
+            high.hide_render = False
+            high.hide_viewport = False
+            for o in bpy.context.view_layer.objects:
+                o.select_set(False)
+            high.select_set(True)
+            ob.select_set(True)
+            bpy.context.view_layer.objects.active = ob
+            scene.render.bake.use_selected_to_active = True
+            scene.render.bake.cage_extrusion = HIGH_CAGE
+            scene.render.bake.max_ray_distance = HIGH_RAY
+            print("AF7 baking normal and ambient maps from", high.name, "(%d triangles)" % len(high.data.polygons))
+        if high is not None:
+            # Shape from the high-detail rebuild (its own plain material: no bump, which Cycles
+            # evaluates badly from another mesh), fine detail from the pass above; blended below.
+            imgs = target("normalhigh", "Non-Color", (0.5, 0.5, 1.0, 1.0))
+            bpy.ops.object.bake(type="NORMAL", normal_space="TANGENT", normal_r="POS_X", normal_g="NEG_Y", normal_b="POS_Z")
+            shape = grab(imgs)
+            if os.environ.get("AF_DEBUG_SHAPE"):
+                for k, sh in enumerate(shape):
+                    _save("dbg_shape_%d" % k, sh, os.path.join(tex_dir, "..", "dbg_shape_%d.png" % k), "Non-Color")
+                    bad = sh[..., 2] < 0.5
+                    print("AF7 DEBUG shape set %d: %d texels with blue < 0.5" % (k, int(bad.sum())))
+            for k, sh in enumerate(shape):
+                # Where the rays found nothing usable (faces buried in another part, a pin inside its
+                # hole) the shape is left flat, so those texels keep the detail pass as before.
+                bad = sh[..., 2] < 0.5
+                sh[bad] = (0.5, 0.5, 1.0, 1.0)[:sh.shape[-1]]
+                print("AF7 shape normal set %d: %d texels left to the detail pass" % (k, int(bad.sum())))
+            result["normal"] = [_blend_normals(sh, dt) for sh, dt in zip(shape, result["normal"])]
+            print("AF7 baked shape normal from the high-detail rebuild and blended the detail onto it")
         scene.cycles.samples = SAMPLES["AO"]
         imgs = target("ao", "Non-Color", (1, 1, 1, 1))
         bpy.ops.object.bake(type="AO")
         result["ao"] = grab(imgs, 0)
         print("AF7 baked ao")
     finally:
+        scene.render.bake.use_selected_to_active = False
         set_skin(0.0)
         surface(None)
         for o, h in hidden.items():
@@ -939,8 +1036,16 @@ def bake_textures(ob, tex_dir, size=TEX_SIZE):
             co[..., 3] = 1
             # Levels matched to the vanilla m4_body_smdi (specular median 0.13, gloss median 0.39).
             # Anything much higher washes the rifle out to white under DayZ's lighting.
-            spec = np.clip(SPEC_BASE + SPEC_METAL * metal + SPEC_WORN * np.clip((metal - 0.6) / 0.4, 0, 1), 0, 1)
+            base = SPEC_SET_BASE.get(k, SPEC_BASE)
+            spec = np.clip(base + SPEC_METAL * metal + SPEC_WORN * np.clip((metal - 0.6) / 0.4, 0, 1), 0, 1)
             gloss = np.clip((1.0 - rough) * GLOSS_SCALE, 0, 1)
+            if SPEC_VAR or SPEC_CAVITY:
+                used = result["color"][k][..., :3].max(-1) > 0.0
+                g_mid = float(np.median(gloss[used])) if used.any() else 0.5
+                vary = np.clip(1.0 - SPEC_VAR + SPEC_VAR * gloss / max(g_mid, 1e-3), 0.45, 1.70)
+                vary *= 1.0 - SPEC_CAVITY * (1.0 - ao)
+                spec = np.clip(spec * vary, 0, 1)
+                print("AF7 specular set %d: p5/p50/p95 %.3f %.3f %.3f" % ((k,) + tuple(np.percentile(spec[used], [5, 50, 95]))))
             if not suffix:
                 co[..., :3] *= CO_SCALE                        # DayZ lights colour maps brightly
             if suffix:
@@ -1360,6 +1465,8 @@ def export(bake=True, tex_size=TEX_SIZE):
     p3d_path = os.path.join(repo, "source", "AF_Weapons", P3D_FOLDER, P3D_FILE + ".p3d")
     # Reduced-detail rebuilds for the distance LODs come first: each rebuild clears the scene.
     variants = build_variants()
+    global HIGH_OB
+    HIGH_OB = build_high() if bake else None      # before the collection below: a rebuild removes it
     M = export_matrix()
     col = dayz_collection()
 
@@ -1390,6 +1497,9 @@ def export(bake=True, tex_size=TEX_SIZE):
         smooth_normals(lod1)          # before the bake: the normal map is relative to these normals
         if bake:
             set_materials(lod1, preview_materials(bake_textures(lod1, tex_dir, tex_size)))
+            if HIGH_OB is not None:
+                bpy.data.objects.remove(HIGH_OB, do_unlink=True)
+                HIGH_OB = None
         lod1.data.transform(M)
         lod1.data.update()
 

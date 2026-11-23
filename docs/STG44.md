@@ -168,6 +168,18 @@ The same check suggested three further map changes, not made, to be judged on th
 
 Not yet seen in game.
 
+## Professional finish pass (2026-11-23, third and last bake of the finish)
+
+Owner: "we dont want strong" mod quality, but the level of a professional DayZ texture artist. Reviewed twice by the independent reviewer before the full bake (test bakes at 1024).
+
+- **High-to-low bake.** The rifle is rebuilt once more at a finer level (29,908 triangles: round parts with twice the sides, edges rounded in up to six steps, fillets every 7.5 degrees) and the normal and ambient maps are baked from it onto LOD 1 (`build_high`, selected to active, cage 0.8 mm, 64 samples). The shape comes from the rebuild with a plain material; the fine bump detail is baked from LOD 1 alone; the two are combined by reoriented normal mapping (`_blend_normals`). Texels where the rays found nothing usable (faces buried in another part) keep the detail pass.
+- **Wear by use, not by noise.** `RIFLE_ZONES`, `MAG_ZONES`, `SCOPE_ZONES`: selector and magazine catch (thumb), cocking handle, magazine housing mouth, trigger guard, both sling points, under the handguard, the left of the receiver (slung against clothing), the front sight hood; magazine feed lips, floor plate and body; scope rims and drum. In each zone the edges wear more, convex parts are polished (gloss only), and a few long scratches run the way the hand or sling moves.
+- **Direction.** The top of the rifle has a faint handled sheen; oil darkens the bottom of the receiver and its seams.
+- **Specular follows the surface.** Scaled by the gloss against its median (`SPEC_VAR` 0.6) and dimmed by the ambient shadow (`SPEC_CAVITY` 0.35), on the rifle, magazine and scope; oiled beech base specular 0.10 (was 0.06). Body specular p5/p50/p95 0.075/0.115/0.172 (before: 79.5 % of texels at one value).
+- **Beech.** Growth bands, ray flecks with their own sheen, faint cross-grain scratches.
+- Measured: no normal-map texel with blue below 0.5; body gloss p5/p50/p95 0.443/0.588/0.757. Build, signature and the three O2 checks pass. LOD 1 unchanged at 14,446 triangles.
+- Not touched (reviewer): the magazine housing and the stock are still plainer in shape than the vanilla AKM's chamfered parts. That is modelling, not texturing.
+
 ## What still has to be checked in game
 
 Hand fit on the grip and handguard, magazine fit and the reload, bolt travel through the port, the iron-sight picture, the scope view (eye point, reticle, lens), suppressor positions, both finishes under game lighting, and that the vanilla AKM magazine and PU scope are refused. The test mission covers all of these. It waits until the AF Content Factory session can spare the game (owner's rule, 2026-11-21).

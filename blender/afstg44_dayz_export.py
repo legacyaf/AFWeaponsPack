@@ -51,6 +51,8 @@ def _common():
     ex.RAW_QUADS = ()
     ex.LOD1_EDIT = None
     ex.SOFT_SETS = ()
+    ex.HIGH_DETAIL, ex.HIGH_EDGE_STEPS = None, None
+    ex.SPEC_VAR, ex.SPEC_CAVITY, ex.SPEC_SET_BASE = 0.0, 0.0, {}
     # Steel as on the MP40 and P08, whose level was settled against vanilla guns in the in-game tests.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
     # Bare steel shines (the vanilla AKM's specular map reaches 0.7 at its 90th percentile); parts
@@ -82,6 +84,14 @@ def _gun_tables():
     }
     ex.LOD1_EDIT = _reshape_notch
     ex.SOFT_SETS = (1,)                               # the beech set: stock and grip panels
+    # Professional pass (2026-11-23): normal and ambient maps baked from a finer rebuild (twice the
+    # sides on round parts, rounded edges in up to six steps, fillets every 7.5 degrees); specular
+    # that follows the gloss and darkens in corners; oiled beech shines a little (was one flat 0.06).
+    ex.HIGH_DETAIL = ("high", 4.0, 6, 7.5, True)
+    ex.HIGH_EDGE_STEPS = ((0.0010, 6), (0.0005, 4), (0.0002, 2))
+    ex.HIGH_CAGE, ex.HIGH_RAY = 0.0008, 0.0016          # LOD 1 and the rebuild differ by well under 0.5 mm
+    ex.SAMPLES = dict(ex.SAMPLES, NORMAL=64)           # cleaner high-to-low rays on small round parts
+    ex.SPEC_VAR, ex.SPEC_CAVITY, ex.SPEC_SET_BASE = 0.60, 0.35, {1: 0.10}
     ex.MEMORY = {"Mem_Muzzle": "usti hlavne", "Mem_BarrelEnd": "konec hlavne", "Mem_Eye": "eye",
                  "Mem_CaseStart": "nabojnicestart", "Mem_CaseEnd": "nabojniceend"}
     # (p3d path, up axis, dir axis, extra selections). In the vanilla model's 3x3 proxy matrix the second
@@ -159,6 +169,7 @@ def _magazine_tables():
     # The whole magazine, measured (2026-11-23): floor plate catch button down to z -0.1862, top
     # round up to z 0.0406.
     ex.GEOMETRY = [((-0.0145, -0.0320, -0.1866), (0.0145, 0.1000, 0.0410))]
+    ex.SPEC_VAR, ex.SPEC_CAVITY = 0.60, 0.35
 
 
 def _scope_tables():
@@ -178,6 +189,7 @@ def _scope_tables():
     ex.HIDE_BARREL = ()
     ex.UV_PRIORITY = {"Tube": 1.2, "Turrets": 1.2, "TubeInside": 0.3}
     ex.MEMORY = {"Mem_EyeScope": "eyescope", "Mem_CameraDir": "cameradir"}
+    ex.SPEC_VAR, ex.SPEC_CAVITY = 0.60, 0.35
     ex.PROXIES = {}
     ex.GEOMETRY = [((-0.016, model.SCOPE_REAR, -0.026), (0.020, model.SCOPE_FRONT, 0.026))]
     # Reticle in the middle of the tube, lens glass at both ends: the vanilla PU scope's own textures.
