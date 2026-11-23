@@ -560,17 +560,20 @@ class CfgVehicles
 			modelOptics = "-";
 			opticsDisablePeripherialVision = 0.67;
 			opticsFlare = 1;
-			opticsPPEffects[] = {"OpticsCHAbera3", "OpticsBlur1"};
-			opticsZoomMin = "0.3926/4";
-			opticsZoomMax = "0.3926/4";
-			opticsZoomInit = "0.3926/4";
+			// Owner's test (2026-11-23): too zoomed in and not clear. 3x instead of 4x, and only a light
+			// colour fringe: no blur effect over the picture (it was the strongest chromatic aberration
+			// plus a blur pass).
+			opticsPPEffects[] = {"OpticsCHAbera1"};
+			opticsZoomMin = "0.3926/3";
+			opticsZoomMax = "0.3926/3";
+			opticsZoomInit = "0.3926/3";
 			distanceZoomMin = 100;
 			distanceZoomMax = 800;
 			discreteDistance[] = {100, 200, 300, 400, 500, 600, 700, 800};
 			discreteDistanceInitIndex = 0;
 			PPMaskProperties[] = {0.5, 0.5, 0.35, 0.05};
 			PPLensProperties[] = {0.5, 0.15, 0, 0};
-			PPBlurProperties = 0.6;
+			PPBlurProperties = 0.2;
 		};
 	};
 };
