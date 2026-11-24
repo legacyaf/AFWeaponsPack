@@ -78,5 +78,11 @@
             <item name="AF_ZF4Optic" chance="1.00"/>
         </attachments>
     </type>
+    <!-- The M107A1 brings its own scope (fixed to the rifle); half spawn with a magazine. -->
+    <type name="AF_M107A1">
+        <attachments chance="0.50">
+            <item name="Mag_AFM107_10Rnd" chance="1.00"/>
+        </attachments>
+    </type>
 </spawnabletypes>
 

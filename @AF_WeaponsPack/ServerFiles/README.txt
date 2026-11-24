@@ -1,7 +1,7 @@
 Allied Forces Weapons Pack - loot files for server owners
 ==========================================================
 
-These files make the AF-7 Vanguard, AF M41 Pathfinder, AF MP40, AF P08 and AF StG 44 spawn as loot. They only matter on the
+These files make the AF-7 Vanguard, AF M41 Pathfinder, AF MP40, AF P08, AF StG 44 and AF M107A1 spawn as loot. They only matter on the
 server; players do not need them. Your server also needs a licence for the
 mod to work at all (see the Workshop page).
 
@@ -32,7 +32,13 @@ Class names
   Mag_AFStG44_30Rnd   the StG 44's 30-round magazine. Spawns: 8 on the map. The StG 44 takes
                       no other magazine, so do not leave this one out. It holds the
                       vanilla 7.62x39 rounds.
-  AF_ZF4Optic         4x scope that fits only the StG 44. Spawns: 2 on the map.
+  AF_ZF4Optic         1.5x scope that fits only the StG 44. Spawns: 2 on the map.
+  AF_M107A1           .50 BMG anti-materiel rifle. Spawns: 2 on the map, Military, Tier 4.
+                      Its 6-12x scope is built in; half spawn with their magazine fitted.
+  Mag_AFM107_10Rnd    the M107A1's 10-round magazine. Spawns: 4 on the map. The M107A1 takes
+                      no other magazine, so do not leave this one out.
+  Ammo_AF50BMG        .50 BMG rounds, the only rounds the M107A1 fires. Spawns: 6 on the map,
+                      Military, Tier 3-4.
   AF_WeaponRepairKit  repair kit for the pack's weapons. Spawns: 6 on the map, Military and
                       Police, Tier 2-4. How it behaves is set in AF_WeaponsPack.json.
 

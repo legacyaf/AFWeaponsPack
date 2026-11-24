@@ -58,6 +58,33 @@ A toggle-lock 9 mm service pistol with its own model, textures and magazine.
 
 Class names: [b]AF_P08[/b], [b]AF_P08_Gold[/b] and the magazine [b]Mag_AFP08_8Rnd[/b]
 
+[h2]AF StG 44[/h2]
+An assault rifle in the pattern of 1944, with its own model, textures, magazine and scope.
+
+[list]
+[*][b]7.62x39mm[/b] (the vanilla rounds) from its own 30-round curved magazine. Single shots or automatic, at a steady rate.
+[*][b]Attachments:[/b] its own AF ZF4 scope (1.5x), AK muzzle devices, improvised suppressor and ghillie wrap.
+[*][b]Two finishes:[/b] beech and steel, or gold floral on black.
+[*][b]Handling:[/b] uses the AKM animations and sounds, with a third less recoil.
+[*]Stamped steel receiver with pressed flutes, spot welds and markings, a stamped handguard with cooling holes, and a beech stock.
+[*]Wear where hands, sling and kit rub.
+[/list]
+
+Class names: [b]AF_StG44[/b], [b]AF_StG44_Gold[/b], the magazine [b]Mag_AFStG44_30Rnd[/b] and the scope [b]AF_ZF4Optic[/b]
+
+[h2]AF M107A1[/h2]
+A .50 BMG anti-materiel rifle with its own model, textures, magazine, rounds and scope.
+
+[list]
+[*][b].50 BMG[/b], its own rounds, from its own 10-round steel magazine. Recoil-operated and semi-automatic. Heavy (12.5 kg), long and loud.
+[*][b]Built-in 6-12x scope:[/b] illuminated red reticle, zoom readout and a live rangefinder, zeroing from 100 to 1,200 m. The scope is part of the rifle and cannot be taken off.
+[*][b]Handling:[/b] uses the SVD animations, with a little more recoil than the SVD.
+[*]Round handguard with lightening holes, full-length top rail, ribbed cheek plates, a two-chamber muzzle brake and a fluted barrel.
+[*]Worn dark Cerakote finish, rivets and its own roll mark.
+[/list]
+
+Class names: [b]AF_M107A1[/b], the magazine [b]Mag_AFM107_10Rnd[/b] and the rounds [b]Ammo_AF50BMG[/b]
+
 [h2]Server settings[/h2]
 Server owners tune the pack in one file, [b]AF_WeaponsPack.json[/b], which the server writes into its profiles folder on first start.
 
@@ -96,6 +123,9 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]The MP40 and P08 are new: firing, cocking and the first-person view have not been tuned in game yet.
 [*]The server settings are new: recoil, sway, switching weapons off and the repair kit have been tested; damage, jam chance and wear settings have not been tried in play yet.
 [*]The P08 borrows the P1 animations: its toggle stays flat instead of folding up when the action opens, and the magazine clips through the grip for a moment during a reload.
+[*]The M107A1 is new: the view through its scope and the rifle's height when aiming are still being tuned.
+[*]The M107A1's loose .50 BMG rounds use the vanilla 7.62 round model for now.
+[*]The StG 44's selector and magazine catch do not animate.
 [/list]
 
 [h2]Terms[/h2]

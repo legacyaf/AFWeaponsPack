@@ -677,7 +677,7 @@ class CfgVehicles
 	{
 		scope = 2;
 		displayName = "AF ZF4 Scope";
-		descriptionShort = "A 4x telescopic sight on a side clamp mount, made for the AF StG 44. It fits no other weapon.";
+		descriptionShort = "A low-power (1.5x) telescopic sight on a side clamp mount, made for the AF StG 44. It fits no other weapon.";
 		model = "\AF_Weapons\afstg44\afzf4.p3d";
 		weight = 600;
 		itemSize[] = {3, 1};
