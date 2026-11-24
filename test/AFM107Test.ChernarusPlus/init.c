@@ -226,7 +226,7 @@ class CustomMission: MissionGameplay
 		if (m_AFCam)
 		{
 			m_AFCam.SetActive(false);
-			GetGame().ObjectDelete(m_AFCam);
+			// Not deleted: deleting the active still camera crashed DayZ (2026-11-24).
 			m_AFCam = null;
 		}
 		Print("[AFTest] aiming down the scope");

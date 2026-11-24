@@ -262,14 +262,17 @@ def build():
             j = (i + 1) % 4
             bm.faces.new((vb[i], vb[j], vt[j], vt[i]))
     d.cut(up, d.make("BlendCutter", bm, cutters, None, "Taper into the handguard.", 0.0), "Blend")
-    hg = d.profile("Handguard", body, steel, side_pts(P["handguard"]), 0.064, bevel=0.0030, round=0.008,
-                   note="Handguard: narrower than the receiver, squared off at the front.")
-    x_hg0, x_hg1 = fx(565.0), fx(880.0)
-    c = d.box("HandguardBoreCutter", cutters, None, (0.0, (Y(x_hg0) + Y(x_hg1)) / 2, Zm(5.0)),
-              (0.052, Y(x_hg1) - Y(x_hg0), 0.066), bevel=0, note="Hollow handguard.")
-    d.cut(hg, c, "HandguardBore")
+    # Handguard (owner 2026-11-24: "more cylinder like rather than a giant rectangle"): a round tube
+    # round the barrel, 66 mm across, closed at the front round the barrel bushing, with a riser
+    # carrying the rail along its top.
+    x_hg0, x_hg1 = fx(560.0), fx(890.0)
+    hg = lathe("Handguard", body, steel, [(x_hg0, 29.0), (x_hg0, 33.0), (x_hg1 - 5, 33.0), (x_hg1, 31.0),
+                                         (x_hg1, 24.0), (x_hg1 - 12, 24.0), (x_hg1 - 12, 29.0)],
+               sides=48, closed=True, cap=False, bevel=0.0008, note="Handguard: a round tube round the barrel.")
+    d.box("RailRiser", body, steel, (0.0, (Y(x_hg0) + Y(x_hg1 - 6)) / 2, Zm(38.0)),
+          (0.022, Y(x_hg1 - 6) - Y(x_hg0), 0.020), bevel=0.0015, note="Riser under the rail, along the tube.")
     bm = bmesh.new()
-    for zr in bp.HOLE_ROWS:
+    for zr in (16.0, -16.0):                              # on the tube's flanks
         for xh in bp.HOLES_X:
             pts = [(xh - 11, zr), (xh - 5, zr + 6.5), (xh + 11, zr + 6.5), (xh + 5, zr - 6.5), (xh - 5, zr - 6.5)]
             d.bm_profile(bm, [(Y(x), Zm(z)) for x, z in d.fillet(pts, 2.0)], 0.12)
@@ -368,10 +371,16 @@ def build():
 
     # --- Monopod, bipod, lock pins ------------------------------------------------------------------
     # (Monopod under the stock removed, owner 2026-11-23.)
-    d.profile("BipodYoke", body, steel, side_pts(P["bipod_yoke"]), 0.044, bevel=0.0018, round=0.004)
+    yx0, yx1, yz0, _ = P["bipod_yoke"]
+    d.profile("BipodYoke", body, steel, side_pts((yx0, yx1, yz0, -29.0)), 0.044, bevel=0.0018, round=0.004)  # up into the tube
     # (Folded bipod legs under the barrel removed, owner 2026-11-23.)
     bm = bmesh.new()
-    for x, z, r in (bp.MID_PIN, bp.REAR_PIN):
+    # Mid lock pin: through a lug under the round handguard, ahead of the support hand (at fx 495 its
+    # ring hung in the hand, seen in game 2026-11-24).
+    mid_pin = (fx(600.0), -50.0, 12.0)
+    d.box("PinLug", body, steel, (0.0, Y(fx(600.0)), Zm(-37.0)), (0.074, 0.024, 0.018), bevel=0.0015,
+          note="Lug under the handguard for the mid lock pin.")
+    for x, z, r in (mid_pin, bp.REAR_PIN):
         ring(bm, (0.040, Y(x), Zm(z)), r / 1000.0, 0.0016)
         d.bm_lathe(bm, [(-0.040, 0.0), (-0.040, 0.0035), (0.042, 0.0035), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
         d.bm_lathe(bm, [(0.037, 0.0), (0.037, 0.0050), (0.042, 0.0050), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
@@ -395,7 +404,7 @@ def build():
         ang = math.pi / 4 + a * math.pi / 2
         d.bm_lathe(bm, [(Y(fx(890.0)) - 0.001, 0.0), (Y(fx(890.0)) - 0.001, 0.0032), (Y(fx(890.0)) + 0.0025, 0.0030),
                         (Y(fx(890.0)) + 0.0025, 0.0)], sides=12,
-                   c=(0.026 * math.cos(ang), BORE + 0.026 * math.sin(ang)))
+                   c=(0.0275 * math.cos(ang), BORE + 0.0275 * math.sin(ang)))
     d.make("SpringScrews", bm, body, bare, "Barrel-spring screws.", 0.0)
     # Trigger guard: a loop from the trigger housing to the front of the grip.
     tx0, tx1, tz0, tz1 = bbox(P["trigger"])
@@ -404,11 +413,11 @@ def build():
     bm = bmesh.new()
     d.bm_profile(bm, side_pts(d.fillet([(tx0 - 1, tz1 - 1), (tx1 + 23, tz1 - 1), (tx1 + 23, tz0 - 7), (tx0 - 1, tz0 - 7)], 4.0)), 0.2)
     d.cut(g, d.make("GuardHoleCutter", bm, cutters, None, "", 0.0), "Hole")
-    d.box("MagCatch", body, bare, (-0.0375, Y(fx(500.0)), Zm(-70.0)), (0.006, 0.014, 0.016), bevel=0.0012,
+    d.box("MagCatch", body, bare, (-0.0395, Y(fx(500.0)), Zm(-38.0)), (0.006, 0.014, 0.016), bevel=0.0012,
           note="Magazine catch, left.")
     bm = bmesh.new()
     import afm41_pathfinder_detailed as m41
-    m41.bm_torus(bm, (-0.0335, Y(fx(800.0)), Zm(-30.0)), 0.009, 0.0018, seg=16, sides=8)
+    m41.bm_torus(bm, (0.0, Y(fx(800.0)), Zm(-38.0)), 0.009, 0.0018, seg=16, sides=8)   # hangs under the tube
     m41.bm_torus(bm, (-0.0270, Y(40.0), Zm(-110.0)), 0.009, 0.0018, seg=16, sides=8)
     d.make("SlingLoops", bm, body, bare, "Sling loops, left: handguard and butt.", 0.0)
     smooth((body, moving))
