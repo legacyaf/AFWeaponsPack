@@ -4,7 +4,7 @@ Original weapons made by Allied Forces for DayZ.
 
 [b]Very early stages.[/b] This mod is new and still being tested. Expect rough edges, missing features and frequent updates.
 
-[h2]AF-7 "Vanguard"[/h2]
+[h1]AF-7 "Vanguard"[/h1]
 An original Allied Forces assault rifle with its own model, textures and markings.
 
 [list]
@@ -17,7 +17,7 @@ An original Allied Forces assault rifle with its own model, textures and marking
 
 Class names: [b]AF7_Vanguard[/b] and [b]AF7_Vanguard_Gold[/b]
 
-[h2]AF M41 "Pathfinder"[/h2]
+[h1]AF M41 "Pathfinder"[/h1]
 A WW2-style bolt-action sniper rifle with its own model and textures.
 
 [list]
@@ -32,7 +32,7 @@ A WW2-style bolt-action sniper rifle with its own model and textures.
 
 Class names: [b]AFM41_Pathfinder[/b] and [b]AFM41_Pathfinder_Gold[/b]
 
-[h2]AF MP40[/h2]
+[h1]AF MP40[/h1]
 A WW2-style 9 mm submachine gun with its own model, textures and magazine.
 
 [list]
@@ -45,7 +45,7 @@ A WW2-style 9 mm submachine gun with its own model, textures and magazine.
 
 Class names: [b]AF_MP40[/b], [b]AF_MP40_Gold[/b] and the magazine [b]Mag_AFMP40_32Rnd[/b]
 
-[h2]AF P08[/h2]
+[h1]AF P08[/h1]
 A toggle-lock 9 mm service pistol with its own model, textures and magazine.
 
 [list]
@@ -58,7 +58,7 @@ A toggle-lock 9 mm service pistol with its own model, textures and magazine.
 
 Class names: [b]AF_P08[/b], [b]AF_P08_Gold[/b] and the magazine [b]Mag_AFP08_8Rnd[/b]
 
-[h2]AF StG 44[/h2]
+[h1]AF StG 44[/h1]
 An assault rifle in the pattern of 1944, with its own model, textures, magazine and scope.
 
 [list]
@@ -72,7 +72,7 @@ An assault rifle in the pattern of 1944, with its own model, textures, magazine 
 
 Class names: [b]AF_StG44[/b], [b]AF_StG44_Gold[/b], the magazine [b]Mag_AFStG44_30Rnd[/b] and the scope [b]AF_ZF4Optic[/b]
 
-[h2]AF M107A1[/h2]
+[h1]AF M107A1[/h1]
 A .50 BMG anti-materiel rifle with its own model, textures, magazine, rounds and scope.
 
 [list]
@@ -85,7 +85,7 @@ A .50 BMG anti-materiel rifle with its own model, textures, magazine, rounds and
 
 Class names: [b]AF_M107A1[/b], the magazine [b]Mag_AFM107_10Rnd[/b] and the rounds [b]Ammo_AF50BMG[/b]
 
-[h2]Server settings[/h2]
+[h1]Server settings[/h1]
 Server owners tune the pack in one file, [b]AF_WeaponsPack.json[/b], which the server writes into its profiles folder on first start.
 
 [list]
@@ -98,7 +98,7 @@ Server owners tune the pack in one file, [b]AF_WeaponsPack.json[/b], which the s
 
 Every setting is explained in [b]ServerFiles\SETTINGS.md[/b] inside the mod. Class name of the kit: [b]AF_WeaponRepairKit[/b]
 
-[h2]Licensed servers only[/h2]
+[h1]Licensed servers only[/h1]
 This mod only works on servers that hold a licence. When a server starts, the mod checks its IP and game port against our whitelist; on any other server the weapons are removed.
 
 [list]
@@ -106,7 +106,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*][b]Server owners:[/b] licences are free during early access, one per server. Request one from the Mod Shop on the Allied Forces website: https://legacyaf.github.io/Alliedforces/#modshop
 [/list]
 
-[h2]For licensed server owners[/h2]
+[h1]For licensed server owners[/h1]
 [list]
 [*]Copy [b]Keys\AlliedForces.bikey[/b] to your server's keys folder.
 [*]Add the mod to your [b]-mod=[/b] launch line.
@@ -115,7 +115,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]Loot files are included in the mod's [b]ServerFiles[/b] folder: types and spawnable types for every weapon, with a README. Gold finishes are listed but set not to spawn by default.
 [/list]
 
-[h2]Known issues[/h2]
+[h1]Known issues[/h1]
 [list]
 [*]Hand position, sight alignment and attachment placement are still being tuned.
 [*].308 uses the M4 firing sound, and LAR magazine fit is still being tuned.
@@ -128,7 +128,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]The StG 44's selector and magazine catch do not animate.
 [/list]
 
-[h2]Terms[/h2]
+[h1]Terms[/h1]
 This mod is the property of Allied Forces. You may [b]NOT[/b]:
 [list]
 [*]repack, unpack, edit, re-upload or redistribute this mod or any part of it

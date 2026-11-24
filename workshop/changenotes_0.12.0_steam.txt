@@ -1,0 +1,43 @@
+[h1]0.12.0: Two new weapons, the AF StG 44 and the AF M107A1[/h1]
+
+[h1]New weapon: AF StG 44[/h1]
+[list]
+[*]Assault rifle in the pattern of 1944: stamped steel receiver, beech stock, long curved magazine.
+[*][b]7.62x39mm[/b] (the vanilla rounds) from its own 30-round magazine (a new item). Single shots or automatic, at a steady rate of about 570 rounds a minute.
+[*]A third less recoil than the AKM.
+[*][b]Attachments:[/b] its own AF ZF4 scope (a new item, 1.5x, fits no other weapon), AK muzzle devices, the improvised suppressor and a ghillie wrap.
+[*][b]Two finishes:[/b] beech and steel, or gold floral on black.
+[*]Uses the AKM animations and sounds.
+[/list]
+
+Built with a new finishing method:
+[list]
+[*]Surface detail baked from a far more detailed model of the rifle.
+[*]Wear placed where hands, sling and kit really rub.
+[*]Pressed-steel detail: flutes, spot welds and markings.
+[*]Real beech grain.
+[*]Steel shine matched to the vanilla AKM.
+[/list]
+Checked in game in noon sun, overcast, evening and morning light.
+
+[h1]New weapon: AF M107A1[/h1]
+[list]
+[*][b].50 BMG[/b] anti-materiel rifle: recoil-operated, semi-automatic, 10-round magazine. Heavy (12.5 kg), long and loud.
+[*]Fires its own .50 BMG rounds (a new item) from its own 10-round steel magazine (a new item).
+[*][b]Built-in 6-12x scope:[/b] illuminated red reticle, zoom readout and a live rangefinder. The view through it is a round picture, black around the edges. Zeroing from 100 to 1,200 m.
+[*]The scope is part of the rifle and cannot be taken off.
+[*]Round handguard with lightening holes, full-length top rail, ribbed cheek plates, two-chamber muzzle brake and fluted barrel.
+[*]Dark Cerakote finish with edge wear, grime in the corners, rivets, swage lines and its own roll mark.
+[*]Uses the SVD animations, with a little more recoil than the SVD.
+[/list]
+
+[h1]Server owners[/h1]
+[list]
+[*][b]New class names:[/b] AF_StG44, AF_StG44_Gold, Mag_AFStG44_30Rnd, AF_ZF4Optic, AF_M107A1, Mag_AFM107_10Rnd, Ammo_AF50BMG.
+[*]The loot files in ServerFiles have entries for all of them. [b]Merge them again, or they will not spawn.[/b] Neither rifle takes any other magazine, and the M107A1 fires no vanilla round.
+[*]The M107A1 is very rare by default: 2 on the map, Military, Tier 4.
+[*]AF_WeaponsPack.json picks up both new weapons by itself on the next start. Recoil, damage and the other settings work for them as for the rest of the pack.
+[*]No class name or loot changes for the AF-7, M41, MP40 or P08.
+[/list]
+
+Download size: about 260 MB.
