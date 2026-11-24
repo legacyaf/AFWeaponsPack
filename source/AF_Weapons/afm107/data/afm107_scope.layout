@@ -1,0 +1,62 @@
+FrameWidgetClass AFM107ScopeHud {
+ ignorepointer 1
+ position 0 0
+ size 1 1
+ hexactpos 0
+ vexactpos 0
+ hexactsize 0
+ vexactsize 0
+ {
+  ImageWidgetClass Reticle {
+   ignorepointer 1
+   position 0 0
+   size 900 900
+   halign center_ref
+   valign center_ref
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   image0 "AF_Weapons/afm107/data/afm107_reticle_ca.paa"
+   mode blend
+   "src alpha" 1
+   stretch 1
+  }
+  TextWidgetClass Range {
+   ignorepointer 1
+   color 1 0.08 0.04 1
+   position 0 140
+   size 420 44
+   halign center_ref
+   valign bottom_ref
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   text "RNG ---- m"
+   font "gui/fonts/MetronBlack"
+   "exact text" 1
+   "exact text size" 28
+   "text halign" center
+   "text valign" center
+  }
+  TextWidgetClass Zoom {
+   ignorepointer 1
+   color 1 0.08 0.04 1
+   position 330 150
+   size 120 40
+   halign center_ref
+   valign top_ref
+   hexactpos 1
+   vexactpos 1
+   hexactsize 1
+   vexactsize 1
+   text "6x"
+   font "gui/fonts/MetronBlack"
+   "exact text" 1
+   "exact text size" 26
+   "text halign" center
+   "text valign" center
+  }
+ }
+}

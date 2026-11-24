@@ -23,10 +23,10 @@ class CfgPatches
 {
 	class AF_Weapons
 	{
-		units[] = {"AF_WeaponRepairKit", "AF_ZF4Optic"};
-		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold", "AF_StG44", "AF_StG44_Gold"};
+		units[] = {"AF_WeaponRepairKit", "AF_ZF4Optic", "AF_M107Scope"};
+		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold", "AF_StG44", "AF_StG44_Gold", "AF_M107A1"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools", "DZ_Weapons_Firearms_AKM", "DZ_Weapons_Optics"};
+		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools", "DZ_Weapons_Firearms_AKM", "DZ_Weapons_Optics", "DZ_Weapons_Firearms_SVD", "DZ_Weapons_Projectiles", "DZ_Weapons_Ammunition"};
 	};
 };
 
@@ -54,6 +54,44 @@ class CfgMods
 };
 
 class Mode_FullAuto;
+
+// The AF M107A1's .50 BMG round. Built on the vanilla 7.62x54R bullet (Bullet_762x54, read from the
+// game's config 2026-11-23: initSpeed 785, hit 12, health 150, blood 100, shock 150, weight 12 g) and
+// scaled to the .50: the manual's 853 m/s and 42.8 g, about 2.7 times the health and shock damage,
+// more penetration, and a flatter flight. Server owners can scale it down in AF_WeaponsPack.json.
+class CfgAmmo
+{
+	class Bullet_762x54;
+	class Bullet_AF50BMG: Bullet_762x54
+	{
+		scope = 1;
+		spawnPileType = "Ammo_AF50BMG";
+		hit = 30;
+		initSpeed = 853;
+		typicalSpeed = 853;
+		airFriction = -0.00055;
+		caliber = 2.6;
+		deflecting = 5;
+		damageBarrel = 900;
+		damageBarrelDestroyed = 900;
+		weight = 0.0428;
+		class DamageApplied
+		{
+			type = "Projectile";
+			dispersion = 0;
+			bleedThreshold = 1;
+			defaultDamageOverride[] = {{0.94, 1}};
+			class Health { damage = 400; };
+			class Blood { damage = 250; };
+			class Shock { damage = 400; damageOverride[] = {{0.86, 1}}; };
+		};
+		class NoiseHit
+		{
+			strength = 14;
+			type = "sound";
+		};
+	};
+};
 
 class CfgWeapons
 {
@@ -441,15 +479,16 @@ class CfgWeapons
 		// Slots the model has proxies for: ghillie wrap, its own scope, the AK suppressor and the
 		// improvised suppressor.
 		attachments[] = {"weaponWrap", "weaponOpticsAFStG", "weaponMuzzleAK", "suppressorImpro"};
-		hiddenSelections[] = {"camo", "hide_barrel", "camo1"};
-		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_wood.rvmat"};
+		// hide_sight (index 3): the front sight post and hood, hidden while the scope is fitted (AF_StG44.c).
+		hiddenSelections[] = {"camo", "hide_barrel", "camo1", "hide_sight"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_body_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_co.paa", "AF_Weapons\afstg44\data\afstg44_body_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_body.rvmat", "AF_Weapons\afstg44\data\afstg44_wood.rvmat", "AF_Weapons\afstg44\data\afstg44_body.rvmat"};
 
 		// Iron sights: no depth-of-field blur when aiming (same choice as the other AF weapons).
 		PPDOFProperties[] = {0, 0.5, 50, 160, 4, 10};
 
-		// Heavier than the AKM, so it climbs a little less.
-		recoilModifier[] = {0.9, 0.9, 0.9};
+		// Owner, 2026-11-23: steadier. A third less recoil than the AKM (was 0.9).
+		recoilModifier[] = {0.65, 0.65, 0.65};
 
 		class FullAuto: FullAuto
 		{
@@ -476,6 +515,59 @@ class CfgWeapons
 		};
 	};
 
+	// The AF M107A1: a .50 BMG anti-materiel rifle in the pattern of the US Army's M107A1. It inherits the
+	// vanilla SVD (semi-automatic, detachable 10-round magazine, its animations and handling) and is
+	// built in the SVD's frame (docs/M107.md). Its own round (.50 BMG), magazine and built-in scope.
+	class Rifle_Base;
+	class SVD_Base: Rifle_Base
+	{
+		class SemiAuto;
+	};
+	class AF_M107A1: SVD_Base
+	{
+		scope = 2;
+		displayName = "AF M107A1";
+		descriptionShort = "A .50 BMG anti-materiel rifle: recoil-operated, semi-automatic, a 10-round magazine and a built-in 6-12x scope with a rangefinder. Heavy, long and very loud.";
+		model = "\AF_Weapons\afm107\afm107.p3d";
+		weight = 12500;
+		itemSize[] = {12, 3};
+		WeaponLength = 1.25;
+		ObstructionDistance = 0.95;
+		chamberableFrom[] = {"Ammo_AF50BMG"};
+		magazines[] = {"Mag_AFM107_10Rnd"};
+		attachments[] = {"weaponOpticsAFM107"};
+		simpleHiddenSelections[] = {};
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm107\data\afm107_body_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm107\data\afm107_body.rvmat"};
+		// A heavy rifle with a big muzzle brake: kick close to the SVD's, slower to swing.
+		recoilModifier[] = {1.1, 1.1, 1.1};
+		swayModifier[] = {2.6, 2.6, 0.8};
+		class SemiAuto: SemiAuto
+		{
+			reloadTime = 0.30;
+			dispersion = 0.0005;
+		};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 400;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afm107\data\afm107_body.rvmat"}},
+						{0.7, {"AF_Weapons\afm107\data\afm107_body.rvmat"}},
+						{0.5, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm107\data\afm107_body_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
 	// Gold floral finish: black stock and grips with the gold floral pattern, steel unchanged.
 	// Not in the loot tables by default.
 	class AF_StG44_Gold: AF_StG44
@@ -483,8 +575,8 @@ class CfgWeapons
 		scope = 2;
 		displayName = "AF StG 44 (Gold)";
 		descriptionShort = "An Allied Forces StG 44 with gold floral furniture on black. It fires 7.62x39mm from its own curved 30-round magazine.";
-		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_gold_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold.rvmat"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_body_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_wood_gold_co.paa", "AF_Weapons\afstg44\data\afstg44_body_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_body_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_wood_gold.rvmat", "AF_Weapons\afstg44\data\afstg44_body_gold.rvmat"};
 		class DamageSystem
 		{
 			class GlobalHealth
@@ -511,6 +603,64 @@ class CfgWeapons
 // restored, uses per kit and whether it works on suppressors are server settings (AF_WeaponsPack.json).
 class CfgVehicles
 {
+	// The AF M107A1's built-in scope: 6x, 8x, 10x, 12x. It is fitted to the rifle when the rifle is made
+	// and cannot be taken off (AF_M107A1.c). Its view - a red-outlined reticle, the magnification and a
+	// live range readout - is drawn by script (AF_M107Scope.c) over the game's round optics mask.
+	class HuntingOptic;
+	class AF_M107Scope: HuntingOptic
+	{
+		scope = 2;
+		displayName = "AF M107A1 Scope";
+		descriptionShort = "The M107A1's own 6-12x scope with an illuminated reticle and a built-in rangefinder. It cannot be taken off the rifle.";
+		model = "\AF_Weapons\afm107\afm107_scope.p3d";
+		weight = 1100;
+		itemSize[] = {4, 1};
+		inventorySlot[] = {"weaponOpticsAFM107"};
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm107\data\afm107_scope_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm107\data\afm107_scope.rvmat"};
+		class OpticsInfo
+		{
+			memoryPointCamera = "eyeScope";
+			cameraDir = "cameraDir";
+			useModelOptics = 0;
+			modelOptics = "-";
+			opticsDisablePeripherialVision = 0.67;
+			opticsFlare = 0;
+			opticsPPEffects[] = {"OpticsCHAbera1"};
+			opticsZoomMin = "0.3926/6";
+			opticsZoomMax = "0.3926/12";
+			opticsZoomInit = "0.3926/6";
+			discretefov[] = {"0.3926/6", "0.3926/8", "0.3926/10", "0.3926/12"};
+			discreteInitIndex = 0;
+			distanceZoomMin = 100;
+			distanceZoomMax = 1200;
+			discreteDistance[] = {100, 200, 300, 400, 500, 600, 700, 800, 900, 1000, 1100, 1200};
+			discreteDistanceInitIndex = 0;
+			PPMaskProperties[] = {0.5, 0.5, 0.44, 0.03};
+			PPLensProperties[] = {0.05, 0.1, 0, 0};
+			PPBlurProperties = 0.2;
+		};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 200;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afm107\data\afm107_scope.rvmat"}},
+						{0.7, {"AF_Weapons\afm107\data\afm107_scope.rvmat"}},
+						{0.5, {"AF_Weapons\afm107\data\afm107_scope_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm107\data\afm107_scope_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm107\data\afm107_scope_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
 	class WeaponCleaningKit;
 	class AF_WeaponRepairKit: WeaponCleaningKit
 	{
@@ -564,9 +714,9 @@ class CfgVehicles
 			// colour fringe: no blur effect over the picture (it was the strongest chromatic aberration
 			// plus a blur pass).
 			opticsPPEffects[] = {"OpticsCHAbera1"};
-			opticsZoomMin = "0.3926/3";
-			opticsZoomMax = "0.3926/3";
-			opticsZoomInit = "0.3926/3";
+			opticsZoomMin = "0.3926/1.5";     // owner, 2026-11-23: 1.5x (was 3x, first 4x)
+			opticsZoomMax = "0.3926/1.5";
+			opticsZoomInit = "0.3926/1.5";
 			distanceZoomMin = 100;
 			distanceZoomMax = 800;
 			discreteDistance[] = {100, 200, 300, 400, 500, 600, 700, 800};
@@ -582,6 +732,56 @@ class CfgVehicles
 // sounds) and changes the model, the capacity and the ammunition.
 class CfgMagazines
 {
+	// .50 BMG: loose rounds, and the AF M107A1's 10-round steel magazine (built on the SVD's, so it
+	// takes the same slot and handling).
+	class Ammunition_Base;
+	class Ammo_AF50BMG: Ammunition_Base
+	{
+		scope = 2;
+		displayName = ".50 BMG Rounds";
+		descriptionShort = "12.7x99mm (.50 BMG) rifle rounds for the AF M107A1.";
+		model = "\dz\weapons\ammunition\762_LooseRounds.p3d";
+		iconCartridge = 3;
+		weight = 115;
+		count = 10;
+		ammo = "Bullet_AF50BMG";
+	};
+	class Mag_SVD_10Rnd;
+	class Mag_AFM107_10Rnd: Mag_SVD_10Rnd
+	{
+		scope = 2;
+		displayName = "AF M107A1 10rd Magazine";
+		descriptionShort = "A 10-round steel magazine for the AF M107A1, with cartridge witness holes. It holds .50 BMG rounds.";
+		model = "\AF_Weapons\afm107\afm107_mag.p3d";
+		weight = 1300;
+		weightPerQuantityUnit = 115;
+		itemSize[] = {2, 2};
+		count = 10;
+		ammo = "Bullet_AF50BMG";
+		ammoItems[] = {"Ammo_AF50BMG"};
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm107\data\afm107_mag_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm107\data\afm107_mag.rvmat"};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 100;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afm107\data\afm107_mag.rvmat"}},
+						{0.7, {"AF_Weapons\afm107\data\afm107_mag.rvmat"}},
+						{0.5, {"AF_Weapons\afm107\data\afm107_mag_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm107\data\afm107_mag_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm107\data\afm107_mag_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
 	class Mag_UMP_25Rnd;
 	class Mag_AFMP40_32Rnd: Mag_UMP_25Rnd
 	{
@@ -684,6 +884,12 @@ class CfgMagazines
 // The scope slot only the AF StG 44 has, so its scope fits nothing else and other scopes do not fit it.
 class CfgSlots
 {
+	class Slot_weaponOpticsAFM107
+	{
+		name = "weaponOpticsAFM107";
+		displayName = "Optics";
+		ghostIcon = "set:dayz_inventory image:weaponoptics";
+	};
 	class Slot_weaponOpticsAFStG
 	{
 		name = "weaponOpticsAFStG";
@@ -697,6 +903,12 @@ class CfgSlots
 class CfgNonAIVehicles
 {
 	class ProxyAttachment;
+	class Proxyafm107_scope: ProxyAttachment
+	{
+		scope = 2;
+		inventorySlot = "weaponOpticsAFM107";
+		model = "\AF_Weapons\afm107\afm107_scope.p3d";
+	};
 	class Proxyafzf4: ProxyAttachment
 	{
 		scope = 2;

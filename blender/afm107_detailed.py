@@ -324,11 +324,15 @@ def build_scope_model():
     d.CUTS = True
     body = d.collection("Body")
     d.collection("Moving")
-    d.collection("Memory")
+    memory = d.collection("Memory")
     m = materials()
     build_scope(body, m["steel"], m["dark"], m["rubber"])
     smooth((body,))
     offset(body, SCOPE_CENTRE())
+    # The view through the scope is drawn by script (reticle, zoom and range readout over a round
+    # mask), so the camera sits just ahead of the objective, where no part of the scope is in view.
+    d.empty("Mem_EyeScope", memory, (0.0, 0.205, 0.0), "'eyescope' - aiming camera, ahead of the objective.")
+    d.empty("Mem_CameraDir", memory, (0.0, 0.705, 0.0), "'cameradir' - straight along the scope.")
 
 
 # --- Built-in scope (owner: "a built in hunting scope, 6x - 12x, red crosshair, meter counter") ----

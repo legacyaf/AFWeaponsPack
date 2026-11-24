@@ -74,7 +74,7 @@ class AFConfig
 	static const float MAX_MULTIPLIER = 10.0;
 
 	//! One entry per weapon of the pack: the class of its standard finish.
-	static ref TStringArray BASE_CLASSES = {"AF7_Vanguard", "AFM41_Pathfinder", "AF_MP40", "AF_P08", "AF_StG44"};
+	static ref TStringArray BASE_CLASSES = {"AF7_Vanguard", "AFM41_Pathfinder", "AF_MP40", "AF_P08", "AF_StG44", "AF_M107A1"};
 
 	protected static ref AFConfigData s_Data;
 	protected static bool s_Loaded;          //!< server / single player: the file has been read
