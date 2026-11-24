@@ -8,3 +8,7 @@
 
 __pycache__/
 test/profiles/
+
+# Owner reference pictures (other people's work): kept locally for measuring, never published
+docs/img/m107_reference.webp
+docs/img/m107_overlay.*
