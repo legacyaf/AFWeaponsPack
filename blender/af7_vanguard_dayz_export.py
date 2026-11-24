@@ -81,6 +81,11 @@ AO_FLOOR = 0.0       # darkest ambient-shadow value written (0 = as baked)
 LOD1_EDIT = None     # optional f(lod1, M): a small shape change to LOD 1 kept from the .p3d (no re-bake)
 SOFT_SETS = ()       # texture sets (index) shaded smooth all over in the distance LODs, e.g. a wooden stock
 SOFT_MAX_ANGLE = 80.0  # ... except edges sharper than this (the stock's end faces)
+# REGION_WEIGHTS: weight each face by the area of the whole flat panel it lies in, not by its own
+# area. The meshes are triangulated before the weighting, and a flat side with holes cut in it
+# (the M107A1's handguard) becomes thin slivers: weighted by their own small areas, the rounded hole
+# rims outweighed the panel and twisted its shading between the holes (seen in game 2026-11-23).
+REGION_WEIGHTS = False
 # High-to-low bake. HIGH_DETAIL: a detail level (as af7_vanguard_detailed.DETAIL_LEVELS) finer than
 # FULL; with it and REBUILD, the weapon is rebuilt at that level once more and the normal and ambient
 # maps are baked from that rebuild onto LOD 1 (selected to active), as a texture artist bakes a high
@@ -456,6 +461,12 @@ def build_high():
         REBUILD()
         col = dayz_collection()
         ob = build_lod1(col, Matrix.Identity(4))
+        if REGION_WEIGHTS:      # the bake copies the source's shading: give it the same clean panels
+            for poly in ob.data.polygons:
+                poly.use_smooth = True
+            if hasattr(ob.data, "set_sharp_from_angle"):
+                ob.data.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
+            _region_normals(ob.data)
         # Out of the weapon's own collections and names, so the rebuild below leaves it alone.
         ob.name = ob.data.name = "AFHigh_" + PREFIX.rstrip("_")
         col.objects.unlink(ob)
@@ -574,6 +585,9 @@ def smooth_normals(ob, soft_sets=()):
     if hasattr(me, "set_sharp_from_angle"):
         me.set_sharp_from_angle(angle=math.radians(SHARP_ANGLE))
     soft = _soften(me, soft_sets) if soft_sets else set()
+    if REGION_WEIGHTS:
+        _region_normals(me, soft)
+        return ob
     activate(ob)
     mod = ob.modifiers.new("AFWeightedNormal", "WEIGHTED_NORMAL")
     mod.mode = "FACE_AREA"
@@ -588,6 +602,73 @@ def smooth_normals(ob, soft_sets=()):
     if group is not None and ob.vertex_groups.get("AFWeighted") is not None:
         ob.vertex_groups.remove(ob.vertex_groups["AFWeighted"])
     return ob
+
+
+def _region_normals(me, soft=frozenset(), flat_cos=0.99985):
+    """Custom normals weighted by flat-panel area (see REGION_WEIGHTS). Faces that meet at under
+    about 1 degree across an edge form one panel. At each vertex, the faces of one smooth fan (not
+    split by a sharp edge) are summed, each weighted by its panel's area; vertices of soft sets keep
+    plain angle-weighted smoothing."""
+    import bmesh as _bm
+    bm = _bm.new()
+    bm.from_mesh(me)
+    bm.faces.ensure_lookup_table()
+    bm.edges.ensure_lookup_table()
+    bm.normal_update()
+    sharp_attr = me.attributes.get("sharp_edge")
+    sharp = [False] * len(bm.edges)
+    if sharp_attr is not None:
+        sharp = [d.value for d in sharp_attr.data]
+    region = [-1] * len(bm.faces)
+    areas = []
+    for f0 in bm.faces:
+        if region[f0.index] >= 0:
+            continue
+        rid, total, stack = len(areas), 0.0, [f0]
+        region[f0.index] = rid
+        while stack:
+            f = stack.pop()
+            total += f.calc_area()
+            for e in f.edges:
+                for g in e.link_faces:
+                    if region[g.index] < 0 and f.normal.dot(g.normal) > flat_cos:
+                        region[g.index] = rid
+                        stack.append(g)
+        areas.append(total)
+    corner = {}
+    for v in bm.verts:
+        faces = list(v.link_faces)
+        if not faces:
+            continue
+        parent = {f.index: f.index for f in faces}
+
+        def find(i):
+            while parent[i] != i:
+                parent[i] = parent[parent[i]]
+                i = parent[i]
+            return i
+        for e in v.link_edges:
+            lf = e.link_faces
+            if len(lf) == 2 and not sharp[e.index]:
+                parent[find(lf[0].index)] = find(lf[1].index)
+        sums = {}
+        for f in faces:
+            w = areas[region[f.index]] if v.index not in soft else 1.0
+            for lp in f.loops:
+                if lp.vert is v:
+                    w *= lp.calc_angle() if v.index in soft else 1.0
+            r = find(f.index)
+            sums[r] = sums.get(r, Vector((0.0, 0.0, 0.0))) + f.normal * w
+        for f in faces:
+            n = sums[find(f.index)]
+            corner[(f.index, v.index)] = n.normalized() if n.length > 1e-12 else f.normal.copy()
+    bm.free()
+    normals = [None] * len(me.loops)
+    for poly in me.polygons:
+        for li in poly.loop_indices:
+            normals[li] = corner[(poly.index, me.loops[li].vertex_index)][:]
+    me.normals_split_custom_set(normals)
+    print("AF7 region-weighted normals: %d panels" % len(areas))
 
 
 def activate(ob):

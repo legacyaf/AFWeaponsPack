@@ -7,6 +7,34 @@ FrameWidgetClass AFM107ScopeHud {
  hexactsize 0
  vexactsize 0
  {
+  ImageWidgetClass SideLeft {
+   ignorepointer 1
+   position 0 0
+   size 400 1
+   halign left_ref
+   hexactpos 1
+   vexactpos 0
+   hexactsize 1
+   vexactsize 0
+   image0 "AF_Weapons/afm107/data/afm107_black_ca.paa"
+   mode blend
+   "src alpha" 1
+   stretch 1
+  }
+  ImageWidgetClass SideRight {
+   ignorepointer 1
+   position 0 0
+   size 400 1
+   halign right_ref
+   hexactpos 1
+   vexactpos 0
+   hexactsize 1
+   vexactsize 0
+   image0 "AF_Weapons/afm107/data/afm107_black_ca.paa"
+   mode blend
+   "src alpha" 1
+   stretch 1
+  }
   ImageWidgetClass Reticle {
    ignorepointer 1
    position 0 0

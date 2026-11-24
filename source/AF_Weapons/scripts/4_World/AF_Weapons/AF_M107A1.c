@@ -69,6 +69,8 @@ class AF_M107Scope : HuntingOptic
 
 	protected Widget m_AFHud;
 	protected ImageWidget m_AFReticle;
+	protected ImageWidget m_AFSideLeft;
+	protected ImageWidget m_AFSideRight;
 	protected TextWidget m_AFRange;
 	protected TextWidget m_AFZoom;
 	protected float m_AFNextMeasure;
@@ -101,13 +103,21 @@ class AF_M107Scope : HuntingOptic
 			if (!m_AFHud)
 				return;
 			m_AFReticle = ImageWidget.Cast(m_AFHud.FindAnyWidget("Reticle"));
+			m_AFSideLeft = ImageWidget.Cast(m_AFHud.FindAnyWidget("SideLeft"));
+			m_AFSideRight = ImageWidget.Cast(m_AFHud.FindAnyWidget("SideRight"));
 			m_AFRange = TextWidget.Cast(m_AFHud.FindAnyWidget("Range"));
 			m_AFZoom = TextWidget.Cast(m_AFHud.FindAnyWidget("Zoom"));
 		}
 		int sw, sh;
 		GetScreenSize(sw, sh);
+		// The round view fills the screen's height; black panels fill the sides beyond it.
 		if (m_AFReticle)
-			m_AFReticle.SetSize(sh * 0.88, sh * 0.88);      // the round view's height (PPMaskProperties)
+			m_AFReticle.SetSize(sh, sh);
+		float side = (sw - sh) * 0.5 + 2;
+		if (m_AFSideLeft)
+			m_AFSideLeft.SetSize(side, 1);
+		if (m_AFSideRight)
+			m_AFSideRight.SetSize(side, 1);
 		m_AFHud.Show(true);
 
 		int step = GetStepFOVIndex();

@@ -34,11 +34,11 @@ PARTS = {
     "stock_post": (40, 95, -137, -42),               # the stock's rear upright, carrying the monopod
     "rear_grip": [(95, -47), (180, -47), (180, -137), (95, -137)],   # open loop: the rear grip
     "rear_grip_hole": [(108, -57), (168, -57), (168, -112), (150, -122), (108, -122)],
-    "lower": [(95, -42), (330, -42), (330, -94), (215, -94), (192, -62), (95, -62)],   # lower receiver and trigger housing
+    "lower": [(95, -42), (330, -42), (330, -58), (205, -58), (185, -52), (95, -52)],   # lower receiver and trigger housing (rev 5: shallower)
     "shroud": [(325, -27), (495, -27), (495, -82), (345, -122), (325, -60)],   # angled magazine-well plate
     "mag": (337, 483, -232, -82),                    # magazine: fits inside the well plate (owner), its top inside
-    "grip": [(238, -90), (325, -90), (300, -205), (285, -217), (250, -217), (243, -205)],
-    "trigger": [(296, -88), (318, -88), (312, -120), (300, -132)],
+    "grip": [(238, -52), (325, -52), (300, -167), (285, -179), (250, -179), (243, -167)],   # rev 5: 38 mm higher
+    "trigger": [(296, -50), (318, -50), (312, -82), (300, -94)],                          # rev 5: 38 mm higher
     "barrel_collar": (860, 905, -23, 23),
     "barrel": [(905, 11), (1338, 10), (1338, -10), (905, -11)],     # fluted
     "brake": (1338, 1443, -28, 28),
@@ -89,7 +89,7 @@ LABELS = [
     (140, 80, "cheek plate"), (575, 80, "M1913 rail, 705"), (360, 32, "receiver window / bolt carrier"),
     (690, 36, "handguard: 2 x 8 lightening holes"), (1120, 24, "fluted barrel, dia 22"),
     (1390, 40, "brake, dia 56"), (410, -250, "magazine 146 wide"), (410, -100, "mag-well plate"),
-    (255, -235, "pistol grip"), (138, -152, "rear grip"), (10, 50, "butt"),
+    (255, -197, "pistol grip"), (138, -152, "rear grip"), (10, 50, "butt"),
     (600, -125, "mid lock pin"), (78, 62, "rear sight"),
 ]
 LABELS = [(fx(x), z, s) for x, z, s in LABELS]
@@ -209,7 +209,7 @@ def main():
              '<defs><marker id="a" markerWidth="8" markerHeight="8" refX="4" refY="4" orient="auto-start-reverse">'
              '<path d="M0,0 L8,4 L0,8 z" fill="#58a6ff"/></marker><style>%s</style></defs>' % css,
              '<rect width="100%" height="100%" fill="#0d1117"/>',
-             '<text class="ttl" x="%d" y="30">AF M107A1 - working blueprint, rev 4 (mm): measured off the reference, middle body +80</text>' % PAD,
+             '<text class="ttl" x="%d" y="30">AF M107A1 - working blueprint, rev 5 (mm): middle body +80, trigger group 38 higher (in-game fit)</text>' % PAD,
              '<text class="sub" x="%d" y="48">Side view measured from the owner&#39;s reference picture at 1 px = 1 mm (manual: 1443 overall); middle body lengthened 80 mm (owner). Top-view widths are estimates.</text>' % PAD,
              '<text class="sub" x="%d" y="%d">SIDE (right)</text>' % (PAD, side_base - 110),
              '<text class="sub" x="%d" y="%d">TOP</text>' % (PAD, top_base - 55)]

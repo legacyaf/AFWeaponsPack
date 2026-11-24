@@ -46,11 +46,18 @@ def _common():
     ex.RAW_QUADS = ()
     ex.LOD1_EDIT = None
     ex.SOFT_SETS = ()
-    ex.HIGH_DETAIL, ex.HIGH_EDGE_STEPS = None, None
+    # The StG 44's professional pass (2026-11-23), for all three models: normal and ambient maps baked
+    # from a finer rebuild (twice the sides on round parts, edges rounded in up to six steps, fillets
+    # every 7.5 degrees), with clean rays on small round parts.
+    ex.HIGH_DETAIL = ("high", 4.0, 6, 7.5, True)
+    ex.HIGH_EDGE_STEPS = ((0.0010, 6), (0.0005, 4), (0.0002, 2))
+    ex.HIGH_CAGE, ex.HIGH_RAY = 0.0008, 0.0016
+    ex.SAMPLES = dict(ex.SAMPLES, NORMAL=64)
     ex.SPEC_VAR, ex.SPEC_CAVITY, ex.SPEC_SET_BASE = 0.60, 0.35, {}
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
     ex.SPEC_WORN, ex.AO_FLOOR = 0.30, 0.30
     ex.EDGE_PAD = True
+    ex.REGION_WEIGHTS = True    # flat panels shade flat between the handguard's holes (2026-11-23)
     ex.ORIGIN_EMPTY = None
     ex.BODY_BONE = None
     ex.SKINS = (("", 0.0),)

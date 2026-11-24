@@ -1,4 +1,4 @@
-"""blender -b --python afstg44_levels.py -- <source folder>
+"""blender -b --python afstg44_levels.py -- <source folder> [texture sets]
 
 Levels pass on the StG 44's baked steel maps (owner's go-ahead, 2026-11-23). Reads the maps of the
 last bake from <source folder> (the PNGs as committed in 79037a3) and writes the result into
@@ -22,13 +22,25 @@ import numpy as np
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 OUT = os.path.join(HERE, "textures")
-SRC = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else OUT
+ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
+SRC = ARGS[0] if ARGS else OUT
+# Further arguments name the texture sets (default: the StG 44's). The AF M107A1 uses the same
+# pass: afm107_body afm107_mag afm107_scope. Run it once per bake: it writes over its source
+# when <source folder> is blender/textures.
+MATTE = "--matte" in ARGS
+ARGS = [a for a in ARGS if a != "--matte"]
+BASES = ARGS[1:] or ["afstg44_body", "afstg44_mag", "afzf4"]
 AO_FLOOR = 0.30                      # as written by the exporter (afstg44_dayz_export: ex.AO_FLOOR)
 # Target specular at these percentiles of the shine score (the AKM's spread, a little tempered at
 # the very top: 0.80 rather than 0.95, as ours is a phosphate finish, not blued steel).
 SPEC_PCT = (0, 5, 50, 80, 95, 100)
 SPEC_VAL = (0.0, 0.03, 0.18, 0.34, 0.72, 0.80)
 GLOSS_TOP = 0.90                     # where the 95th percentile of the gloss goes
+# --matte: a ceramic coat (the AF M107A1's Cerakote) is matte; the AKM's spread made it read as polished
+# grey steel in sunlight (in game 2026-11-23). Lower shine, worn edges still the brightest.
+if MATTE:
+    SPEC_VAL = (0.0, 0.02, 0.08, 0.14, 0.32, 0.45)
+    GLOSS_TOP = 0.62
 
 
 def load(path):
@@ -62,7 +74,7 @@ def stats(tag, co, sm):
         + tuple(np.percentile(sm[..., 2], [5, 50, 95]))))
 
 
-for base in ("afstg44_body", "afstg44_mag", "afzf4"):
+for base in BASES:
     im_co, co = load(os.path.join(SRC, base + "_co.png"))
     im_sm, sm = load(os.path.join(SRC, base + "_smdi.png"))
     _im_as, amb = load(os.path.join(SRC, base + "_as.png"))

@@ -111,6 +111,16 @@ def reticle():
         paint(img, rect(-w, w, -dy - 1.2, -dy + 1.2), BLACK)
         paint(img, rect(-w - 1.8, w + 1.8, -dy - 3.0, -dy + 3.0), RED, 0.55)
         text(img, str(hundreds), w + 6, -dy + 7, 2, BLACK)
+    # The round view: opaque black outside a circle with a soft dark rim (the scope tube), because the
+    # game's own optics mask does not draw under a scripted view. The HUD fills the screen's sides black.
+    r = np.hypot(X, Yv)
+    edge = np.clip((r - 0.455 * N) / (0.035 * N), 0, 1)
+    paint(img, edge, BLACK)
+    return img
+
+
+def black():
+    img = blank(0.0, 1.0)
     return img
 
 
@@ -146,4 +156,5 @@ if __name__ == "__main__":
     out = sys.argv[sys.argv.index("--") + 1] if "--" in sys.argv else os.path.dirname(os.path.abspath(__file__))
     ret = reticle()
     save(ret, os.path.join(out, "afm107_reticle_ca.png"))
+    save(black(), os.path.join(out, "afm107_black_ca.png"))
     save(preview(ret), os.path.join(out, "m107_reticle_preview.png"))

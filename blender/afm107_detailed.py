@@ -96,12 +96,120 @@ MAG_PREFIX, SCOPE_PREFIX = "M107M_", "M107S_"
 MAG_PROXY = (0.0, 0.0542, 0.0409)
 
 
-def materials():
-    return {"steel": d.material("Cerakote", (0.028, 0.029, 0.030), rough=0.50, metal=0.25, bump=0.02, bump_scale=900),
-            "bare": d.material("Steel", (0.10, 0.10, 0.105), rough=0.30, metal=0.9),
+def zones(which):
+    """Where the M107A1 is handled, knocked and rubbed (centre, half sizes, strength), each model in its
+    own frame. Drives the edge wear, polish and scratches of the finish."""
+    if which == "mag":
+        return (((0.0, 0.0, 0.030), (0.032, 0.080, 0.012), 1.0),          # feed lips
+                ((0.0, 0.0, -0.120), (0.036, 0.085, 0.014), 1.0),         # floor plate: dropped, stood on end
+                ((0.0, 0.0, -0.045), (0.034, 0.080, 0.050), 0.35))        # body: hands and pouches
+    if which == "scope":
+        return (((0.0, -0.190, 0.0), (0.026, 0.012, 0.026), 0.9),         # eyepiece rim
+                ((0.0, 0.190, 0.0), (0.031, 0.012, 0.031), 0.9),          # objective rim
+                ((0.0, 0.0, 0.030), (0.016, 0.016, 0.006), 0.8),          # elevation turret: the fingers
+                ((0.0, 0.0, -0.030), (0.020, 0.120, 0.008), 0.6))         # ring feet on the rail
+    return (((0.0, Y(140.0), Zm(20.0)), (0.050, 0.075, 0.025), 0.8),     # cheek plates: the face
+            ((0.0, Y(138.0), Zm(-90.0)), (0.030, 0.050, 0.050), 0.9),    # rear grip loop: the support hand
+            ((0.044, Y(fx(520.0)), Zm(-10.0)), (0.014, 0.016, 0.016), 1.0),  # charging handle
+            ((0.0, Y(fx(420.0)), Zm(-95.0)), (0.040, 0.090, 0.022), 0.8),     # magazine well mouth
+            ((0.0, Y(fx(720.0)), Zm(-38.0)), (0.036, 0.160, 0.012), 0.6),     # under the handguard
+            ((0.0, Y(fx(1390.0)), BORE), (0.032, 0.060, 0.032), 0.9),         # muzzle brake
+            ((0.0, Y(fx(500.0)), Zm(61.0)), (0.013, 0.320, 0.005), 0.5),      # rail edges: mounts, kit
+            ((0.0, Y(8.0), Zm(-50.0)), (0.032, 0.022, 0.095), 0.9),           # butt: set down on it
+            ((0.0, Y(fx(860.0)), Zm(5.0)), (0.036, 0.030, 0.050), 0.7))       # handguard nose
+
+
+# Stroke glyphs for the struck markings (4 wide, 6 tall, in glyph units).
+_C = [(4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0), (3, 0), (4, 1)]
+_O = [(1, 0), (3, 0), (4, 1), (4, 5), (3, 6), (1, 6), (0, 5), (0, 1), (1, 0)]
+GLYPHS = {
+    "A": [[(0, 0), (2, 6), (4, 0)], [(0.8, 2.4), (3.2, 2.4)]],
+    "B": [[(0, 0), (0, 6), (3, 6), (4, 5), (4, 4), (3, 3.1), (0, 3.1)], [(3, 3.1), (4, 2), (4, 1), (3, 0), (0, 0)]],
+    "C": [_C], "G": [_C + [(4, 3), (2.2, 3)]], "O": [_O], "0": [_O],
+    "F": [[(4, 6), (0, 6), (0, 0)], [(0, 3.1), (3, 3.1)]],
+    "L": [[(0, 6), (0, 0), (4, 0)]], "M": [[(0, 0), (0, 6), (2, 3), (4, 6), (4, 0)]],
+    "N": [[(0, 0), (0, 6), (4, 0), (4, 6)]], "S": [[(4, 5), (3, 6), (1, 6), (0, 5), (0, 4), (1, 3.1), (3, 2.9),
+                                                    (4, 2), (4, 1), (3, 0), (1, 0), (0, 1)]],
+    "1": [[(1, 5), (2, 6), (2, 0)], [(1, 0), (3, 0)]], "7": [[(0, 6), (4, 6), (1.5, 0)]],
+    "5": [[(4, 6), (0, 6), (0, 3.4), (3, 3.4), (4, 2.4), (4, 1), (3, 0), (0, 0)]],
+    ".": [[(1.7, 0), (2.3, 0), (2.3, 0.6), (1.7, 0.6), (1.7, 0)]], "/": [[(0, 0), (4, 6)]], " ": [],
+}
+
+
+def receiver_sheet(side):
+    """Pressed and struck detail on one side of the upper and lower receivers (side +1 right, -1 left),
+    as a height map baked into the normal map: the real receiver is riveted sheet steel, so two long
+    stiffening swages run its length with rows of domed rivets above and below them; the left side
+    carries the roll mark and serial; the safety's S and F are struck on the lower beside it. The roll
+    mark names this mod's rifle only (no maker's name or logo)."""
+    import afstg44_detailed as stg
+    import numpy as np
+    window = (Y(fx(10.0)), Zm(-64.0), Y(fx(565.0)) - Y(fx(10.0)), 0.116)
+    pen = stg._Pen(window)
+    right = side > 0
+    wx0, wx1, wz0, wz1 = P["window"]
+    pins = [(fx(205.0), 12.0), (fx(470.0), -28.0), (fx(545.0), 28.0), (fx(300.0), -30.0)]
+    for z in (-22.0, 30.0):                                        # stiffening swages, round-topped
+        pen.bead(pen.seg((Y(240.0), Zm(z)), (Y(fx(552.0)), Zm(z))), 0.0018, 0.00045)
+    for z, x_a in ((-34.0, 240.0), (41.0, 275.0)):                 # domed rivets above and below them
+        x = x_a
+        while x < fx(552.0):
+            if all(abs(x - px) > 12 or abs(z - pz) > 12 for px, pz in pins):
+                dist = np.hypot(pen.Y - Y(x), pen.Z - Zm(z))
+                np.add(pen.hm, 0.00050 * np.sqrt(np.clip(1.0 - (dist / 0.0026) ** 2, 0, 1)), out=pen.hm)
+            x += 38.0
+    for xs in (fx(140.0), fx(552.0)):                              # the receiver's panel joints
+        pen.bead(pen.seg((Y(xs), Zm(-40.0)), (Y(xs), Zm(46.0))), 0.0007, -0.00028)
+
+    def write(textline, x_mm, z_mm, height_mm):
+        size = height_mm / 6000.0
+        dist = np.full((pen.H, pen.W), 1e9, dtype=np.float32)
+        cx = 0.0
+        for ch in textline:
+            for poly in GLYPHS[ch]:
+                pts = [((Y(x_mm) + (cx + gx) * size) if right else (Y(x_mm) - (cx + gx) * size), Zm(z_mm) + gz * size)
+                       for gx, gz in poly]
+                for a, b in zip(pts, pts[1:]):
+                    np.minimum(dist, pen.seg(a, b), out=dist)
+            cx += 6.0
+        np.add(pen.hm, -0.00030 * pen.ease(1.5 - dist / (size * 0.50)), out=pen.hm)
+
+    if right:
+        write("CAL .50 BMG", fx(150.0) + 0.0, -12.0, 4.0)        # behind the window, below the cheek plate
+    else:
+        write("AF M107A1", fx(470.0), 18.0, 6.0)                 # the roll mark, read from the left
+        write("CAL .50 BMG", fx(470.0), 6.0, 4.5)
+        write("NO AF00107", fx(470.0), -8.0, 4.0)
+        sx = fx(300.0)
+        write("S", sx + 22.0, -50.0, 4.0)                        # safety: S behind, F ahead of it
+        write("F", sx - 14.0, -50.0, 4.0)
+    img = pen.image(PREFIX + "Sheet_" + ("R" if right else "L"), "afm107_sheet_%s.png" % ("r" if right else "l"))
+    img["af_window"] = window
+    return img
+
+
+def materials(which="rifle"):
+    import afstg44_detailed as stg
+    steel = d.material("Cerakote", (0.021, 0.022, 0.023), rough=0.58, metal=0.30, bump=0.03, bump_scale=1100,
+                       rough_var=0.08)
+    # Cerakote over steel: the StG 44's finish layers (mottling, grime in corners, edge wear to bare
+    # steel, use wear in the zones), tested in game; its colours suit a dark ceramic coat as well.
+    import afm41_pathfinder_detailed as m41
+    old_prefix, m41.PREFIX = m41.PREFIX, d.PREFIX        # the finish code finds the material's taps by prefix
+    try:
+        sheets = ([(receiver_sheet(1), 1, None, 0.020), (receiver_sheet(-1), -1, None, 0.020)]
+                  if which == "rifle" else [])
+        sheets = [(img, sd, tuple(img["af_window"]), xm) for img, sd, _, xm in sheets]
+        stg._phosphate(steel, Y(fx(1443.0)) if which == "rifle" else 9.0, carried=False, zones=zones(which),
+                       sheets=sheets)
+    finally:
+        m41.PREFIX = old_prefix
+    return {"steel": steel,
+            "bare": d.material("Steel", (0.10, 0.10, 0.105), rough=0.30, metal=0.9, machining=0.3),
             "dark": d.material("Inside", (0.006, 0.006, 0.007), rough=0.7),
-            "rubber": d.material("Rubber", (0.010, 0.010, 0.010), rough=0.92),
-            "poly": d.material("Polymer", (0.020, 0.020, 0.021), rough=0.75, bump=0.06, bump_scale=1400)}
+            "rubber": d.material("Rubber", (0.012, 0.012, 0.012), rough=0.90, bump=0.25, bump_scale=500, stipple=0.6),
+            "poly": d.material("Polymer", (0.016, 0.016, 0.017), rough=0.78, bump=0.20, bump_scale=600, stipple=0.5,
+                               rough_var=0.08, scratches=0.15)}
 
 
 def smooth(cols):
@@ -136,7 +244,7 @@ def build():
     steel, bare, dark, rubber, poly = m["steel"], m["bare"], m["dark"], m["rubber"], m["poly"]
 
     # --- Upper receiver ----------------------------------------------------------------------
-    up = d.profile("UpperReceiver", body, steel, side_pts(P["upper"]), 0.076, bevel=0.0018, round=0.004,
+    up = d.profile("UpperReceiver", body, steel, side_pts(P["upper"]), 0.076, bevel=0.0030, round=0.008,
                    note="Upper receiver: one pressing, the handguard at its front.")
     # The receiver narrows to the handguard's width over its last 60 mm, so the two meet flush.
     bm = bmesh.new()
@@ -154,7 +262,7 @@ def build():
             j = (i + 1) % 4
             bm.faces.new((vb[i], vb[j], vt[j], vt[i]))
     d.cut(up, d.make("BlendCutter", bm, cutters, None, "Taper into the handguard.", 0.0), "Blend")
-    hg = d.profile("Handguard", body, steel, side_pts(P["handguard"]), 0.064, bevel=0.0015, round=0.003,
+    hg = d.profile("Handguard", body, steel, side_pts(P["handguard"]), 0.064, bevel=0.0030, round=0.008,
                    note="Handguard: narrower than the receiver, squared off at the front.")
     x_hg0, x_hg1 = fx(565.0), fx(880.0)
     c = d.box("HandguardBoreCutter", cutters, None, (0.0, (Y(x_hg0) + Y(x_hg1)) / 2, Zm(5.0)),
@@ -228,17 +336,21 @@ def build():
     lathe("BrakeBaffle", body, dark, [(kx0 + 8, 0), (kx0 + 8, 23), (kx0 + 12, 23), (kx0 + 12, 0)], sides=24)
 
     # --- Lower receiver, stock, grips ----------------------------------------------------------
-    d.profile("Butt", body, steel, side_pts(P["butt"]), 0.052, bevel=0.0020, round=0.006, note="Butt.")
+    d.profile("Butt", body, steel, side_pts(P["butt"]), 0.052, bevel=0.0030, round=0.008, note="Butt.")
     bx_0, bx_1, bz_0, bz_1 = bbox(P["butt"])
     d.box("RecoilPad", body, rubber, (0.0, Y(bx_0 - 4), (Zm(bz_0) + Zm(bz_1)) / 2), (0.054, 0.012, Zm(bz_1) - Zm(bz_0) - 0.010),
           bevel=0.0035, note="Recoil pad.")
-    d.profile("StockPost", body, steel, side_pts(P["stock_post"]), 0.048, bevel=0.0018, round=0.004)
+    bm = bmesh.new()
+    for k in range(9):
+        d.bm_box(bm, (0.0, Y(bx_0 - 10), Zm(bz_0 + 12 + k * (bz_1 - bz_0 - 24) / 8)), (0.07, 0.006, 0.0022))
+    d.cut(bpy.data.objects[PREFIX + "RecoilPad"], d.make("PadGrooveCutter", bm, cutters, None, "", 0.0), "Grooves")
+    d.profile("StockPost", body, steel, side_pts(P["stock_post"]), 0.048, bevel=0.0030, round=0.008)
     rg = d.profile("RearGrip", body, poly, side_pts(P["rear_grip"]), 0.036, bevel=0.0018, round=0.008, note="Rear grip loop.")
     bm = bmesh.new()
     d.bm_profile(bm, [(Y(x), Zm(z)) for x, z in d.fillet(P["rear_grip_hole"], 6.0)], 0.2)
     d.cut(rg, d.make("RearGripHoleCutter", bm, cutters, None, "", 0.0), "Hole")
-    d.profile("LowerReceiver", body, steel, side_pts(P["lower"]), 0.050, bevel=0.0018, round=0.004)
-    d.profile("MagWellPlate", body, steel, side_pts(P["shroud"]), 0.072, bevel=0.0020, round=0.004,
+    d.profile("LowerReceiver", body, steel, side_pts(P["lower"]), 0.050, bevel=0.0030, round=0.008)
+    d.profile("MagWellPlate", body, steel, side_pts(P["shroud"]), 0.072, bevel=0.0030, round=0.008,
               note="Angled magazine-well plate.")
     grip = d.profile("PistolGrip", body, poly, side_pts(P["grip"]), 0.032, bevel=0.0030, round=0.008, note="Pistol grip.")
     gx0, gx1, gz0, gz1 = bbox(P["grip"])
@@ -264,6 +376,41 @@ def build():
         d.bm_lathe(bm, [(-0.040, 0.0), (-0.040, 0.0035), (0.042, 0.0035), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
         d.bm_lathe(bm, [(0.037, 0.0), (0.037, 0.0050), (0.042, 0.0050), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
     d.make("LockPins", bm, body, bare, "Mid and rear lock pins with their pull rings.", 0.0)
+    # --- Small parts a real rifle has ------------------------------------------------------------
+    bm = bmesh.new()
+    for xp, zp in ((fx(205.0), 12.0), (fx(470.0), -28.0), (fx(545.0), 28.0), (fx(300.0), -30.0)):
+        for side in (-1, 1):                                  # cross pins: domed heads on both walls
+            d.bm_lathe(bm, [(side * 0.0378, 0.0), (side * 0.0378, 0.0042), (side * 0.0392, 0.0040),
+                            (side * 0.0398, 0.0028), (side * 0.0400, 0.0)], sides=16, axis="X", c=(Y(xp), Zm(zp)))
+    d.make("CrossPins", bm, body, bare, "Cross pins through the receiver.", 0.0)
+    bm = bmesh.new()
+    x0c, x1c, z0c, z1c = bbox(P["cheek"])
+    for xs in (x0c + 12, (x0c + x1c) / 2, x1c - 12):
+        for side in (-1, 1):                                  # cheek plate screws
+            d.bm_lathe(bm, [(side * 0.0412, 0.0), (side * 0.0412, 0.0030), (side * 0.0422, 0.0027),
+                            (side * 0.0425, 0.0)], sides=12, axis="X", c=(Y(xs), Zm(z0c + 6)))
+    d.make("CheekScrews", bm, body, bare, "Cheek plate screws.", 0.0)
+    bm = bmesh.new()
+    for a in range(4):                                        # barrel-spring screws on the handguard's face
+        ang = math.pi / 4 + a * math.pi / 2
+        d.bm_lathe(bm, [(Y(fx(890.0)) - 0.001, 0.0), (Y(fx(890.0)) - 0.001, 0.0032), (Y(fx(890.0)) + 0.0025, 0.0030),
+                        (Y(fx(890.0)) + 0.0025, 0.0)], sides=12,
+                   c=(0.026 * math.cos(ang), BORE + 0.026 * math.sin(ang)))
+    d.make("SpringScrews", bm, body, bare, "Barrel-spring screws.", 0.0)
+    # Trigger guard: a loop from the trigger housing to the front of the grip.
+    tx0, tx1, tz0, tz1 = bbox(P["trigger"])
+    g = d.profile("TriggerGuard", body, steel, side_pts([(tx0 - 6, tz1), (tx1 + 30, tz1), (tx1 + 30, tz0 - 14), (tx0 - 6, tz0 - 14)]),
+                  0.012, bevel=0.0012, round=0.005, note="Trigger guard.")
+    bm = bmesh.new()
+    d.bm_profile(bm, side_pts(d.fillet([(tx0 - 1, tz1 - 1), (tx1 + 23, tz1 - 1), (tx1 + 23, tz0 - 7), (tx0 - 1, tz0 - 7)], 4.0)), 0.2)
+    d.cut(g, d.make("GuardHoleCutter", bm, cutters, None, "", 0.0), "Hole")
+    d.box("MagCatch", body, bare, (-0.0375, Y(fx(500.0)), Zm(-70.0)), (0.006, 0.014, 0.016), bevel=0.0012,
+          note="Magazine catch, left.")
+    bm = bmesh.new()
+    import afm41_pathfinder_detailed as m41
+    m41.bm_torus(bm, (-0.0335, Y(fx(800.0)), Zm(-30.0)), 0.009, 0.0018, seg=16, sides=8)
+    m41.bm_torus(bm, (-0.0270, Y(40.0), Zm(-110.0)), 0.009, 0.0018, seg=16, sides=8)
+    d.make("SlingLoops", bm, body, bare, "Sling loops, left: handguard and butt.", 0.0)
     smooth((body, moving))
 
     # --- Memory points (SVD names) and proxies ---------------------------------------------------
@@ -291,7 +438,7 @@ def build_magazine():
     body = d.collection("Body")
     d.collection("Moving")
     cutters = d.collection("Cutters")
-    steel = materials()["steel"]
+    steel = materials("mag")["steel"]
     # --- Magazine ---------------------------------------------------------------------------------
     mx0, mx1, mz0, mz1 = P["mag"]
     mag = d.box("Magazine", body, steel, (0.0, (Y(mx0) + Y(mx1)) / 2, (Zm(mz0) + Zm(mz1)) / 2),
@@ -325,7 +472,7 @@ def build_scope_model():
     body = d.collection("Body")
     d.collection("Moving")
     memory = d.collection("Memory")
-    m = materials()
+    m = materials("scope")
     build_scope(body, m["steel"], m["dark"], m["rubber"])
     smooth((body,))
     offset(body, SCOPE_CENTRE())
@@ -357,8 +504,8 @@ def build_scope(body, steel, dark, rubber):
     sl("ScopeTube", [(96, 15.0), (260, 15.0), (262, 0)], sides=36)
     sl("ScopeObjective", [(258, 15.2), (270, 15.2), (300, 27.0), (310, 28.5), (372, 28.5), (380, 27.5), (380, 0)], sides=44)
     sl("ScopeObjectiveRing", [(352, 28.5), (352, 29.3), (366, 29.3), (366, 28.5)], closed=True, cap=False)
-    sl("ScopeLensRear", [(0.5, 0), (0.5, 17.5)], mat=dark, cap=False, sides=32)
-    sl("ScopeLensFront", [(379.5, 0), (379.5, 26.0)], mat=dark, cap=False, sides=40)
+    sl("ScopeLensRear", [(0.5, 0), (0.5, 17.5), (2.5, 17.5), (2.5, 0)], mat=dark, cap=False, sides=32)   # 2 mm glass: a solid, not a plane
+    sl("ScopeLensFront", [(379.5, 0), (379.5, 26.0), (377.5, 26.0), (377.5, 0)], mat=dark, cap=False, sides=40)
     # Turret saddle and the three turrets.
     ym = Y(x0 + 178)
     d.box("ScopeSaddle", body, steel, (0.0, ym, zc), (0.036, 0.050, 0.036), bevel=0.004)
