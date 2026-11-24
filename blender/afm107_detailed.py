@@ -35,14 +35,18 @@ bp = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(bp)
 
 PREFIX = "M107_"
-BORE = 0.100
 P = bp.PARTS
 fx = bp.fx
-X_TRIGGER = P["trigger"][0][0]
+# The vanilla SVD's frame (measured in game, docs/M107.md): the M107A1's trigger pivot sits on the
+# SVD's trigger_axis, so the SVD's hand animations close on its grip.
+SVD_TRIGGER = (-0.0819, 0.0645)                     # working y, z of the SVD's trigger_axis
+X_TRIGGER = (P["trigger"][0][0] + P["trigger"][1][0]) / 2     # blueprint x of the trigger pivot (its top)
+Z_TRIGGER = P["trigger"][0][1]                       # blueprint z of the pivot (mm below the bore)
+BORE = SVD_TRIGGER[1] - Z_TRIGGER / 1000.0           # 0.1525: 52 mm above the SVD's bore
 
 
 def Y(x_mm):
-    return (x_mm - X_TRIGGER) / 1000.0
+    return (x_mm - X_TRIGGER) / 1000.0 + SVD_TRIGGER[0]
 
 
 def Zm(z_mm):
@@ -86,19 +90,50 @@ def ring(bm, centre, radius, tube, seg=24, sides=8):
             bm.faces.new((a[j], a[(j + 1) % sides], b[(j + 1) % sides], b[j]))
 
 
+MAG_PREFIX, SCOPE_PREFIX = "M107M_", "M107S_"
+# The magazine model's origin is the SVD's magazine proxy point, so the SVD's reload animations hold
+# it where they expect; the scope model's origin is the middle of its tube.
+MAG_PROXY = (0.0, 0.0542, 0.0409)
+
+
+def materials():
+    return {"steel": d.material("Cerakote", (0.028, 0.029, 0.030), rough=0.50, metal=0.25, bump=0.02, bump_scale=900),
+            "bare": d.material("Steel", (0.10, 0.10, 0.105), rough=0.30, metal=0.9),
+            "dark": d.material("Inside", (0.006, 0.006, 0.007), rough=0.7),
+            "rubber": d.material("Rubber", (0.010, 0.010, 0.010), rough=0.92),
+            "poly": d.material("Polymer", (0.020, 0.020, 0.021), rough=0.75, bump=0.06, bump_scale=1400)}
+
+
+def smooth(cols):
+    """Clean shading on the big faces left by the Boolean cuts: area-weighted normals, edges kept sharp."""
+    for col in cols:
+        for ob in col.objects:
+            if ob.type == "MESH":
+                for face in ob.data.polygons:
+                    face.use_smooth = True
+                mod = ob.modifiers.new("WeightedNormal", "WEIGHTED_NORMAL")
+                mod.mode = "FACE_AREA"
+                mod.weight = 50
+                mod.keep_sharp = True
+
+
+def offset(col, v):
+    for ob in col.objects:
+        ob.location = (ob.location[0] - v[0], ob.location[1] - v[1], ob.location[2] - v[2])
+
+
 def build():
-    for ob in list(bpy.data.objects):
-        bpy.data.objects.remove(ob, do_unlink=True)
+    """The rifle (prefix M107_): everything but the magazine and the scope, which are models of their own."""
     d.PREFIX = PREFIX
     d.clean()
     d.CUTS = True
     body = d.collection("Body")
+    moving = d.collection("Moving")
+    memory = d.collection("Memory")
+    proxies = d.collection("Proxies")
     cutters = d.collection("Cutters")
-    steel = d.material("Cerakote", (0.028, 0.029, 0.030), rough=0.50, metal=0.25, bump=0.02, bump_scale=900)
-    bare = d.material("Steel", (0.10, 0.10, 0.105), rough=0.30, metal=0.9)
-    dark = d.material("Inside", (0.006, 0.006, 0.007), rough=0.7)
-    rubber = d.material("Rubber", (0.010, 0.010, 0.010), rough=0.92)
-    poly = d.material("Polymer", (0.020, 0.020, 0.021), rough=0.75, bump=0.06, bump_scale=1400)
+    m = materials()
+    steel, bare, dark, rubber, poly = m["steel"], m["bare"], m["dark"], m["rubber"], m["poly"]
 
     # --- Upper receiver ----------------------------------------------------------------------
     up = d.profile("UpperReceiver", body, steel, side_pts(P["upper"]), 0.076, bevel=0.0018, round=0.004,
@@ -136,7 +171,7 @@ def build():
     c = d.box("WindowCutter", cutters, None, (0.030, (Y(wx0) + Y(wx1)) / 2, (Zm(wz0) + Zm(wz1)) / 2),
               (0.030, Y(wx1) - Y(wx0), Zm(wz1) - Zm(wz0)), bevel=0, note="Ejection window, right.")
     d.cut(up, c, "Window")
-    lathe("BoltCarrier", body, bare, [(wx0 - 20, 0), (wx0 - 20, 17), (wx1 + 20, 17), (wx1 + 20, 0)], sides=24, bevel=0.0006,
+    lathe("BoltCarrier", moving, bare, [(wx0 - 20, 0), (wx0 - 20, 17), (wx1 + 20, 17), (wx1 + 20, 0)], sides=24, bevel=0.0006,
           note="Bolt carrier, seen through the window.")
     # Rail: M1913 section along the top, cross slots every 10 mm.
     rx0, rx1, rz0, rz1 = P["rail"]
@@ -166,8 +201,6 @@ def build():
     d.box("RearSightAperture", body, steel, (0.0, Y(78), Zm(52)), (0.012, 0.006, 0.016), bevel=0.0008)
     d.box("FrontSight", body, steel, (0.0, Y(fx(880.0)), Zm(70)), (0.010, 0.008, 0.020), bevel=0.0008,
           note="Folding front sight, raised.")
-
-    build_scope(body, steel, dark, rubber)
 
     # --- Barrel and brake -----------------------------------------------------------------------
     cx0, cx1, _, _ = P["barrel_collar"]
@@ -215,11 +248,50 @@ def build():
         xf = gx1 - 8 - (gz1 - zz) * 0.20
         d.bm_lathe(bm, [(-0.03, 0.0), (-0.03, 0.0075), (0.03, 0.0075), (0.03, 0.0)], sides=16, axis="X", c=(Y(xf + 6), Zm(zz)))
     d.cut(grip, d.make("GripGrooveCutter", bm, cutters, None, "", 0.0), "Grooves")
-    d.profile("Trigger", body, bare, side_pts(P["trigger"]), 0.006, bevel=0.0010, round=0.002)
+    d.profile("Weapon_Trigger", moving, bare, side_pts(P["trigger"]), 0.006, bevel=0.0010, round=0.002,
+              note="Trigger. Bone 'trigger'.")
     d.box("Safety", body, steel, (-0.026, Y(fx(300.0)), Zm(-55)), (0.004, 0.020, 0.008), bevel=0.0008, note="Safety, left.")
     d.box("ChargingHandle", body, steel, (0.044, Y(fx(520.0)), Zm(-10)), (0.014, 0.014, 0.018), bevel=0.0020,
           note="Charging handle, right.")
 
+    # --- Monopod, bipod, lock pins ------------------------------------------------------------------
+    # (Monopod under the stock removed, owner 2026-11-23.)
+    d.profile("BipodYoke", body, steel, side_pts(P["bipod_yoke"]), 0.044, bevel=0.0018, round=0.004)
+    # (Folded bipod legs under the barrel removed, owner 2026-11-23.)
+    bm = bmesh.new()
+    for x, z, r in (bp.MID_PIN, bp.REAR_PIN):
+        ring(bm, (0.040, Y(x), Zm(z)), r / 1000.0, 0.0016)
+        d.bm_lathe(bm, [(-0.040, 0.0), (-0.040, 0.0035), (0.042, 0.0035), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
+        d.bm_lathe(bm, [(0.037, 0.0), (0.037, 0.0050), (0.042, 0.0050), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
+    d.make("LockPins", bm, body, bare, "Mid and rear lock pins with their pull rings.", 0.0)
+    smooth((body, moving))
+
+    # --- Memory points (SVD names) and proxies ---------------------------------------------------
+    sx0 = fx(SCOPE_X0)
+    d.empty("Mem_Muzzle", memory, (0.0, Y(fx(1443.0)), BORE), "'usti hlavne' - muzzle (front of the brake).")
+    d.empty("Mem_BarrelEnd", memory, (0.0, Y(fx(905.0)), BORE), "'konec hlavne' - with the muzzle, the firing line.")
+    d.empty("Mem_Eye", memory, (0.0, Y(40.0), Zm(60.0)), "'eye' - iron sights, behind the rear sight.")
+    d.empty("Mem_CaseStart", memory, (0.020, Y(fx(400.0)), BORE), "'nabojnicestart' - cases leave the window...")
+    d.empty("Mem_CaseEnd", memory, (0.120, Y(fx(380.0)), BORE + 0.030), "'nabojniceend' - ...to the right.")
+    d.empty("Mem_TriggerAxis", memory, (0.0, SVD_TRIGGER[0], SVD_TRIGGER[1]), "'trigger_axis' - trigger pivot.")
+    d.empty("Mem_BoltAxis", memory, (0.0, Y(fx(400.0)), BORE), "'bolt_axis'.")
+    d.empty("Mem_MagAxis", memory, (0.0, 0.0965, 0.1052), "'magazine_axis' - the SVD's, for its reload.")
+    d.empty("Mem_MagAxis2", memory, (0.0, 0.0902, 0.0319), "'magazine_axis2'.")
+    d.empty("Proxy_Magazine", proxies, MAG_PROXY, "magazine proxy: the AF M107A1 magazine's origin.", kind="ARROWS",
+            size=0.03)
+    d.empty("Proxy_Scope", proxies, SCOPE_CENTRE(), "scope proxy (slot weaponOpticsAFM107): the scope's origin.",
+            kind="ARROWS", size=0.03)
+
+
+def build_magazine():
+    """The magazine (prefix M107M_), built round the SVD's magazine proxy point."""
+    d.PREFIX = MAG_PREFIX
+    d.clean()
+    d.CUTS = True
+    body = d.collection("Body")
+    d.collection("Moving")
+    cutters = d.collection("Cutters")
+    steel = materials()["steel"]
     # --- Magazine ---------------------------------------------------------------------------------
     mx0, mx1, mz0, mz1 = P["mag"]
     mag = d.box("Magazine", body, steel, (0.0, (Y(mx0) + Y(mx1)) / 2, (Zm(mz0) + Zm(mz1)) / 2),
@@ -237,25 +309,26 @@ def build():
     d.box("MagFloorPlate", body, steel, (0.0, (Y(mx0) + Y(mx1)) / 2, Zm(mz0) - 0.002), (0.064, Y(mx1) - Y(mx0) + 0.004, 0.005),
           bevel=0.0012)
 
-    # --- Monopod, bipod, lock pins ------------------------------------------------------------------
-    # (Monopod under the stock removed, owner 2026-11-23.)
-    d.profile("BipodYoke", body, steel, side_pts(P["bipod_yoke"]), 0.044, bevel=0.0018, round=0.004)
-    # (Folded bipod legs under the barrel removed, owner 2026-11-23.)
-    bm = bmesh.new()
-    for x, z, r in (bp.MID_PIN, bp.REAR_PIN):
-        ring(bm, (0.040, Y(x), Zm(z)), r / 1000.0, 0.0016)
-        d.bm_lathe(bm, [(-0.040, 0.0), (-0.040, 0.0035), (0.042, 0.0035), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
-        d.bm_lathe(bm, [(0.037, 0.0), (0.037, 0.0050), (0.042, 0.0050), (0.042, 0.0)], sides=12, axis="X", c=(Y(x), Zm(z + r)))
-    d.make("LockPins", bm, body, bare, "Mid and rear lock pins with their pull rings.", 0.0)
-    # Clean shading on the big faces left by the Boolean cuts: area-weighted normals, edges kept sharp.
-    for ob in body.objects:
-        if ob.type == "MESH":
-            for poly in ob.data.polygons:
-                poly.use_smooth = True
-            mod = ob.modifiers.new("WeightedNormal", "WEIGHTED_NORMAL")
-            mod.mode = "FACE_AREA"
-            mod.weight = 50
-            mod.keep_sharp = True
+    smooth((body,))
+    offset(body, MAG_PROXY)
+
+
+def SCOPE_CENTRE():
+    return (0.0, Y(fx(SCOPE_X0 + 190.0)), Zm(SCOPE_AXIS))
+
+
+def build_scope_model():
+    """The built-in scope (prefix M107S_), built round the middle of its tube."""
+    d.PREFIX = SCOPE_PREFIX
+    d.clean()
+    d.CUTS = True
+    body = d.collection("Body")
+    d.collection("Moving")
+    d.collection("Memory")
+    m = materials()
+    build_scope(body, m["steel"], m["dark"], m["rubber"])
+    smooth((body,))
+    offset(body, SCOPE_CENTRE())
 
 
 # --- Built-in scope (owner: "a built in hunting scope, 6x - 12x, red crosshair, meter counter") ----
@@ -319,8 +392,12 @@ def build_scope(body, steel, dark, rubber):
 
 def render(out):
     sc = bpy.context.scene
-    names = {e.identifier for e in bpy.types.RenderSettings.bl_rna.properties["engine"].enum_items}
-    sc.render.engine = "BLENDER_EEVEE_NEXT" if "BLENDER_EEVEE_NEXT" in names else "BLENDER_EEVEE"
+    # Ray traced (Cycles), owner 2026-11-23: real reflections, shadows and occlusion in the previews.
+    sc.render.engine = "CYCLES"
+    sc.cycles.device = "CPU"
+    sc.cycles.samples = 96
+    sc.cycles.use_denoising = True
+    sc.cycles.max_bounces = 6
     sc.render.resolution_x, sc.render.resolution_y = 1920, 1080
     world = bpy.data.worlds.new("M107_World")
     world.use_nodes = True
@@ -335,7 +412,8 @@ def render(out):
     cam = bpy.data.objects.new("M107_Cam", bpy.data.cameras.new("M107_Cam"))
     sc.collection.objects.link(cam)
     sc.camera = cam
-    obs = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(PREFIX) and not o.hide_render]
+    obs = [o for o in bpy.data.objects if o.type == "MESH" and o.name.startswith(("M107_", "M107M_", "M107S_"))
+           and not o.hide_render and not any(c.name.endswith("Cutters") for c in o.users_collection)]
     lo = Vector((1e9,) * 3)
     hi = Vector((-1e9,) * 3)
     for o in obs:
@@ -365,8 +443,26 @@ def render(out):
         print("RENDERED", sc.render.filepath)
 
 
+def build_all():
+    for ob in list(bpy.data.objects):            # the factory scene's cube, camera and light
+        bpy.data.objects.remove(ob, do_unlink=True)
+    build()
+    build_magazine()
+    build_scope_model()
+
+
+def assemble(on=True):
+    """Previews: the magazine and scope moved onto their proxies (on=False puts them back)."""
+    k = 1 if on else -1
+    for prefix, at in ((MAG_PREFIX, MAG_PROXY), (SCOPE_PREFIX, SCOPE_CENTRE())):
+        col = bpy.data.collections.get(prefix + "Body")
+        for ob in col.objects:
+            ob.location = tuple(ob.location[i] + k * at[i] for i in range(3))
+
+
 if __name__ == "__main__":
     args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-    build()
+    build_all()
     bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "afm107_detailed.blend"))
+    assemble(True)
     render(args[0] if args else os.path.join(os.path.dirname(HERE), "docs", "img"))
