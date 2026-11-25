@@ -537,9 +537,10 @@ class CfgWeapons
 		magazines[] = {"Mag_AFM107_10Rnd"};
 		attachments[] = {"weaponOpticsAFM107"};
 		simpleHiddenSelections[] = {};
-		hiddenSelections[] = {"camo"};
-		hiddenSelectionsTextures[] = {"AF_Weapons\afm107\data\afm107_body_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afm107\data\afm107_body.rvmat"};
+		// Four texture sheets (2026-11-24): upper receiver, lower half, front, small parts.
+		hiddenSelections[] = {"camo", "camo1", "camo2", "camo3"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afm107\data\afm107_body_co.paa", "AF_Weapons\afm107\data\afm107_lower_co.paa", "AF_Weapons\afm107\data\afm107_front_co.paa", "AF_Weapons\afm107\data\afm107_parts_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afm107\data\afm107_body.rvmat", "AF_Weapons\afm107\data\afm107_lower.rvmat", "AF_Weapons\afm107\data\afm107_front.rvmat", "AF_Weapons\afm107\data\afm107_parts.rvmat"};
 		// A heavy rifle with a big muzzle brake: kick close to the SVD's, slower to swing.
 		recoilModifier[] = {1.1, 1.1, 1.1};
 		swayModifier[] = {2.6, 2.6, 0.8};
@@ -557,11 +558,11 @@ class CfgWeapons
 					hitpoints = 400;
 					healthLevels[] =
 					{
-						{1.0, {"AF_Weapons\afm107\data\afm107_body.rvmat"}},
-						{0.7, {"AF_Weapons\afm107\data\afm107_body.rvmat"}},
-						{0.5, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat"}},
-						{0.3, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat"}},
-						{0.0, {"AF_Weapons\afm107\data\afm107_body_destruct.rvmat"}}
+						{1.0, {"AF_Weapons\afm107\data\afm107_body.rvmat", "AF_Weapons\afm107\data\afm107_lower.rvmat", "AF_Weapons\afm107\data\afm107_front.rvmat", "AF_Weapons\afm107\data\afm107_parts.rvmat"}},
+						{0.7, {"AF_Weapons\afm107\data\afm107_body.rvmat", "AF_Weapons\afm107\data\afm107_lower.rvmat", "AF_Weapons\afm107\data\afm107_front.rvmat", "AF_Weapons\afm107\data\afm107_parts.rvmat"}},
+						{0.5, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat", "AF_Weapons\afm107\data\afm107_lower_damage.rvmat", "AF_Weapons\afm107\data\afm107_front_damage.rvmat", "AF_Weapons\afm107\data\afm107_parts_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afm107\data\afm107_body_damage.rvmat", "AF_Weapons\afm107\data\afm107_lower_damage.rvmat", "AF_Weapons\afm107\data\afm107_front_damage.rvmat", "AF_Weapons\afm107\data\afm107_parts_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afm107\data\afm107_body_destruct.rvmat", "AF_Weapons\afm107\data\afm107_lower_destruct.rvmat", "AF_Weapons\afm107\data\afm107_front_destruct.rvmat", "AF_Weapons\afm107\data\afm107_parts_destruct.rvmat"}}
 					};
 				};
 			};

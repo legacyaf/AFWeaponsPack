@@ -38,9 +38,13 @@ SPEC_VAL = (0.0, 0.03, 0.18, 0.34, 0.72, 0.80)
 GLOSS_TOP = 0.90                     # where the 95th percentile of the gloss goes
 # --matte: a ceramic coat (the AF M107A1's Cerakote) is matte; the AKM's spread made it read as polished
 # grey steel in sunlight (in game 2026-11-23). Lower shine, worn edges still the brightest.
+COLOUR_MEDIAN = None                 # None: keep the baked median
 if MATTE:
     SPEC_VAL = (0.0, 0.02, 0.08, 0.14, 0.32, 0.45)
     GLOSS_TOP = 0.62
+    # Darker coat (2026-11-24): at a median of 0.144 the Cerakote still read mid-grey in noon sun; the
+    # owner's reference rifles are near-black. About 30% darker, the cavity contrast kept.
+    COLOUR_MEDIAN = 0.10
 
 
 def load(path):
@@ -99,7 +103,7 @@ for base in BASES:
     # (A mid-scale contrast step, blurring the sheet, was tried and dropped: the blur crosses the
     # borders of the UV islands and left rectangular light patches on the receiver and housing.)
     rgb = rgb * (0.62 + 0.38 * ao)[..., None]
-    rgb *= med / max(float(np.median(rgb.mean(-1))), 1e-4)
+    rgb *= (COLOUR_MEDIAN or med) / max(float(np.median(rgb.mean(-1))), 1e-4)
     co[..., :3] = rgb
 
     stats(base + " after", co, sm)

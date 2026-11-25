@@ -9,9 +9,10 @@ from mathutils import Vector
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-size = int(args[0]) if args and args[0].isdigit() else 2048
+size = int(args[0]) if args and args[0].isdigit() else 4096
 bake = "nobake" not in args
 
+sys.path.insert(0, os.path.join(REPO, "blender"))      # the model imports af_topo and af_finish from here
 for ob in list(bpy.data.objects):
     bpy.data.objects.remove(ob, do_unlink=True)
 runpy.run_path(REPO + r"\blender\af7_vanguard_detailed.py", run_name="__main__")
@@ -24,6 +25,9 @@ ns["__file__"] = REPO + r"\blender\af7_vanguard_dayz_export.py"
 sys.path.insert(0, REPO + r"\blender")
 import af7_vanguard_detailed as _detail
 ns["export"].__globals__["REBUILD"] = _detail.build
+# Quality pass (owner 2026-11-24): the StG 44's export settings; the FDE furniture set shines a little.
+import af_finish
+af_finish.pro_export(ns["export"].__globals__, soft_set_base={1: 0.08})
 lod1 = ns["export"](bake=bake, tex_size=size)
 print("EXPORT_SECONDS %.1f" % (time.time() - t0))
 M = ns["export_matrix"]()

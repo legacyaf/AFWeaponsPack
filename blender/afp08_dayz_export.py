@@ -45,6 +45,8 @@ def _common():
     # The materials use the M41's lighting values (specular 0.4, power 50). Steel as on the MP40,
     # whose level was settled against vanilla guns in the in-game tests.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.20, 0.88, 0.90
+    import af_finish                     # quality pass (owner 2026-11-24): the StG 44's export settings
+    af_finish.pro_export(ex.__dict__)
 
 
 def _gun_tables():

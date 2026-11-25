@@ -14,7 +14,7 @@ import bpy
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, HERE)
 args = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
-size = int(args[0]) if args and args[0].isdigit() else 2048
+size = int(args[0]) if args and args[0].isdigit() else 4096
 bake = "nobake" not in args
 
 model = importlib.import_module("afm107_detailed")
@@ -24,8 +24,8 @@ bpy.ops.wm.save_as_mainfile(filepath=os.path.join(HERE, "afm107_detailed.blend")
 t0 = time.time()
 exp = importlib.import_module("afm107_dayz_export")
 for rebuild, fn, kw, prefix in ((model.build, exp.export, dict(tex_size=size), "M107_"),
-                                (model.build_magazine, exp.export_magazine, dict(tex_size=max(1024, size // 2)), "M107M_"),
-                                (model.build_scope_model, exp.export_scope, dict(tex_size=max(1024, size // 2)), "M107S_")):
+                                (model.build_magazine, exp.export_magazine, dict(tex_size=size), "M107M_"),
+                                (model.build_scope_model, exp.export_scope, dict(tex_size=size), "M107S_")):
     exp.ex.REBUILD = rebuild
     fn(bake=bake, **kw)
     for ob in bpy.data.collections[prefix + "DayZ"].objects:

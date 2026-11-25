@@ -143,6 +143,7 @@ def _arc(centre, radius, a0, a1, steps):
 # ----------------------------------------------------------------------------
 
 def build():
+    d.CLEAN_TOPO = True          # quad caps and modelled openings (owner 2026-11-24)
     d.PREFIX = PREFIX
     old_prefix, m41.PREFIX = m41.PREFIX, PREFIX
     try:
@@ -164,8 +165,16 @@ def _build_gun():
     cutters = d.collection("Cutters")
 
     logo = d.logo_image()
+    # Quality pass (owner 2026-11-24): the StG 44's worn-finish layers replace the older edge wear.
     m_blue = d.material("BluedSteel", (0.020, 0.022, 0.029), rough=0.33, metal=1.0, bump=0.025, bump_scale=1400,
-                        rough_var=0.09, wear=0.75, wear_rgb=(0.36, 0.36, 0.38), scratches=0.45, machining=0.06)
+                        rough_var=0.09, machining=0.06)
+    import af_finish
+    af_finish.worn(m_blue, 0.205, (
+        ((0.0, 0.016, 0.076), (0.019, 0.010, 0.010), 1.0),       # toggle knobs
+        ((0.0, 0.020, 0.000), (0.012, 0.045, 0.045), 0.5),       # grip frame: the hand
+        ((0.0, 0.083, 0.022), (0.005, 0.016, 0.014), 0.8),       # trigger guard
+        ((0.0, 0.195, 0.070), (0.010, 0.012, 0.012), 0.8)),      # muzzle and front sight
+        palette="blued")
     m_straw = d.material("Straw", (0.50, 0.33, 0.10), rough=0.30, metal=1.0, rough_var=0.06, wear=0.35,
                          wear_rgb=(0.62, 0.55, 0.42), scratches=0.30, machining=0.10)
     m_wood = m41.woodify(d.material("Walnut", (0.19, 0.080, 0.033), rough=0.46, metal=0.0, bump=0.05, bump_scale=1000,
@@ -204,10 +213,11 @@ def _build_gun():
     bm = bmesh.new()
     d.bm_xsec(bm, [(-0.0118, 0.0550), (0.0118, 0.0550), (0.0118, 0.0750), (0.0090, 0.0795), (-0.0090, 0.0795),
                    (-0.0118, 0.0750)], -0.0105, 0.0880)
+    # The open top of the fork: loop cuts round it, the cells pushed down 10.5 mm (no Boolean).
+    import af_topo
+    af_topo.openings(bm, "Z", [(-0.0086, 0.0086, -0.0065, 0.0875)], depth=0.0105, sign=1, weight=0.5)
+    af_topo.tidy(bm)
     fork = d.make("Receiver", bm, body, m_blue, "Receiver fork. Open on top: the breechblock and toggle lie in it.", bevel=0.0008)
-    c = d.box("Receiver_ForkCutter", cutters, None, (0.0, 0.0405, 0.0790), (0.0172, 0.0940, 0.0200), bevel=0,
-              note="Boolean cutter: the open top of the fork.")
-    d.cut(fork, c, "Fork")
 
     # --- Breechblock (the only part on the bone 'bolt') ---------------------------
     bm = bmesh.new()
@@ -252,12 +262,20 @@ def _build_gun():
     d.make("RearSight", bm, body, m_blue, "V notch on the rear toggle link. The sight line runs through it.", bevel=0.0002)
 
     # --- Frame -------------------------------------------------------------------------
-    frame = d.profile("Frame", body, m_blue,
-                      [(-0.0140, 0.0560), (0.1060, 0.0560), (0.1085, 0.0500), (0.1050, 0.0390), (0.0980, 0.0350),
-                       (0.0660, 0.0350), (0.0625, 0.0340), (front(GRIP_BOTTOM), GRIP_BOTTOM), (back(GRIP_BOTTOM), GRIP_BOTTOM),
-                       (back(0.0400), 0.0400), (-0.0080, 0.0470), (-0.0140, 0.0500)],
-                      width=0.0230, bevel=0.0012, round=0.0030,
-                      note="Frame and grip in one piece: rails, trigger housing, tang, straps raked 21 degrees.")
+    bm = bmesh.new()
+    d.bm_profile(bm, d.fillet([(-0.0140, 0.0560), (0.1060, 0.0560), (0.1085, 0.0500), (0.1050, 0.0390), (0.0980, 0.0350),
+                               (0.0660, 0.0350), (0.0625, 0.0340), (front(GRIP_BOTTOM), GRIP_BOTTOM), (back(GRIP_BOTTOM), GRIP_BOTTOM),
+                               (back(0.0400), 0.0400), (-0.0080, 0.0470), (-0.0140, 0.0500)], 0.0030), 0.0230)
+    # The magazine well: a pocket up the grip along its 21 degree rake, from the bottom to just under
+    # the rails (loop cuts round its mouth, the cells pushed up the rake; no Boolean).
+    import af_topo
+    half = MAG_HALF_Y + 0.0005 / math.cos(RAKE)
+    rise = -0.0100 + 0.0625 * math.cos(RAKE) - GRIP_BOTTOM
+    af_topo.openings(bm, "Z", [(-0.0071, 0.0071, mag_centre(GRIP_BOTTOM) - half, mag_centre(GRIP_BOTTOM) + half)],
+                     depth=rise, sign=-1, weight=0.4, vec=(0.0, T * rise, rise))
+    af_topo.tidy(bm)
+    frame = d.make("Frame", bm, body, m_blue,
+                   "Frame and grip in one piece: rails, trigger housing, tang, straps raked 21 degrees; magazine well.", 0.0012)
     for side in (-1, 1):
         d.profile("FrameEar_%s" % ("R" if side > 0 else "L"), body, m_blue,
                   [(-0.0145, 0.0555), (0.0140, 0.0555), (0.0100, 0.0630), (-0.0030, 0.0690), (-0.0125, 0.0690),
@@ -285,10 +303,6 @@ def _build_gun():
         d.make(nm, bm, body, m_blue, "Cross pin through the frame.")
 
     # --- Grip ----------------------------------------------------------------------------
-    zc = -0.0100
-    well = d.box("MagWellCutter", cutters, None, (0.0, mag_centre(zc), zc), (0.0142, 2 * MAG_HALF_Y * math.cos(RAKE) + 0.0010, 0.1250),
-                 rot=(-math.degrees(RAKE), 0, 0), bevel=0, note="Boolean cutter: magazine well through the grip.")
-    d.cut(frame, well, "MagWell")
     d.profile("GripPanels", body, m_wood,
               [(front(0.0460) - 0.0050, 0.0460), (back(0.0460) + 0.0045, 0.0460), (back(-0.0465) + 0.0040, -0.0465),
                (front(-0.0465) - 0.0045, -0.0465)], width=0.0310, bevel=0.0040, segments=3, round=0.0050,

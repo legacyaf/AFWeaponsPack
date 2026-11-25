@@ -91,6 +91,8 @@ ex.GEOMETRY = [((-0.021, -0.409, -0.043), (0.021, -0.130, 0.100)),    # butt
 
 
 def export(bake=True, tex_size=ex.TEX_SIZE):
+    import af_finish                     # quality pass (owner 2026-11-24): the StG 44's export settings
+    af_finish.pro_export(ex.__dict__, soft_set_base={1: 0.10})
     ex.__file__ = os.path.join(_here(), "af7_vanguard_dayz_export.py")
     return ex.export(bake=bake, tex_size=tex_size)
 

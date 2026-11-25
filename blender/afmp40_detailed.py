@@ -110,6 +110,7 @@ ROUND_SLUG = [(0.0190, 0.0045), (0.0250, 0.0042), (0.0283, 0.0027), (0.0296, 0.0
 # ----------------------------------------------------------------------------
 
 def build():
+    d.CLEAN_TOPO = True          # quad caps and modelled openings (owner 2026-11-24)
     d.PREFIX = PREFIX
     old_prefix, m41.PREFIX = m41.PREFIX, PREFIX
     try:
@@ -131,8 +132,19 @@ def _build_gun():
     cutters = d.collection("Cutters")
 
     logo = d.logo_image()
+    # Quality pass (owner 2026-11-24): the StG 44's worn-finish layers replace the older edge wear.
     m_steel = d.material("Steel", (0.026, 0.028, 0.033), rough=0.40, metal=1.0, bump=0.035, bump_scale=1100,
-                         rough_var=0.10, wear=0.75, wear_rgb=(0.36, 0.36, 0.38), scratches=0.5, machining=0.05)
+                         rough_var=0.10, machining=0.05)
+    import af_finish
+    af_finish.worn(m_steel, 0.403, (
+        ((-0.030, 0.090, 0.076), (0.016, 0.010, 0.008), 1.0),    # cocking handle
+        ((0.0, 0.085, 0.035), (0.017, 0.025, 0.025), 1.0),       # magazine housing: the support hand
+        ((0.0, 0.000, 0.090), (0.018, 0.100, 0.006), 0.5),       # top of the receiver
+        ((0.0, -0.040, 0.005), (0.006, 0.035, 0.020), 0.8),      # trigger guard
+        ((0.0, -0.386, -0.015), (0.020, 0.006, 0.055), 0.9),     # butt plate
+        ((0.0, -0.270, 0.033), (0.022, 0.120, 0.012), 0.5),      # stock struts
+        ((0.0, 0.360, 0.072), (0.012, 0.040, 0.012), 0.8)),      # muzzle
+        palette="blued")
     m_bolt = d.material("BoltSteel", (0.40, 0.40, 0.41), rough=0.27, metal=1.0, rough_var=0.06,
                         wear_rgb=(0.60, 0.60, 0.61), scratches=0.35, machining=0.28)
     m_bake = d.material("Bakelite", (0.036, 0.014, 0.007), rough=0.36, metal=0.0, bump=0.035, bump_scale=1400,
@@ -147,18 +159,19 @@ def _build_gun():
     steel.stamp(img, asp, -0.136, 0.0050, 1, R_TUBE * math.radians(48.0), wrap=(R_TUBE, BORE), rgb=lettering)
 
     # --- Receiver tube ---------------------------------------------------------
+    # Clean topology (owner 2026-11-24): the openings are laid out in the tube's own grid, no Booleans.
+    # Angles from +X towards +Z: the cocking slot and the safety notch on the left, the ejection port
+    # in the top right quarter, the magazine well underneath.
+    import af_topo
+    zr = lambda z: math.degrees(math.asin(max(-1.0, min(1.0, z / R_TUBE))))
+    mw = math.degrees(math.acos(0.0126 / R_TUBE))
+    windows = [(180.0 - zr(0.00825), 180.0 - zr(-0.00025), 0.020 - 0.0825, 0.020 + 0.0825),      # cocking slot
+               (180.0 - zr(0.018), 180.0 - zr(0.003), -0.0560 - 0.00625, -0.0560 + 0.00625),    # safety notch
+               (0.0, 90.0, 0.045, 0.095),                                                         # ejection port
+               (180.0 + (90.0 - mw), 360.0 - (90.0 - mw), MAG_Y - 0.0186, MAG_Y + 0.0186)]       # magazine well
     bm = bmesh.new()
-    d.bm_lathe(bm, [(-0.170, 0.0150), (-0.170, R_TUBE), (0.118, R_TUBE), (0.118, 0.0150)], sides=32, c=(0.0, BORE),
-               closed=True, cap=False)
+    af_topo.windowed_tube(bm, -0.170, 0.118, R_TUBE, 0.0150, windows, c=(0.0, BORE), step=11.25, gap=0.012)
     tube = d.make("Receiver", bm, body, m_steel, "Receiver tube. Open: cocking slot (left), ejection port (top right), magazine well.")
-    well = d.box("MagWellCutter", cutters, None, (0.0, MAG_Y, 0.030), (0.0252, 0.0372, 0.075), bevel=0,
-                 note="Boolean cutter: magazine well through the housing and the bottom of the tube.")
-    for nm, centre, size in (("Slot", (-R_TUBE, 0.020, BORE + 0.004), (0.014, 0.165, 0.0085)),
-                             ("SafetyNotch", (-R_TUBE, -0.0560, BORE + 0.0105), (0.014, 0.0125, 0.0150)),
-                             ("Port", (0.0125, 0.070, BORE + 0.0125), (0.025, 0.050, 0.025))):
-        c = d.box("Receiver_%sCutter" % nm, cutters, None, centre, size, bevel=0, note="Boolean cutter.")
-        d.cut(tube, c, nm)
-    d.cut(tube, well, "MagWell")
 
     bm = bmesh.new()
     d.bm_lathe(bm, [(-0.1870, 0.0), (-0.1870, 0.0150), (-0.1850, 0.0182), (-0.1820, 0.0196), (-0.1700, 0.0196),
@@ -281,9 +294,11 @@ def _build_gun():
         d.make(nm, bm, body, m_steel, "Cross pin through the lower frame.")
 
     # --- Magazine housing ------------------------------------------------------
-    housing = d.box("MagHousing", body, m_steel, (0.0, MAG_Y, 0.0360), (0.0330, 0.0470, 0.0470), bevel=0.0020,
-                    note="Magazine housing under the receiver.")
-    d.cut(housing, well, "MagWell")
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0, MAG_Y, 0.0360), (0.0330, 0.0470, 0.0470))
+    af_topo.openings(bm, "Z", [(-0.0126, 0.0126, MAG_Y - 0.0186, MAG_Y + 0.0186)], weight=0.5)    # the well, right through
+    af_topo.tidy(bm)
+    housing = d.make("MagHousing", bm, body, m_steel, "Magazine housing under the receiver.", 0.0020)
     bm = bmesh.new()
     for side in (-1, 1):
         for k in range(5):
@@ -342,6 +357,7 @@ def _build_gun():
 # ----------------------------------------------------------------------------
 
 def build_magazine():
+    d.CLEAN_TOPO = True          # quad caps and modelled openings (owner 2026-11-24)
     d.PREFIX = MAG_PREFIX
     old_prefix, m41.PREFIX = m41.PREFIX, MAG_PREFIX
     try:
@@ -350,7 +366,13 @@ def build_magazine():
         d.collection("Moving")
         hx, hy, hz = MAG_HALF
         m_steel = d.material("Steel", (0.024, 0.026, 0.031), rough=0.42, metal=1.0, bump=0.035, bump_scale=1100,
-                             rough_var=0.10, wear=0.85, wear_rgb=(0.38, 0.38, 0.40), scratches=0.6)
+                             rough_var=0.10)
+        import af_finish                 # quality pass (owner 2026-11-24)
+        af_finish.worn(m_steel, 9.0, (
+            ((0.0, 0.0, 0.104), (0.011, 0.017, 0.004), 1.0),     # feed lips
+            ((0.0, 0.0, -0.100), (0.013, 0.020, 0.006), 1.0),    # floor plate
+            ((0.0, 0.0, 0.0), (0.012, 0.018, 0.090), 0.35)),     # body: hands and pouches
+            palette="blued")
         m_brass = d.material("Brass", (0.60, 0.38, 0.12), rough=0.30, metal=1.0, rough_var=0.06, scratches=0.25,
                              wear_rgb=(0.74, 0.55, 0.26))
         m_jacket = d.material("Jacket", (0.50, 0.24, 0.12), rough=0.34, metal=1.0, rough_var=0.05)

@@ -59,10 +59,25 @@ LOGO_BUTT = (-0.318, 0.031, 0.036, 0.018, 0.0222, 0.0232)
 # Extra helpers for organic (wood) parts
 # ----------------------------------------------------------------------------
 
-def bm_loft(bm, sections, sides=28, power=2.6, cap=True):
+def bm_loft(bm, sections, sides=28, power=2.6, cap=True, stations=(), dents=()):
     """Rounded body through cross-sections [(y, z_bottom, z_top, half_width), ...].
-    Each section is a superellipse (power 2 = ellipse, higher = squarer)."""
+    Each section is a superellipse (power 2 = ellipse, higher = squarer).
+    stations: extra y values where a section is interpolated (where a dent needs rings).
+    dents: grooves formed into the surface, [(x, z, radius, y0, y1, ramp), ...]: a cylinder along Y at
+    (x, z); vertices inside it are moved out onto it, its radius fading to 0 over `ramp` at both ends.
+    With clean topology on (d.CLEAN_TOPO) the ends are closed with quad grids, not n-gons."""
     sides = d.round_sides(sides)
+    if d.CLEAN_TOPO:
+        sides = 4 * math.ceil(sides / 4)
+    if stations:
+        secs = sorted(sections)
+        extra = []
+        for ys in stations:
+            for a, b in zip(secs, secs[1:]):
+                if a[0] < ys < b[0]:
+                    u = (ys - a[0]) / (b[0] - a[0])
+                    extra.append(tuple(a[i] + (b[i] - a[i]) * u for i in range(4)))
+        sections = sorted(list(sections) + extra)
     rings = []
     for y, zb, zt, hw in sections:
         zc, hh = (zb + zt) / 2.0, (zt - zb) / 2.0
@@ -72,6 +87,12 @@ def bm_loft(bm, sections, sides=28, power=2.6, cap=True):
             c, s = math.cos(t), math.sin(t)
             x = hw * math.copysign(abs(c) ** (2.0 / power), c)
             z = zc + hh * math.copysign(abs(s) ** (2.0 / power), s)
+            for gx, gz, gr, g0, g1, ramp in dents:
+                if g0 < y < g1:
+                    r = gr * min(1.0, (y - g0) / ramp, (g1 - y) / ramp)
+                    dist = math.hypot(x - gx, z - gz)
+                    if 1e-9 < dist < r:
+                        x, z = gx + (x - gx) * r / dist, gz + (z - gz) * r / dist
             ring.append(bm.verts.new((x, y, z)))
         rings.append(ring)
     for A, B in zip(rings, rings[1:]):
@@ -79,7 +100,11 @@ def bm_loft(bm, sections, sides=28, power=2.6, cap=True):
             j = (i + 1) % sides
             f = bm.faces.new((A[i], A[j], B[j], B[i]))
             f.smooth = True
-    if cap:
+    if cap and d.CLEAN_TOPO:
+        import af_topo
+        af_topo.coons_cap(bm, rings[0])
+        af_topo.coons_cap(bm, rings[-1], flip=True)
+    elif cap:
         bm.faces.new(rings[0])
         bm.faces.new(rings[-1][::-1])
 
@@ -413,6 +438,7 @@ def round_part(name, col, mat, prof, base, tip_z, note):
 # ----------------------------------------------------------------------------
 
 def build():
+    d.CLEAN_TOPO = True          # quad caps, lofts and modelled openings (owner 2026-11-24)
     d.PREFIX = PREFIX
     d.clean()
     scene = bpy.context.scene
@@ -430,8 +456,19 @@ def build():
                                 rough_var=0.08, wear=0.45, wear_rgb=(0.36, 0.20, 0.09), scratches=0.30,
                                 skin_img=d.pattern_image()),
                      dark=(0.070, 0.024, 0.010), light=(0.215, 0.080, 0.028))
+    # Quality pass (owner 2026-11-24): the StG 44's worn-finish layers replace the older edge wear.
     m_blue = d.material("BluedSteel", (0.022, 0.024, 0.030), rough=0.36, metal=1.0, bump=0.03, bump_scale=1200,
-                        rough_var=0.10, wear=0.7, wear_rgb=(0.34, 0.34, 0.36), scratches=0.5, machining=0.07)
+                        rough_var=0.10, machining=0.07)
+    import af_finish
+    af_finish.worn(m_blue, 0.832, (
+        ((0.030, 0.013, 0.105), (0.020, 0.012, 0.020), 1.0),     # bolt handle
+        ((0.0, 0.020, 0.116), (0.019, 0.070, 0.018), 0.6),       # receiver: the hand working the bolt
+        ((0.0, -0.050, 0.040), (0.007, 0.040, 0.020), 0.8),      # trigger guard
+        ((0.0, -0.411, 0.020), (0.022, 0.010, 0.070), 0.9),      # butt plate: set down on it
+        ((0.0, 0.700, 0.110), (0.018, 0.100, 0.030), 0.7),       # nose cap and muzzle
+        ((0.0, 0.416, 0.100), (0.020, 0.012, 0.035), 0.6),       # middle band
+        ((0.0, 0.036, 0.057), (0.009, 0.055, 0.006), 0.6)),      # floor plate
+        palette="blued")
     m_bolt = d.material("BoltSteel", (0.42, 0.42, 0.43), rough=0.28, metal=1.0, rough_var=0.06,
                         wear_rgb=(0.60, 0.60, 0.61), scratches=0.35, machining=0.28)
     m_plate = d.material("Plate", (0.030, 0.032, 0.036), rough=0.46, metal=0.9, bump=0.04, bump_scale=900,
@@ -472,19 +509,20 @@ def build():
         (0.560, 0.076, 0.112, 0.0170),
         (0.660, 0.080, 0.112, 0.0155),
     ]
-    stock = loft("Stock", body, m_wood, stock_sections,
-                 note="Walnut stock, straight wrist. Sections are (y, bottom, top, half width).")
-    for side in (-1, 1):
-        bm = bmesh.new()
-        d.bm_lathe(bm, [(0.115, 0.0), (0.137, 0.0065), (0.275, 0.0065), (0.300, 0.0)], sides=12,
-                   c=(side * 0.0238, 0.094))
-        groove = d.make("Stock_GrooveCutter_%s" % ("R" if side > 0 else "L"), bm, cutters, None,
-                        "Boolean cutter: finger groove along the fore-end.")
-        d.cut(stock, groove, "Groove_%s" % ("R" if side > 0 else "L"))
+    # Clean topology (owner 2026-11-24): the finger grooves are formed in the loft itself (rings every
+    # 16 mm along them, 44 round), the magazine well is a pocket in its top; no Booleans.
+    import af_topo
+    bm = bmesh.new()
+    grooves = [(side * 0.0238, 0.094, 0.0065, 0.115, 0.300, 0.022) for side in (-1, 1)]
+    bm_loft(bm, stock_sections, sides=44, stations=[0.115 + k * 0.0154 for k in range(13)] + [-0.006, 0.066],
+            dents=grooves)
     # Magazine well: open from the receiver down, so the rounds show when the bolt is back.
-    well = d.box("MagWellCutter", cutters, None, (0.0, 0.030, 0.0950), (0.0136, 0.072, 0.030), bevel=0,
-                 note="Boolean cutter: magazine well through the stock and the receiver floor.")
-    d.cut(stock, well, "MagWell")
+    af_topo.MIN_DOT = 0.90                   # the stock's top is rounded
+    af_topo.openings(bm, "Z", [(-0.0068, 0.0068, -0.006, 0.066)], depth=0.027, sign=1, weight=0.5)
+    af_topo.MIN_DOT = 0.99
+    af_topo.tidy(bm)
+    stock = d.make("Stock", bm, body, m_wood, "Walnut stock, straight wrist, finger grooves along the fore-end.", 0.0,
+                   sharp=50.0)
     bm = bmesh.new()
     d.bm_box(bm, (0.0, 0.030, 0.0806), (0.0132, 0.0716, 0.0010))
     for side in (-1, 1):
@@ -515,18 +553,19 @@ def build():
     d.make("MuzzleCrown", bm, body, m_blue,
            "Muzzle crown. Selection 'hide_barrel': hidden while a muzzle attachment is fitted.")
 
+    # The receiver's openings laid out in the tube's own grid (no Booleans): the slot along the top,
+    # the ejection port on the right, the bolt-handle notch, the magazine well underneath. Angles
+    # from +X towards +Z.
     bm = bmesh.new()
-    d.bm_lathe(bm, [(-0.052, 0.0105), (-0.052, 0.0172), (-0.030, 0.0172), (-0.028, 0.0162), (0.052, 0.0162),
-                    (0.054, 0.0178), (0.100, 0.0178), (0.100, 0.0105)],
-               sides=32, c=(0.0, BORE), closed=True, cap=False)
+    r_rec = lambda y: 0.0172 if y < -0.029 else (0.0162 if y < 0.053 else 0.0178)
+    windows = [(57.3, 122.7, -0.081, 0.053),                       # slot along the top
+               (-5.7, 75.7, -0.027, 0.051),                        # ejection port, right
+               (-60.5, 21.4, HANDLE_Y - 0.0095, HANDLE_Y + 0.0095),  # bolt-handle notch
+               (245.2, 294.8, -0.006, 0.066)]                      # magazine well
+    af_topo.windowed_tube(bm, -0.052, 0.100, r_rec, 0.0105, windows, c=(0.0, BORE), step=11.25, gap=0.012,
+                          extra_ys=(-0.030, -0.028, 0.052, 0.054))
     receiver = d.make("Receiver", bm, body, m_blue,
                       "Receiver: open-topped tube. The bolt handle travels back along the top slot.")
-    for nm, centre, size in (("Slot", (0.0, -0.014, 0.135), (0.0175, 0.134, 0.022)),
-                             ("Port", (0.014, 0.012, 0.1245), (0.020, 0.078, 0.020)),
-                             ("HandleNotch", (0.014, HANDLE_Y, 0.112), (0.020, 0.019, 0.020))):
-        c = d.box("Receiver_%sCutter" % nm, cutters, None, centre, size, bevel=0, note="Boolean cutter.")
-        d.cut(receiver, c, nm)
-    d.cut(receiver, well, "MagWell")
     d.box("ReceiverTang", body, m_blue, (0.0, -0.076, 0.1020), (0.012, 0.046, 0.004), rot=(9.5, 0, 0), bevel=0.0008,
           note="Rear tang let into the wrist.")
     bm = bmesh.new()

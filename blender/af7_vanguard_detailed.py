@@ -43,6 +43,16 @@ LOGO_MAGWELL = (0.050, -0.027, 0.060, 0.030, 0.0138, 0.0149)   # floor of the re
 LOGO_STOCK = (-0.300, 0.040, 0.048, 0.024, 0.0160, 0.0180)     # printed flat on the stock
 
 ORANGE = (1.0, 0.42, 0.02)
+# Where the AF-7 is handled, knocked and rubbed (centre, half sizes, strength), working frame: drives
+# the polish, use scratches and edge wear of af_finish.worn.
+AF7_ZONES = (((0.0, -0.100, 0.075), (0.026, 0.016, 0.008), 1.0),     # charging handle
+             ((0.0, 0.078, -0.035), (0.020, 0.050, 0.012), 1.0),     # magazine well mouth
+             ((0.0, -0.020, 0.020), (0.018, 0.030, 0.020), 0.8),     # safety, magazine release: thumbs
+             ((0.0, 0.000, -0.024), (0.008, 0.035, 0.010), 0.8),     # trigger guard
+             ((0.0, -0.200, 0.050), (0.017, 0.100, 0.022), 0.5),     # buffer tube: cheek and sling
+             ((0.0, 0.180, 0.084), (0.012, 0.270, 0.006), 0.5),      # rail edges: optics and kit
+             ((0.0, 0.500, 0.055), (0.014, 0.035, 0.016), 0.9),      # muzzle brake
+             ((0.0, 0.430, 0.095), (0.014, 0.012, 0.012), 0.7))      # front sight
 
 
 def _here():
@@ -429,12 +439,73 @@ def bm_box(bm, center, size, rot=(0, 0, 0)):
         bm.faces.new([v[i] for i in f])
 
 
+# Clean topology (owner 2026-11-24): with CLEAN_TOPO on, flat caps (the sides of profiles, the ends of
+# cross-sections) are no longer one large n-gon: the outline is resampled to an even spacing, a support
+# loop is inset round the border and the core is filled with quads; lathe ends get a quad-grid cap
+# instead of a triangle fan (af_topo). Off by default; each weapon switches it on once checked.
+CLEAN_TOPO = False
+CAP_SPACING = 1.0        # metres between outline points on a clean cap (1.0: the outline as drawn)
+CAP_INSET = None         # width of the support loop round a clean cap (None: from the part's bevel)
+
+
+def resample(pts, spacing, closed=True):
+    """Outline points with extra points on long straight stretches, so no gap is wider than `spacing`."""
+    out = []
+    n = len(pts)
+    for i in range(n if closed else n - 1):
+        a, b = Vector(pts[i]), Vector(pts[(i + 1) % n])
+        k = max(1, math.ceil((b - a).length / spacing - 1e-9))
+        out += [tuple(a + (b - a) * (s / k)) for s in range(k)]
+    if not closed:
+        out.append(tuple(pts[-1]))
+    return out
+
+
+def clean_cap(bm, face):
+    """Turn a flat n-gon cap into a support loop round its border and a quad-filled core."""
+    if len(face.verts) <= 4:
+        return
+    core = [face]
+    if CAP_INSET:
+        try:
+            bmesh.ops.inset_region(bm, faces=[face], thickness=CAP_INSET, depth=0.0, use_even_offset=True)
+        except Exception:
+            pass
+    tri = bmesh.ops.triangulate(bm, faces=[f for f in core if f.is_valid], quad_method="BEAUTY", ngon_method="BEAUTY")
+    bmesh.ops.join_triangles(bm, faces=tri["faces"], angle_face_threshold=math.radians(5.0),
+                             angle_shape_threshold=math.radians(180.0), cmp_seam=False, cmp_sharp=False,
+                             cmp_uvs=False, cmp_vcols=False, cmp_materials=False)
+
+
 def bm_profile(bm, pts, width, x=0.0):
     """Side profile [(y, z), ...] extruded across the gun (along X)."""
+    rungs = None
+    if CLEAN_TOPO:
+        import af_topo
+        pts = resample(pts, CAP_SPACING)
+        lad = af_topo.ladder(pts) or af_topo.scanline(pts)      # any outline: slices of quads
+        if lad:
+            pts, rungs = lad
     a = [bm.verts.new((x - width / 2, y, z)) for y, z in pts]
     b = [bm.verts.new((x + width / 2, y, z)) for y, z in pts]
-    bm.faces.new(a)
-    bm.faces.new(b[::-1])
+    if rungs:                                  # a ladder of quads across each side
+        big = []
+        for f in rungs:
+            fa = bm.faces.new([a[i] for i in f])
+            fb = bm.faces.new([b[i] for i in f][::-1])
+            if len(f) > 4:
+                big += [fa, fb]
+        if big:                                # T-junction faces of a scanline fill: back into quads
+            tri = bmesh.ops.triangulate(bm, faces=big, quad_method="BEAUTY", ngon_method="BEAUTY")
+            bmesh.ops.join_triangles(bm, faces=tri["faces"], angle_face_threshold=math.radians(5.0),
+                                     angle_shape_threshold=math.radians(180.0), cmp_seam=False, cmp_sharp=False,
+                                     cmp_uvs=False, cmp_vcols=False, cmp_materials=False)
+    else:
+        fa = bm.faces.new(a)
+        fb = bm.faces.new(b[::-1])
+        if CLEAN_TOPO:
+            clean_cap(bm, fa)
+            clean_cap(bm, fb)
     n = len(pts)
     for i in range(n):
         j = (i + 1) % n
@@ -443,10 +514,15 @@ def bm_profile(bm, pts, width, x=0.0):
 
 def bm_xsec(bm, pts, y0, y1):
     """Cross-section [(x, z), ...] extruded along the bore (Y)."""
+    if CLEAN_TOPO:
+        pts = resample(pts, CAP_SPACING)
     a = [bm.verts.new((x, y0, z)) for x, z in pts]
     b = [bm.verts.new((x, y1, z)) for x, z in pts]
-    bm.faces.new(a)
-    bm.faces.new(b[::-1])
+    fa = bm.faces.new(a)
+    fb = bm.faces.new(b[::-1])
+    if CLEAN_TOPO:
+        clean_cap(bm, fa)
+        clean_cap(bm, fb)
     n = len(pts)
     for i in range(n):
         j = (i + 1) % n
@@ -547,6 +623,11 @@ def fillet(pts, radius, step_deg=None):
 
 
 def bm_lathe(bm, prof, sides=16, axis="Y", c=(0.0, BORE), closed=False, cap=True, smooth=True):
+    if CLEAN_TOPO and cap and not closed and smooth:
+        import af_topo
+        af_topo.lathe(bm, prof, sides=round_sides(sides, smooth), axis=axis, c=c, closed=closed, smooth=smooth,
+                      flat_ends=True)
+        return
     """Revolve [(pos, radius), ...] around an axis.
     axis "Y": c = (x, z)   axis "X": c = (y, z)   axis "Z": c = (x, y)
     radius 0 makes a centre point; closed=True joins the last ring to the first.
@@ -600,7 +681,8 @@ def make(name, bm, col, mat, note="", bevel=0.0, segments=1, sharp=35.0):
         layer = bm.edges.layers.float.get("bevel_weight_edge") or bm.edges.layers.float.new("bevel_weight_edge")
         limit = math.radians(30)
         for e in bm.edges:
-            if len(e.link_faces) == 2 and e.calc_face_angle(0.0) > limit:
+            # Edges given their own weight already (small openings: af_topo) keep it.
+            if e[layer] == 0.0 and len(e.link_faces) == 2 and e.calc_face_angle(0.0) > limit:
                 e[layer] = 1.0
     me = bpy.data.meshes.new(PREFIX + name)
     bm.to_mesh(me)
@@ -629,8 +711,13 @@ def box(name, col, mat, center, size, rot=(0, 0, 0), bevel=0.0008, note="", **kw
 
 def profile(name, col, mat, pts, width, x=0.0, bevel=0.002, note="", round=0.0, **kw):
     """round: corner radius of the side outline (see fillet). 0 keeps the corners as drawn."""
+    global CAP_INSET
     bm = bmesh.new()
+    saved = CAP_INSET
+    if CLEAN_TOPO and CAP_INSET is None:
+        CAP_INSET = bevel * 1.6 + 0.0004       # the support loop sits just inside the bevel, never under it
     bm_profile(bm, fillet(pts, round), width, x)
+    CAP_INSET = saved
     return make(name, bm, col, mat, note, bevel, **kw)
 
 
@@ -692,6 +779,9 @@ def cut(target, cutter, name):
 # ----------------------------------------------------------------------------
 
 def build():
+    global CLEAN_TOPO
+    CLEAN_TOPO = True            # quad caps, support loops, modelled openings (owner 2026-11-24)
+    import af_topo
     clean()
     scene = bpy.context.scene
     scene.unit_settings.system = "METRIC"
@@ -708,11 +798,15 @@ def build():
     logo = logo_image()
 
     # Two-tone: dark anodised receivers and steel, flat-dark-earth furniture.
+    # Quality pass (owner 2026-11-24): the StG 44's worn-finish layers (af_finish.worn) replace the
+    # older edge wear and scratches on the anodised receivers and the steel parts.
     m_anod = material("Anodized", (0.030, 0.032, 0.036), rough=0.46, metal=0.9, bump=0.04, bump_scale=900,
-                      rough_var=0.08, wear=0.75, wear_rgb=(0.42, 0.43, 0.45), logo=LOGO_MAGWELL, logo_img=logo,
-                      scratches=0.6)
+                      rough_var=0.08, logo=LOGO_MAGWELL, logo_img=logo)
     m_steel = material("Steel", (0.050, 0.050, 0.055), rough=0.36, metal=1.0, bump=0.03, bump_scale=1200,
-                       rough_var=0.10, wear=0.6, wear_rgb=(0.30, 0.30, 0.31), scratches=0.5, machining=0.25)
+                       rough_var=0.10, machining=0.25)
+    import af_finish
+    af_finish.worn(m_anod, 0.53, AF7_ZONES, palette="anodized")
+    af_finish.worn(m_steel, 0.53, AF7_ZONES, palette="oxide")
     m_bolt = material("BoltSteel", (0.30, 0.30, 0.31), rough=0.30, metal=1.0, rough_var=0.06,
                       wear_rgb=(0.55, 0.55, 0.56), scratches=0.4, machining=0.30)
     floral = pattern_image()
@@ -727,14 +821,14 @@ def build():
     m_ref = material("Reference", (0.2, 0.35, 0.6), rough=0.6)
 
     # --- Upper receiver ------------------------------------------------------
-    upper = profile("UpperReceiver", body, m_anod,
-                    [(-0.100, 0.036), (-0.100, 0.066), (-0.087, 0.079), (0.122, 0.079),
-                     (0.122, 0.040), (0.118, 0.036)],
-                    width=0.034, bevel=0.003, round=0.0025,
-                    note="Upper receiver. Flat sides, big single chamfers, real ejection-port pocket on the right.")
-    port = box("UpperReceiver_PortCutter", cutters, None, (0.018, 0.035, 0.058), (0.024, 0.062, 0.015), bevel=0,
-               note="Boolean cutter for the ejection port.")
-    cut(upper, port, "EjectionPort")
+    bm = bmesh.new()
+    bm_profile(bm, fillet([(-0.100, 0.036), (-0.100, 0.066), (-0.087, 0.079), (0.122, 0.079),
+                           (0.122, 0.040), (0.118, 0.036)], 0.0025), 0.034)
+    # Ejection port: loop cuts round it, the cells between pushed 11 mm in (no Boolean).
+    af_topo.openings(bm, "X", [(0.004, 0.066, 0.0505, 0.0655)], depth=0.011, sign=1, weight=0.4)
+    af_topo.tidy(bm)
+    upper = make("UpperReceiver", bm, body, m_anod,
+                 "Upper receiver. Flat sides, big single chamfers, real ejection-port pocket on the right.", 0.003)
     # Raised angular armour panels (layered, hard-edged detail)
     bm = bmesh.new()
     bm_profile(bm, [(-0.072, 0.047), (0.084, 0.047), (0.104, 0.062), (0.104, 0.071), (-0.058, 0.071), (-0.072, 0.060)],
@@ -752,24 +846,19 @@ def build():
          note="Dust cover, shown open (hanging below the ejection port).")
 
     # --- Lower receiver (with magazine well and recessed AF logo panels) ------
-    lower = profile("LowerReceiver", body, m_anod,
-                    [(-0.100, 0.036), (0.119, 0.036), (0.122, 0.028), (0.126, 0.022), (0.123, -0.030), (0.116, -0.038),
-                     (0.040, -0.033), (0.034, -0.027), (0.031, 0.004), (-0.088, 0.004), (-0.100, 0.016)],
-                    width=0.030, bevel=0.0025, round=0.0025,
-                    note="Lower receiver + magazine well. The AF logo sits in the recessed panel on each side.")
-    y0, z0, w, h = LOGO_MAGWELL[:4]
-    panel = [(y0 + 0.004, z0), (y0 + w - 0.004, z0), (y0 + w, z0 + 0.004), (y0 + w, z0 + h - 0.004),
-             (y0 + w - 0.004, z0 + h), (y0 + 0.004, z0 + h), (y0, z0 + h - 0.004), (y0, z0 + 0.004)]
     bm = bmesh.new()
+    bm_profile(bm, fillet([(-0.100, 0.036), (0.119, 0.036), (0.122, 0.028), (0.126, 0.022), (0.123, -0.030), (0.116, -0.038),
+                           (0.040, -0.033), (0.034, -0.027), (0.031, 0.004), (-0.088, 0.004), (-0.100, 0.016)], 0.0025), 0.030)
+    # Recessed logo panels on both sides (0.6 mm) and the open magazine well (a real cavity for the
+    # magazine to slide into: the well is 8.9 cm long with a 7.9 cm opening, measured in game) as
+    # pockets cut by edge loops, not Booleans.
+    y0, z0, w, h = LOGO_MAGWELL[:4]
     for sx in (-1, 1):
-        bm_profile(bm, panel, width=0.0056, x=sx * 0.0172)
-    cut(lower, make("LowerReceiver_LogoCutter", bm, cutters, None, note="Boolean cutter - logo panels."), "LogoPanels")
-    # Open magazine well: a real cavity for the magazine to slide into, so there is a dark
-    # gap around it instead of the magazine sinking into a solid block.
-    # The well is 8.9 cm long with a 7.9 cm opening: measured in game, a STANAG is wider at
-    # the mouth of the well than its nominal 6.5 cm because of how steeply it rakes forward.
-    cut(lower, box("LowerReceiver_MagwellCutter", cutters, None, (0, 0.0785, -0.0395), (0.027, 0.079, 0.022), bevel=0,
-                   note="Boolean cutter - magazine well opening."), "MagwellOpening")
+        af_topo.openings(bm, "X", [(y0, y0 + w, z0, z0 + h)], depth=0.0006, sign=sx, weight=0.3)
+    af_topo.openings(bm, "Z", [(-0.0135, 0.0135, 0.039, 0.118)], depth=0.008, sign=-1, weight=0.4)
+    af_topo.tidy(bm)
+    lower = make("LowerReceiver", bm, body, m_anod,
+                 "Lower receiver + magazine well. The AF logo sits in the recessed panel on each side.", 0.0025)
     # Flared lip around the opening (follows the slope of the magazine well's bottom edge).
     bm = bmesh.new()
     for sx in (-1, 1):
@@ -803,25 +892,28 @@ def build():
     hg_outer = [(0.012, 0.079), (0.023, 0.067), (0.023, 0.041), (0.012, 0.029),
                 (-0.012, 0.029), (-0.023, 0.041), (-0.023, 0.067), (-0.012, 0.079)]
     hg_inner = [(x * 0.85, 0.054 + (z - 0.054) * 0.85) for x, z in hg_outer]
+    # Slots laid out in the octagon's own grid (no Boolean): M-LOK slots on the sides and the bottom,
+    # diagonal lightening slots on the four chamfers. Sides of hg_outer: 0 upper-right chamfer,
+    # 1 right side, 2 lower-right chamfer, 3 bottom, 4 lower-left chamfer, 5 left side, 6 upper-left
+    # chamfer, 7 top.
+    slot_y = [0.165 + i * 0.047 for i in range(6)]
+    side_t = ((BORE - 0.0035 - 0.067) / (0.041 - 0.067), (BORE + 0.0035 - 0.067) / (0.041 - 0.067))
+    side_t = (min(side_t), max(side_t))
+    bottom_t = (0.5 - 0.0035 / 0.024, 0.5 + 0.0035 / 0.024)
+    chamfer = math.hypot(0.011, 0.012)
+    diag_t = (0.5 - 0.0025 / chamfer, 0.5 + 0.0025 / chamfer)
+    slots = []
+    for y in slot_y:
+        slots.append((1, side_t[0], side_t[1], y - 0.016, y + 0.016))
+        slots.append((5, 1.0 - side_t[1], 1.0 - side_t[0], y - 0.016, y + 0.016))   # the left side runs upward
+        slots.append((3, bottom_t[0], bottom_t[1], y - 0.016, y + 0.016))
+    for y in slot_y[:-1]:
+        for f in (0, 2, 4, 6):
+            slots.append((f, diag_t[0], diag_t[1], y + 0.0235 - 0.011, y + 0.0235 + 0.011))
     bm = bmesh.new()
-    bm_tube(bm, hg_outer, hg_inner, 0.122, 0.445, shear=0.35)
+    af_topo.slotted_prism(bm, hg_outer, hg_inner, 0.122, 0.445, slots, shear=0.35, zref=BORE, gap=0.012)
     hg = make("Handguard", bm, body, m_cera, bevel=0.0009,
               note="Free-float handguard. Hollow, so the barrel and gas block show through the slots. The left hand holds here.")
-    slot_y = [0.165 + i * 0.047 for i in range(6)]
-    bm = bmesh.new()
-    for y in slot_y:
-        bm_box(bm, (0, y, BORE), (0.080, 0.032, 0.007))
-    cut(hg, make("Handguard_SlotCutter_Side", bm, cutters, None, note="Boolean cutter - side slots."), "SlotsSide")
-    bm = bmesh.new()
-    for y in slot_y:
-        bm_box(bm, (0, y, 0.034), (0.007, 0.032, 0.016))
-    cut(hg, make("Handguard_SlotCutter_Bottom", bm, cutters, None, note="Boolean cutter - bottom slots."), "SlotsBottom")
-    for tag, a in (("DiagA", 45), ("DiagB", -45)):
-        bm = bmesh.new()
-        for y in slot_y[:-1]:
-            bm_box(bm, (0, y + 0.0235, 0.054), (0.090, 0.022, 0.005), rot=(0, a, 0))
-        cut(hg, make("Handguard_SlotCutter_" + tag, bm, cutters, None, note="Boolean cutter - diagonal lightening cuts."),
-            "Slots" + tag)
 
     # --- Picatinny rail (receiver + handguard, one continuous top rail) -------
     bm = bmesh.new()
@@ -845,15 +937,19 @@ def build():
     bm_lathe(bm, [(0.122, 0.0025), (0.345, 0.0025)], sides=12, c=(0.0, BORE + 0.0155))
     make("GasBlock", bm, body, m_steel, note="Low-profile gas block + gas tube, visible through the handguard slots.")
 
-    brake = lathe("MuzzleBrake", body, m_steel,
-                  [(0.468, 0.0110), (0.471, 0.0130), (0.479, 0.0130), (0.482, 0.0150), (0.525, 0.0150),
-                   (0.530, 0.0128), (0.530, 0.0040), (0.489, 0.0040), (0.489, 0.0)],
-                  sides=6, smooth=False,
-                  note="Hex muzzle brake with ports and an open bore. This is the hide_barrel selection (hidden when a suppressor is attached).")
+    # Hex brake: the threaded collar and shoulder as a short lathe, the ported body as a hex prism with
+    # its bore, the three ports laid out in its grid through both flats (no Boolean).
     bm = bmesh.new()
-    for y in (0.494, 0.506, 0.518):
-        bm_box(bm, (0, y, BORE), (0.060, 0.0065, 0.011))
-    cut(brake, make("MuzzleBrake_PortCutter", bm, cutters, None, note="Boolean cutter - brake ports."), "Ports")
+    bm_lathe(bm, [(0.468, 0.0110), (0.471, 0.0130), (0.479, 0.0130), (0.482, 0.0150), (0.489, 0.0150), (0.489, 0.0)],
+             sides=6, smooth=False)
+    hexo = [(0.0150 * math.cos(math.radians(30 + 60 * i)), BORE + 0.0150 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
+    hexi = [(0.0040 * math.cos(math.radians(30 + 60 * i)), BORE + 0.0040 * math.sin(math.radians(30 + 60 * i))) for i in range(6)]
+    # Flats: side 5 (from -30 to +30 degrees) on the right, side 2 (150 to 210) on the left.
+    t0, t1 = (0.0075 - 0.0055) / 0.015, (0.0075 + 0.0055) / 0.015
+    ports = [(f, t0, t1, y - 0.00325, y + 0.00325) for y in (0.494, 0.506, 0.518) for f in (2, 5)]
+    af_topo.slotted_prism(bm, hexo, hexi, 0.489, 0.530, ports, gap=0.004)
+    brake = make("MuzzleBrake", bm, body, m_steel,
+                 "Hex muzzle brake with ports and an open bore. This is the hide_barrel selection (hidden when a suppressor is attached).")
 
     # --- Backup sights (low, deployed; line up with AF7_Mem_Eye at z = 0.097) --
     bm = bmesh.new()
@@ -880,14 +976,13 @@ def build():
     bm_box(bm, (0, -0.1015, 0.050), (0.030, 0.003, 0.040))
     make("BufferTube", bm, body, m_anod, note="Buffer tube with castle nut and end plate.")
 
-    stock = profile("StockBody", body, m_poly,
-                    [(-0.158, 0.072), (-0.164, 0.077), (-0.338, 0.077), (-0.342, 0.072), (-0.342, -0.052),
-                     (-0.336, -0.058), (-0.322, -0.058), (-0.200, 0.026), (-0.162, 0.030), (-0.158, 0.036)],
-                    width=0.034, bevel=0.004, round=0.004,
-                    note="Skeleton stock: one body wrapped around the buffer tube with a triangular cutout. AF logo on both sides.")
-    cut(stock, profile("StockBody_Cutter", cutters, None,
-                       [(-0.236, 0.022), (-0.322, 0.022), (-0.326, 0.018), (-0.326, -0.036), (-0.320, -0.038)],
-                       width=0.060, bevel=0, round=0.005, note="Boolean cutter - stock cutout."), "Cutout")
+    bm = bmesh.new()
+    af_topo.holed_profile(bm, fillet([(-0.158, 0.072), (-0.164, 0.077), (-0.338, 0.077), (-0.342, 0.072), (-0.342, -0.052),
+                                      (-0.336, -0.058), (-0.322, -0.058), (-0.200, 0.026), (-0.162, 0.030), (-0.158, 0.036)], 0.004),
+                          fillet([(-0.236, 0.022), (-0.322, 0.022), (-0.326, 0.018), (-0.326, -0.036), (-0.320, -0.038)], 0.005),
+                          0.034)
+    stock = make("StockBody", bm, body, m_poly,
+                 "Skeleton stock: one body wrapped around the buffer tube with a triangular cutout. AF logo on both sides.", 0.004)
     box("StockCheek", body, m_poly, (0, -0.250, 0.0795), (0.040, 0.105, 0.009), bevel=0.003,
         note="Cheek rest (where the face sits when aiming).")
     box("StockLatch", body, m_poly, (0, -0.184, 0.0255), (0.014, 0.030, 0.008), rot=(-6, 0, 0), bevel=0.002,

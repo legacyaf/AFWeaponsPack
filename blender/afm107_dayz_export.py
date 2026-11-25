@@ -11,7 +11,8 @@ proxy path and position, all measured in game (docs/M107.md). The model is built
 frame, so there is no origin shift (ORIGIN_EMPTY = None).
 
 WHAT IT MAKES
-  blender/textures/afm107_body_*.png, afm107_mag_*.png, afm107_scope_*.png
+  blender/textures/afm107_body_*.png, afm107_lower_*, afm107_front_*, afm107_parts_*,
+  afm107_mag_*.png, afm107_scope_*.png (all 4096)
   source/AF_Weapons/afm107/afm107.p3d, afm107_mag.p3d, afm107_scope.p3d
 """
 
@@ -81,6 +82,11 @@ def _gun_tables():
     ex.P3D_TEXTURE = ex.MOD_DIR + "\\data\\afm107_body_co.paa"
     ex.P3D_MATERIAL = ex.MOD_DIR + "\\data\\afm107_body.rvmat"
     ex.MASS_KG = 12.5
+    # Four 4096 sheets (owner 2026-11-24): the upper receiver here (set 0), then the lower half, the
+    # front and the small parts; the parts are sorted by material (afm107_detailed.SHEET_PARTS).
+    ex.EXTRA_SETS = (("afm107_lower", ("CerakoteLower",)),
+                     ("afm107_front", ("CerakoteFront",)),
+                     ("afm107_parts", ("CerakoteRail", "Steel", "Inside", "Rubber", "Polymer")))
     ex.SELECTIONS = {"Weapon_Trigger": "trigger", "BoltCarrier": "bolt"}
     ex.UV_PRIORITY = {"UpperReceiver": 1.2, "Handguard": 1.2, "BoltCarrier": 0.5, "Barrel": 0.8, "LockPins": 0.6}
     ex.MEMORY = {"Mem_Muzzle": "usti hlavne", "Mem_BarrelEnd": "konec hlavne", "Mem_Eye": "eye",
@@ -132,11 +138,11 @@ def export(bake=True, tex_size=ex.TEX_SIZE):
     return ex.export(bake=bake, tex_size=tex_size)
 
 
-def export_magazine(bake=True, tex_size=1024):
+def export_magazine(bake=True, tex_size=4096):
     _magazine_tables()
     return ex.export(bake=bake, tex_size=tex_size)
 
 
-def export_scope(bake=True, tex_size=1024):
+def export_scope(bake=True, tex_size=4096):
     _scope_tables()
     return ex.export(bake=bake, tex_size=tex_size)

@@ -225,6 +225,45 @@ def smooth(cols):
                 mod.keep_sharp = True
 
 
+# Texture sheets (owner 2026-11-24: "split it into as many sheets as you need"). On one 2048 sheet the
+# rifle had 1.6 texels per millimetre, a quarter of the pack's other weapons. Four 4096 sheets, each
+# about a quarter of the surface: the upper receiver (Cerakote, set 0), the lower half, the front
+# (handguard, barrel, brake) and the small parts (rail, steel parts, polymer, rubber). The exporter
+# picks the set by material name (afm107_dayz_export: EXTRA_SETS), so the Cerakote is copied per sheet.
+SHEET_PARTS = {
+    "CerakoteLower": ("Butt", "LowerReceiver", "MagWellPlate", "StockPost", "TriggerGuard", "Safety"),
+    "CerakoteFront": ("Handguard", "Barrel", "BarrelCollar", "Brake", "BipodYoke", "PinLug", "FrontSight"),
+    "CerakoteRail": ("Rail", "RailRiser"),
+}
+
+
+def _raw(pts, width, x=0.0):
+    """A side profile to cut openings into (af_topo.openings), then tidied (_finish)."""
+    bm = bmesh.new()
+    d.bm_profile(bm, pts, width, x)          # ladder-filled sides; the openings are cut through the rungs
+    return bm
+
+
+def _finish(name, bm, col, mat, note, bevel):
+    import af_topo
+    af_topo.tidy(bm)
+    return d.make(name, bm, col, mat, note, bevel)
+
+
+def split_sheets(steel):
+    for mname, parts in SHEET_PARTS.items():
+        old = bpy.data.materials.get(PREFIX + mname)
+        if old is not None:                      # from an earlier build in this session: a fresh copy
+            old.name = old.name + "_old"
+        mat = steel.copy()
+        mat.name = PREFIX + mname
+        for part in parts:
+            ob = bpy.data.objects[PREFIX + part]
+            for slot in ob.material_slots:
+                if slot.material == steel:
+                    slot.material = mat
+
+
 def offset(col, v):
     for ob in col.objects:
         ob.location = (ob.location[0] - v[0], ob.location[1] - v[1], ob.location[2] - v[2])
@@ -233,6 +272,7 @@ def offset(col, v):
 def build():
     """The rifle (prefix M107_): everything but the magazine and the scope, which are models of their own."""
     d.PREFIX = PREFIX
+    d.CLEAN_TOPO = True          # quad caps and support loops (owner 2026-11-24: clean topology)
     d.clean()
     d.CUTS = True
     body = d.collection("Body")
@@ -244,74 +284,88 @@ def build():
     steel, bare, dark, rubber, poly = m["steel"], m["bare"], m["dark"], m["rubber"], m["poly"]
 
     # --- Upper receiver ----------------------------------------------------------------------
-    up = d.profile("UpperReceiver", body, steel, side_pts(P["upper"]), 0.076, bevel=0.0030, round=0.008,
-                   note="Upper receiver: one pressing, the handguard at its front.")
-    # The receiver narrows to the handguard's width over its last 60 mm, so the two meet flush.
-    bm = bmesh.new()
+    # Clean topology (owner 2026-11-24): no Boolean cuts. The taper into the handguard is an edge loop
+    # with the vertices ahead of it moved in; the ejection window is loop cuts round it and the cell
+    # between them pushed in, so its walls are straight quads.
+    import af_topo
+    bm = _raw(d.fillet(side_pts(P["upper"]), 0.008), 0.076)
     ya, yb = Y(fx(500.0)), Y(fx(560.0)) + 0.002
-    for side in (-1, 1):
-        plan = [(side * 0.0381, ya), (side * 0.070, ya), (side * 0.070, yb), (side * 0.0321, yb)]
-        lo_, hi_ = BORE - 0.08, BORE + 0.08
-        vb = [bm.verts.new((x, y, lo_)) for x, y in plan]
-        vt = [bm.verts.new((x, y, hi_)) for x, y in plan]
-        if side < 0:
-            vb, vt = vb[::-1], vt[::-1]
-        bm.faces.new(vb[::-1])
-        bm.faces.new(vt)
-        for i in range(4):
-            j = (i + 1) % 4
-            bm.faces.new((vb[i], vb[j], vt[j], vt[i]))
-    d.cut(up, d.make("BlendCutter", bm, cutters, None, "Taper into the handguard.", 0.0), "Blend")
+    af_topo.loop_cuts(bm, "Y", [ya])
+    for v in bm.verts:                       # narrows from 76 to 64 mm over its last 60 mm
+        if v.co.y > ya + 1e-6:
+            lim = 0.0381 - 0.0060 * (v.co.y - ya) / (yb - ya)
+            if abs(v.co.x) > lim:
+                v.co.x = math.copysign(lim, v.co.x)
+    wx0, wx1, wz0, wz1 = P["window"]
+    af_topo.openings(bm, "X", [(Y(wx0), Y(wx1), Zm(wz0), Zm(wz1))], depth=0.023, sign=1, weight=0.5)
+    for sgn in (-1, 1):                          # recessed panels above the window line, both sides
+        af_topo.openings(bm, "X", [(Y(fx(275.0)), Y(fx(470.0)), Zm(27.0), Zm(39.0))], depth=0.0008, sign=sgn, weight=0.35)
+    up = _finish("UpperReceiver", bm, body, steel, "Upper receiver: one pressing, the handguard at its front.", 0.0030)
     # Handguard (owner 2026-11-24: "more cylinder like rather than a giant rectangle"): a round tube
     # round the barrel, 66 mm across, closed at the front round the barrel bushing, with a riser
     # carrying the rail along its top.
     x_hg0, x_hg1 = fx(560.0), fx(890.0)
-    hg = lathe("Handguard", body, steel, [(x_hg0, 29.0), (x_hg0, 33.0), (x_hg1 - 5, 33.0), (x_hg1, 31.0),
-                                         (x_hg1, 24.0), (x_hg1 - 12, 24.0), (x_hg1 - 12, 29.0)],
-               sides=48, closed=True, cap=False, bevel=0.0008, note="Handguard: a round tube round the barrel.")
+    # Clean topology (owner 2026-11-24): the tube is laid out as a quad grid with its lines on the edges
+    # of the slots, so each slot is an opening with four straight walls; no Boolean cut (the cut tube
+    # had 732 n-gons and 2,432 sliver triangles).
+    import af_topo
+    bm = bmesh.new()
+    slots = []
+    for zl, zh in ((9.5, 22.5), (-22.5, -9.5)):          # the two rows of slots, on both flanks
+        for xh in bp.HOLES_X:
+            slots.append((Y(xh - 11), Y(xh + 5), zl / 1000.0, zh / 1000.0, 0.006))
+    af_topo.slotted_tube(bm, Y(x_hg0), slots, 0.033, 0.029, (Y(x_hg1), 0.031, 0.024, 0.012), c=(0.0, BORE))
+    hg = d.make("Handguard", bm, body, steel, "Handguard: a round tube round the barrel, slotted.", 0.0008)
     d.box("RailRiser", body, steel, (0.0, (Y(x_hg0) + Y(x_hg1 - 6)) / 2, Zm(38.0)),
           (0.022, Y(x_hg1 - 6) - Y(x_hg0), 0.020), bevel=0.0015, note="Riser under the rail, along the tube.")
-    bm = bmesh.new()
-    for zr in (16.0, -16.0):                              # on the tube's flanks
-        for xh in bp.HOLES_X:
-            pts = [(xh - 11, zr), (xh - 5, zr + 6.5), (xh + 11, zr + 6.5), (xh + 5, zr - 6.5), (xh - 5, zr - 6.5)]
-            d.bm_profile(bm, [(Y(x), Zm(z)) for x, z in d.fillet(pts, 2.0)], 0.12)
-    c = d.make("HoleCutter", bm, cutters, None, "Lightening holes.", 0.0)
-    d.cut(hg, c, "Holes")
-    wx0, wx1, wz0, wz1 = P["window"]
-    c = d.box("WindowCutter", cutters, None, (0.030, (Y(wx0) + Y(wx1)) / 2, (Zm(wz0) + Zm(wz1)) / 2),
-              (0.030, Y(wx1) - Y(wx0), Zm(wz1) - Zm(wz0)), bevel=0, note="Ejection window, right.")
-    d.cut(up, c, "Window")
-    lathe("BoltCarrier", moving, bare, [(wx0 - 20, 0), (wx0 - 20, 17), (wx1 + 20, 17), (wx1 + 20, 0)], sides=24, bevel=0.0006,
-          note="Bolt carrier, seen through the window.")
+    carrier = [(wx0 - 20, 0), (wx0 - 20, 12), (wx0 - 17, 15), (wx0 - 14, 15), (wx0 - 12, 17)]
+    for k in range(5):                           # five lubrication grooves at the front
+        g0 = wx1 - 70 + k * 12
+        carrier += [(g0, 17), (g0 + 1, 15.5), (g0 + 4, 15.5), (g0 + 5, 17)]
+    carrier += [(wx1 + 14, 17), (wx1 + 17, 15), (wx1 + 20, 15), (wx1 + 20, 0)]
+    lathe("BoltCarrier", moving, bare, carrier, sides=32, bevel=0.0004,
+          note="Bolt carrier, seen through the window: machined grooves and shoulders.")
     # Rail: M1913 section along the top, cross slots every 10 mm.
     rx0, rx1, rz0, rz1 = P["rail"]
     zb, zt = Zm(rz0), Zm(rz1)
     sec = [(-0.0106, zb), (0.0106, zb), (0.0106, zb + 0.004), (0.0078, zb + 0.0062), (0.0106, zt - 0.0030),
            (0.0106, zt), (-0.0106, zt), (-0.0106, zt - 0.0030), (-0.0078, zb + 0.0062), (-0.0106, zb + 0.004)]
+    # The base of the section runs the whole length; the top is a row of teeth with the cross slots
+    # between them (each tooth its own clean block, no Boolean).
     bm = bmesh.new()
-    d.bm_xsec(bm, sec, Y(rx0), Y(rx1))
-    rail = d.make("Rail", bm, body, steel, "M1913 rail on its 27 MOA base.", 0.0006)
-    bm = bmesh.new()
-    x = rx0 + 8
+    zc = zt - 0.0032
+    d.bm_xsec(bm, af_topo.clip_poly(sec, zc, above=False), Y(rx0), Y(rx1))
+    top = af_topo.clip_poly(sec, zc, above=True)
+    y_from, x = Y(rx0), rx0 + 8
     while x < rx1 - 6:
-        d.bm_box(bm, (0.0, Y(x), zt - 0.0015), (0.030, 0.0053, 0.0034))
+        d.bm_xsec(bm, top, y_from, Y(x) - 0.00265)
+        y_from = Y(x) + 0.00265
         x += 10.0
-    d.cut(rail, d.make("RailSlotCutter", bm, cutters, None, "Rail slots.", 0.0), "Slots")
+    d.bm_xsec(bm, top, y_from, Y(rx1))
+    rail = d.make("Rail", bm, body, steel, "M1913 rail on its 27 MOA base.", 0.0006)
     # Cheek plates: raised ribbed panels on both sides.
     for side in (-1, 1):
-        cp = d.profile("CheekPlate" + ("R" if side > 0 else "L"), body, poly, side_pts(P["cheek"]), 0.004,
-                       x=side * 0.0395, bevel=0.0008, round=0.003, note="Ribbed cheek plate.")
-        bm = bmesh.new()
+        bm = _raw(d.fillet(side_pts(P["cheek"]), 0.003), 0.004, x=side * 0.0395)
         x0c, x1c, z0c, z1c = bbox(P["cheek"])
-        for k in range(9):
-            xx = x0c + 18 + k * (x1c - x0c - 30) / 8
-            d.bm_box(bm, (side * 0.0418, Y(xx), (Zm(z0c) + Zm(z1c)) / 2), (0.0022, 0.0024, Zm(z1c) - Zm(z0c) - 0.008))
-        d.cut(cp, d.make("CheekRibCutter", bm, cutters, None, "", 0.0), "Ribs")
+        zm, hh = (Zm(z0c) + Zm(z1c)) / 2, (Zm(z1c) - Zm(z0c) - 0.008) / 2
+        grooves = [(Y(x0c + 18 + k * (x1c - x0c - 30) / 8) - 0.0012, Y(x0c + 18 + k * (x1c - x0c - 30) / 8) + 0.0012,
+                    zm - hh, zm + hh) for k in range(9)]
+        af_topo.openings(bm, "X", grooves, depth=0.0008, sign=side, weight=0.4)
+        _finish("CheekPlate" + ("R" if side > 0 else "L"), bm, body, poly, "Ribbed cheek plate.", 0.0008)
     d.profile("RearSight", body, steel, side_pts(P["rear_sight"]), 0.020, bevel=0.0010, note="Rear sight base.")
     d.box("RearSightAperture", body, steel, (0.0, Y(78), Zm(52)), (0.012, 0.006, 0.016), bevel=0.0008)
-    d.box("FrontSight", body, steel, (0.0, Y(fx(880.0)), Zm(70)), (0.010, 0.008, 0.020), bevel=0.0008,
-          note="Folding front sight, raised.")
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0, Y(fx(880.0)), Zm(63.5)), (0.016, 0.010, 0.005))
+    for sx in (-1, 1):
+        d.bm_box(bm, (sx * 0.0062, Y(fx(880.0)), Zm(71.0)), (0.0030, 0.008, 0.012))
+    d.bm_box(bm, (0.0, Y(fx(880.0)), Zm(71.5)), (0.0025, 0.004, 0.013))
+    d.make("FrontSight", bm, body, steel, "Folding front sight, raised: base, post between two ears.", 0.0006)
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(Zm(44.0), 0.0), (Zm(44.0), 0.0052), (Zm(48.5), 0.0052), (Zm(49.5), 0.0045), (Zm(49.5), 0.0)],
+               sides=24, axis="Z", c=(0.0, Y(70.0)))
+    d.bm_lathe(bm, [(-0.0100, 0.0), (-0.0100, 0.0042), (-0.0145, 0.0042), (-0.0150, 0.0036), (-0.0150, 0.0)],
+               sides=20, axis="X", c=(Y(88.0), Zm(40.0)))
+    d.make("RearSightKnobs", bm, body, bare, "Rear sight: elevation knob on top, windage knob on the left.", 0.0003)
 
     # --- Barrel and brake -----------------------------------------------------------------------
     cx0, cx1, _, _ = P["barrel_collar"]
@@ -319,50 +373,50 @@ def build():
                                         (cx1 - 3, 19), (cx1 - 3, 22), (cx1, 22), (cx1, 0)], sides=32, bevel=0.0005,
           note="Barrel bushing at the front of the upper receiver.")
     bx0, bx1 = fx(560.0), P["barrel"][1][0]
-    barrel = lathe("Barrel", body, steel, [(bx0, 0), (bx0, 13), (cx1, 13), (cx1 + 8, 11), (bx1, 10), (bx1, 0)], sides=36,
-                   bevel=0.0004, note="Fluted barrel.")
+    # Six flutes, part of the barrel's own rings (rounded grooves faded in and out), not cut.
+    f0, f1 = cx1 + 30, bx1 - 40
+    rr = lambda x: 11.0 - (x - (cx1 + 8)) / (bx1 - (cx1 + 8))
+    stations = [(bx0, 13.0, 0), (cx1, 13.0, 0), (cx1 + 8, 11.0, 0), (f0 - 6, rr(f0 - 6), 0), (f0, rr(f0), 1),
+                (f1, rr(f1), 1), (f1 + 6, rr(f1 + 6), 0), (bx1, 10.0, 0)]
     bm = bmesh.new()
-    for k in range(6):                                   # six flutes
-        a = 2 * math.pi * k / 6
-        y0, y1 = Y(cx1 + 30), Y(bx1 - 40)
-        d.bm_box(bm, (0.0112 * math.sin(a), (y0 + y1) / 2, BORE + 0.0112 * math.cos(a)), (0.0042, y1 - y0, 0.0042),
-                 rot=(0, -math.degrees(a), 0))
-    d.cut(barrel, d.make("FluteCutter", bm, cutters, None, "", 0.0), "Flutes")
+    af_topo.fluted_barrel(bm, [(Y(x), r / 1000.0, f) for x, r, f in stations], flutes=6, depth=0.0016, width_deg=24.0,
+                          sides=96, c=(0.0, BORE))
+    barrel = d.make("Barrel", bm, body, steel, "Fluted barrel.", 0.0)   # smooth grooves: no bevel needed
     kx0, kx1, _, _ = P["brake"]
-    brake = lathe("Brake", body, steel, [(kx0, 9), (kx0, 24), (kx0 + 4, 28), (kx1 - 6, 28), (kx1, 25), (kx1, 9)],
-                  sides=40, closed=True, cap=False, bevel=0.0006, note="Muzzle brake, bore through it.")
+    # Two port chambers through both flanks, laid out in the tube's grid (no Boolean).
     bm = bmesh.new()
-    for k in range(2):
-        xp = kx0 + 16 + 40 * k
-        d.bm_box(bm, (0.0, Y(xp + 13), BORE), (0.080, 0.026, 0.036))
-    d.cut(brake, d.make("BrakePortCutter", bm, cutters, None, "Port chambers.", 0.0), "Ports")
+    ports = [(Y(kx0 + 16 + 40 * k), Y(kx0 + 42 + 40 * k), -0.018, 0.018, 0.0) for k in range(2)]
+    af_topo.slotted_tube(bm, Y(kx0), ports, 0.028, 0.009, (Y(kx1), 0.025, 0.009, 0.004), c=(0.0, BORE), step=9.0, gap=0.010)
+    brake = d.make("Brake", bm, body, steel, "Muzzle brake: two port chambers, bore through it.", 0.0006)
     lathe("BrakeBaffle", body, dark, [(kx0 + 8, 0), (kx0 + 8, 23), (kx0 + 12, 23), (kx0 + 12, 0)], sides=24)
 
     # --- Lower receiver, stock, grips ----------------------------------------------------------
     d.profile("Butt", body, steel, side_pts(P["butt"]), 0.052, bevel=0.0030, round=0.008, note="Butt.")
     bx_0, bx_1, bz_0, bz_1 = bbox(P["butt"])
-    d.box("RecoilPad", body, rubber, (0.0, Y(bx_0 - 4), (Zm(bz_0) + Zm(bz_1)) / 2), (0.054, 0.012, Zm(bz_1) - Zm(bz_0) - 0.010),
-          bevel=0.0035, note="Recoil pad.")
     bm = bmesh.new()
-    for k in range(9):
-        d.bm_box(bm, (0.0, Y(bx_0 - 10), Zm(bz_0 + 12 + k * (bz_1 - bz_0 - 24) / 8)), (0.07, 0.006, 0.0022))
-    d.cut(bpy.data.objects[PREFIX + "RecoilPad"], d.make("PadGrooveCutter", bm, cutters, None, "", 0.0), "Grooves")
+    d.bm_box(bm, (0.0, Y(bx_0 - 4), (Zm(bz_0) + Zm(bz_1)) / 2), (0.054, 0.012, Zm(bz_1) - Zm(bz_0) - 0.010))
+    pad_z = [Zm(bz_0 + 12 + k * (bz_1 - bz_0 - 24) / 8) for k in range(9)]
+    af_topo.openings(bm, "Y", [(-0.035, 0.035, z - 0.0011, z + 0.0011) for z in pad_z], depth=0.003, sign=-1, weight=0.2)
+    _finish("RecoilPad", bm, body, rubber, "Recoil pad, grooved.", 0.0035)
     d.profile("StockPost", body, steel, side_pts(P["stock_post"]), 0.048, bevel=0.0030, round=0.008)
-    rg = d.profile("RearGrip", body, poly, side_pts(P["rear_grip"]), 0.036, bevel=0.0018, round=0.008, note="Rear grip loop.")
-    bm = bmesh.new()
-    d.bm_profile(bm, [(Y(x), Zm(z)) for x, z in d.fillet(P["rear_grip_hole"], 6.0)], 0.2)
-    d.cut(rg, d.make("RearGripHoleCutter", bm, cutters, None, "", 0.0), "Hole")
+    bm = _raw(d.fillet(side_pts(P["rear_grip"]), 0.008), 0.036)
+    hx0, hx1, hz0, hz1 = bbox(P["rear_grip_hole"])
+    af_topo.openings(bm, "X", [(Y(hx0), Y(hx1), Zm(hz0), Zm(hz1))], weight=1.0)
+    rg = _finish("RearGrip", bm, body, poly, "Rear grip loop.", 0.0018)
     d.profile("LowerReceiver", body, steel, side_pts(P["lower"]), 0.050, bevel=0.0030, round=0.008)
     d.profile("MagWellPlate", body, steel, side_pts(P["shroud"]), 0.072, bevel=0.0030, round=0.008,
               note="Angled magazine-well plate.")
-    grip = d.profile("PistolGrip", body, poly, side_pts(P["grip"]), 0.032, bevel=0.0030, round=0.008, note="Pistol grip.")
     gx0, gx1, gz0, gz1 = bbox(P["grip"])
-    bm = bmesh.new()
-    for k in range(3):                                   # finger grooves on the front strap
+    grooves = []
+    for k in range(3):                                   # finger grooves on the front strap, in the outline
         zz = gz1 - 35 - 28 * k
         xf = gx1 - 8 - (gz1 - zz) * 0.20
-        d.bm_lathe(bm, [(-0.03, 0.0), (-0.03, 0.0075), (0.03, 0.0075), (0.03, 0.0)], sides=16, axis="X", c=(Y(xf + 6), Zm(zz)))
-    d.cut(grip, d.make("GripGrooveCutter", bm, cutters, None, "", 0.0), "Grooves")
+        grooves.append((Y(xf + 8.5), Zm(zz), 0.0075))   # centred just outside the strap: shallow scallops
+    # A2-style outline (reference): the back strap swells out 6 mm low down, where the palm presses.
+    grip_a2 = [(238, -52), (325, -52), (300, -167), (285, -179), (250, -179), (240, -165), (233, -140), (232, -112),
+               (235, -80)]
+    grip = d.profile("PistolGrip", body, poly, af_topo.notch_outline(d.fillet(side_pts(grip_a2), 0.008), grooves),
+                     0.032, bevel=0.0030, round=0.0, note="Pistol grip with finger grooves.")
     d.profile("Weapon_Trigger", moving, bare, side_pts(P["trigger"]), 0.006, bevel=0.0010, round=0.002,
               note="Trigger. Bone 'trigger'.")
     d.box("Safety", body, steel, (-0.026, Y(fx(300.0)), Zm(-55)), (0.004, 0.020, 0.008), bevel=0.0008, note="Safety, left.")
@@ -396,8 +450,8 @@ def build():
     x0c, x1c, z0c, z1c = bbox(P["cheek"])
     for xs in (x0c + 12, (x0c + x1c) / 2, x1c - 12):
         for side in (-1, 1):                                  # cheek plate screws
-            d.bm_lathe(bm, [(side * 0.0412, 0.0), (side * 0.0412, 0.0030), (side * 0.0422, 0.0027),
-                            (side * 0.0425, 0.0)], sides=12, axis="X", c=(Y(xs), Zm(z0c + 6)))
+            d.bm_lathe(bm, [(side * 0.0412, 0.0), (side * 0.0412, 0.0030), (side * 0.0424, 0.0030),
+                            (side * 0.0424, 0.0)], sides=6, axis="X", c=(Y(xs), Zm(z0c + 6)), smooth=False)
     d.make("CheekScrews", bm, body, bare, "Cheek plate screws.", 0.0)
     bm = bmesh.new()
     for a in range(4):                                        # barrel-spring screws on the handguard's face
@@ -408,11 +462,9 @@ def build():
     d.make("SpringScrews", bm, body, bare, "Barrel-spring screws.", 0.0)
     # Trigger guard: a loop from the trigger housing to the front of the grip.
     tx0, tx1, tz0, tz1 = bbox(P["trigger"])
-    g = d.profile("TriggerGuard", body, steel, side_pts([(tx0 - 6, tz1), (tx1 + 30, tz1), (tx1 + 30, tz0 - 14), (tx0 - 6, tz0 - 14)]),
-                  0.012, bevel=0.0012, round=0.005, note="Trigger guard.")
-    bm = bmesh.new()
-    d.bm_profile(bm, side_pts(d.fillet([(tx0 - 1, tz1 - 1), (tx1 + 23, tz1 - 1), (tx1 + 23, tz0 - 7), (tx0 - 1, tz0 - 7)], 4.0)), 0.2)
-    d.cut(g, d.make("GuardHoleCutter", bm, cutters, None, "", 0.0), "Hole")
+    bm = _raw(d.fillet(side_pts([(tx0 - 6, tz1), (tx1 + 30, tz1), (tx1 + 30, tz0 - 14), (tx0 - 6, tz0 - 14)]), 0.005), 0.012)
+    af_topo.openings(bm, "X", [(Y(tx0 - 1), Y(tx1 + 23), Zm(tz0 - 7), Zm(tz1 - 1))], weight=1.0)
+    g = _finish("TriggerGuard", bm, body, steel, "Trigger guard.", 0.0012)
     d.box("MagCatch", body, bare, (-0.0395, Y(fx(500.0)), Zm(-38.0)), (0.006, 0.014, 0.016), bevel=0.0012,
           note="Magazine catch, left.")
     bm = bmesh.new()
@@ -420,6 +472,12 @@ def build():
     m41.bm_torus(bm, (0.0, Y(fx(800.0)), Zm(-38.0)), 0.009, 0.0018, seg=16, sides=8)   # hangs under the tube
     m41.bm_torus(bm, (-0.0270, Y(40.0), Zm(-110.0)), 0.009, 0.0018, seg=16, sides=8)
     d.make("SlingLoops", bm, body, bare, "Sling loops, left: handguard and butt.", 0.0)
+    bm = bmesh.new()
+    for side in (-1, 1):                         # quick-detach sling cups, both sides of the butt
+        d.bm_lathe(bm, [(side * 0.0255, 0.0), (side * 0.0255, 0.0062), (side * 0.0272, 0.0062), (side * 0.0272, 0.0042),
+                        (side * 0.0266, 0.0042), (side * 0.0266, 0.0)], sides=24, axis="X", c=(Y(22.0), Zm(-30.0)))
+    d.make("SlingCups", bm, body, bare, "Quick-detach sling cups on the butt.", 0.0003)
+    split_sheets(steel)
     smooth((body, moving))
 
     # --- Memory points (SVD names) and proxies ---------------------------------------------------
@@ -442,6 +500,7 @@ def build():
 def build_magazine():
     """The magazine (prefix M107M_), built round the SVD's magazine proxy point."""
     d.PREFIX = MAG_PREFIX
+    d.CLEAN_TOPO = True
     d.clean()
     d.CUTS = True
     body = d.collection("Body")
@@ -450,13 +509,11 @@ def build_magazine():
     steel = materials("mag")["steel"]
     # --- Magazine ---------------------------------------------------------------------------------
     mx0, mx1, mz0, mz1 = P["mag"]
-    mag = d.box("Magazine", body, steel, (0.0, (Y(mx0) + Y(mx1)) / 2, (Zm(mz0) + Zm(mz1)) / 2),
-                (0.060, Y(mx1) - Y(mx0), Zm(mz1) - Zm(mz0)), bevel=0.0025, note="10-round magazine, sized to the well.")
+    import af_topo
     bm = bmesh.new()
-    for k in range(5):                                   # witness holes, right side
-        d.bm_lathe(bm, [(0.025, 0.0), (0.025, 0.0032), (0.040, 0.0032), (0.040, 0.0)], sides=12, axis="X",
-                   c=(Y(mx0 + 18 + 27 * k), Zm(mz0 + 20)))
-    d.cut(mag, d.make("WitnessCutter", bm, cutters, None, "", 0.0), "Witness")
+    d.bm_box(bm, (0.0, (Y(mx0) + Y(mx1)) / 2, (Zm(mz0) + Zm(mz1)) / 2), (0.060, Y(mx1) - Y(mx0), Zm(mz1) - Zm(mz0)))
+    af_topo.round_pockets(bm, "X", 1, [(Y(mx0 + 18 + 27 * k), Zm(mz0 + 20)) for k in range(5)], 0.0032, 0.005, weight=0.2)
+    mag = _finish("Magazine", bm, body, steel, "10-round magazine, sized to the well; witness holes.", 0.0025)
     bm = bmesh.new()
     for side in (-1, 1):
         for xr in bp.MAG_RIBS:
@@ -476,6 +533,7 @@ def SCOPE_CENTRE():
 def build_scope_model():
     """The built-in scope (prefix M107S_), built round the middle of its tube."""
     d.PREFIX = SCOPE_PREFIX
+    d.CLEAN_TOPO = True
     d.clean()
     d.CUTS = True
     body = d.collection("Body")

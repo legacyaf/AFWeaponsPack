@@ -46,6 +46,8 @@ def _common():
     # Much less specular than the M41 (0.50; tried 0.32 first): in the in-game tests the big smooth receiver tube
     # reflected the sky and read light grey next to the vanilla UMP.
     ex.SPEC_BASE, ex.SPEC_METAL, ex.GLOSS_SCALE, ex.CO_SCALE = 0.06, 0.18, 0.88, 0.90
+    import af_finish                     # quality pass (owner 2026-11-24): the StG 44's export settings
+    af_finish.pro_export(ex.__dict__, soft_set_base={1: 0.10})
 
 
 def _gun_tables():
