@@ -12,3 +12,9 @@ test/profiles/
 # Owner reference pictures (other people's work): kept locally for measuring, never published
 docs/img/m107_reference.webp
 docs/img/m107_overlay.*
+
+# Generated: standard PBR set (af_pbr_export.py) and packed copies of the game-ready models for sending
+blender/pbr/
+blender/masters/*_packed.blend
+blender/masters/*_1k.blend
+*.blend1
