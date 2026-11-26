@@ -73,7 +73,10 @@ def _gun_tables():
     ex.SKINS = (("", 0.0), ("_gold", 1.0))            # gold = black furniture with the gold floral pattern
     ex.EXTRA_SETS = (("afstg44_wood", ("Beech",)),)    # stock and grip panels
     ex.BODY_BONE = None                               # the AKM's bones have no parents
-    ex.SELECTIONS = {"Weapon_Trigger": "trigger", "BoltCarrier": "bolt", "CockingHandle": "bolt"}
+    # hide_sight: the front sight post and hood, hidden by script while the scope is fitted (in the
+    # scope view they sat in the middle of the picture).
+    ex.SELECTIONS = {"Weapon_Trigger": "trigger", "BoltCarrier": "bolt", "CockingHandle": "bolt",
+                     "FrontSightPost": "hide_sight", "FrontSightHood": "hide_sight"}
     ex.HIDE_BARREL = ("MuzzleNut",)
     ex.UV_PRIORITY = {
         "Receiver": 1.4, "RearSightBase": 1.4, "RearSightLeaf": 1.4, "RearSightNotch": 1.6, "RearSightSlider": 1.4,

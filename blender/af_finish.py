@@ -39,6 +39,11 @@ PALETTES = {
     # Bluing (rust or hot salt blue): blue-black, plum-brown where it has thinned.
     "blued": dict(light=(0.030, 0.032, 0.040), dark=(0.0060, 0.0065, 0.0085), oil=(0.0060, 0.0062, 0.0075),
                   soft=(0.060, 0.052, 0.050), top=(0.032, 0.033, 0.040), bare=(0.24, 0.24, 0.245)),
+    # Cerakote (the M107A1): a sprayed ceramic coat is even, so the mottling, blots and oily patches are
+    # weak (k: their strengths; the phosphate's made dark smudges on its flats in the studio renders).
+    "cerakote": dict(light=(0.030, 0.031, 0.032), dark=(0.012, 0.012, 0.013), oil=(0.011, 0.011, 0.012),
+                     soft=(0.062, 0.062, 0.060), top=(0.028, 0.028, 0.029), bare=(0.20, 0.20, 0.205),
+                     k=(0.40, 0.20, 0.12)),
     # Dark Parkerized / black oxide small parts.
     "oxide": dict(light=(0.034, 0.034, 0.034), dark=(0.0070, 0.0070, 0.0072), oil=(0.0065, 0.0065, 0.0068),
                   soft=(0.068, 0.068, 0.068), top=(0.032, 0.032, 0.032), bare=(0.24, 0.24, 0.245)),
@@ -64,12 +69,13 @@ def _worn(mat, muzzle_y, zones, palette, sheets, axis):
     N = P.N
     pos = (P.px, P.py, P.pz)[axis]           # the weapon's long axis (soot at the muzzle)
     # 1. Mottled finish and oily patches; gloss breakup and rag wipes.
+    kc, kb, ko = C.get("k", (0.85, 0.70, 0.55))
     cloud = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(7.0, 4.0), 0.42), 2.6, clamp=True)
-    P.color(N.math("MULTIPLY", cloud, 0.85), C["light"])
+    P.color(N.math("MULTIPLY", cloud, kc), C["light"])
     blot = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(32.0, 3.0), 0.56), 4.0, clamp=True)
-    P.color(N.math("MULTIPLY", blot, 0.70), C["dark"])
+    P.color(N.math("MULTIPLY", blot, kb), C["dark"])
     oily = N.math("MULTIPLY", N.math("SUBTRACT", P.noise(9.0, 2.0), 0.50), 5.0, clamp=True)
-    P.color(N.math("MULTIPLY", oily, 0.55), C["oil"])
+    P.color(N.math("MULTIPLY", oily, ko), C["oil"])
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", cloud, 0.5), 0.10))
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", P.noise(11.0, 3.0), 0.5), 0.85))
     P.rough(N.math("MULTIPLY", N.math("SUBTRACT", stg._wipe(P, axis, 55.0), 0.5), 0.42))

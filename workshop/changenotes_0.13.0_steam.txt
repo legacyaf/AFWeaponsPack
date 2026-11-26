@@ -1,0 +1,42 @@
+[h1]0.13.0: Quality pass on every weapon[/h1]
+Every weapon in the pack has been rebuilt to a higher standard: cleaner models, sharper textures, and finishes that look worn and real in DayZ's light.
+
+[h1]Cleaner models[/h1]
+[list]
+[*]Every weapon is rebuilt with clean, hand-laid topology. Openings, slots, ports and magazine wells are now part of the model instead of being cut into it, so surfaces shade smoothly with no streaks or twisted shading.
+[*]Rounder barrels, caps and small parts.
+[/list]
+
+[h1]Sharper textures[/h1]
+[list]
+[*][b]AF M107A1:[/b] now uses four 4096 texture sheets (it had one 2048 sheet), plus 4096 for its magazine and scope. Markings, rivets and edges are crisp up close.
+[*]All weapons are rebaked at 4096 from a far more detailed version of each model, the method first used on the StG 44.
+[/list]
+
+[h1]Finishes that look real[/h1]
+[list]
+[*]Wear placed where the weapon is actually handled: charging handles, magazine wells, grips, muzzles, butt plates.
+[*]Grime and dust in the corners, edges rubbed through to bare metal, oily patches and rag wipes.
+[*]Steel shine matched to the vanilla weapons, so metal catches the light instead of looking flat.
+[*][b]AF-7:[/b] near-black anodised receivers. A broken normal map that caused dark speckles is fixed.
+[*][b]M41, MP40, P08:[/b] proper blued steel instead of grey.
+[*][b]AF M107A1:[/b] a darker, even Cerakote finish.
+[/list]
+
+[h1]AF M107A1 detail[/h1]
+[list]
+[*]Round handguard with slots, A2-style pistol grip, recessed receiver panels, a machined bolt carrier behind the ejection window.
+[*]Elevation and windage knobs, a front sight with protective ears, hex screws, quick-detach sling cups, a proper charging handle and safety lever.
+[/list]
+
+[h1]AF StG 44[/h1]
+[list]
+[*]Darker blued steel that matches the AKM in sunlight.
+[*]The top of the receiver now has its welded seam, stiffening swages and inspection stamps, so it no longer looks plain in first person.
+[*]The front sight no longer blocks the middle of the scope view, and the ZF4 eye position is closer so the reticle fills the view.
+[/list]
+
+[h1]Server owners[/h1]
+[list]
+[*]No class name, loot or settings changes. Update the mod and restart.
+[/list]

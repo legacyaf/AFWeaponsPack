@@ -154,6 +154,7 @@ def scratch_image(name, text, px=44, ss=2, seed=7):
 # ----------------------------------------------------------------------------
 
 GUN_WINDOW = (-0.156, 0.012, 0.406, 0.124)      # side window of the rifle: y0, z0, width, height (m)
+TOP_WINDOW = (-0.156, -0.022, 0.180, 0.044)     # top of the receiver, seen from above: y0, x0, length, width
 MAG_WINDOW = (-0.034, -0.188, 0.134, 0.226)     # side window of the magazine, in its own frame
 SHEET_PX = 10000.0                              # pixels per metre
 SHEET_HMAX = 0.0006                             # height at red = 1; red = 0 is a hole right through
@@ -275,6 +276,28 @@ def detail_sheet(side):
     return pen.image(PREFIX + "Sheet_" + ("R" if right else "L"), "afstg44_sheet_%s.png" % ("r" if right else "l"))
 
 
+def top_sheet():
+    """The top of the receiver, behind the rear sight (u along +Y, v across, along +X). The owner found
+    it too plain in first person (2026-11-23). On the real rifle the upper receiver is one pressing,
+    closed along the top: a welded seam down the middle, two shallow stiffening swages either side,
+    the inspectors' acceptance stamps near the back, and a pressed panel over the end cap."""
+    pen = _Pen(TOP_WINDOW)
+    pen.bead(pen.seg((-0.1460, 0.0), (0.0120, 0.0)), 0.0011, 0.00022)              # the closing seam
+    y = -0.1400
+    while y < 0.0100:                                                              # spot welds along it
+        pen.weld(y, 0.0)
+        y += 0.0180
+    for x in (-0.0085, 0.0085):                                                    # stiffening swages
+        pen.bead(pen.seg((-0.1380, x), (0.0040, x)), 0.0019, -0.00030)
+    pen.press(pen.rbox(-0.1330, 0.0, 0.0110, 0.0055, 0.0018), -0.00030, 0.0010)    # panel over the end cap
+    for k, (y, x) in enumerate(((-0.0950, -0.0045), (-0.0830, -0.0045), (-0.0710, -0.0045))):
+        ring = np.abs(np.hypot(pen.Y - y, pen.Z - x) - 0.0018)                     # acceptance stamps: rings
+        pen.bead(ring, 0.00035, -0.00012)
+        pen.press(pen.rbox(y, x + 0.0090, 0.0016, 0.0011, 0.0003), -0.00010, 0.0003)   # with a struck number
+    pen.press(pen.rbox(-0.0300, -0.0050, 0.0070, 0.0016, 0.0004), -0.00012, 0.0004)    # maker's code block
+    return pen.image(PREFIX + "Sheet_Top", "afstg44_sheet_top.png")
+
+
 def magazine_sheet():
     """The magazine's side (both sides alike): two long flutes pressed lengthwise, following the
     curve, as on the real magazine (ribs across the body are the AK's look)."""
@@ -298,8 +321,9 @@ def _sheet(P, img, side, window, x_min):
     """Project a detail sheet onto the faces of one side. Returns (dirt, rub, hole) masks."""
     N = P.N
     y0, z0, w, h = window
+    across = P.px if side == "top" else P.pz
     u = N.math("DIVIDE", N.math("SUBTRACT", P.py, y0), w)
-    v = N.math("DIVIDE", N.math("SUBTRACT", P.pz, z0), h)
+    v = N.math("DIVIDE", N.math("SUBTRACT", across, z0), h)
     uv = N.new("ShaderNodeCombineXYZ")
     P.nt.links.new(u, uv.inputs[0])
     P.nt.links.new(v, uv.inputs[1])
@@ -307,8 +331,13 @@ def _sheet(P, img, side, window, x_min):
     P.nt.links.new(uv.outputs[0], tex.inputs[0])
     sep = N.new("ShaderNodeSeparateColor")
     P.nt.links.new(tex.outputs["Color"], sep.inputs[0])
-    gate = N.math("MULTIPLY", N.math("GREATER_THAN", N.math("MULTIPLY", P.px, float(side)), x_min),
-                  N.math("GREATER_THAN", N.math("MULTIPLY", P.nx, float(side)), 0.55))
+    if side == "top":               # x_min is then the lowest z the sheet reaches
+        sep_n = N.new("ShaderNodeSeparateXYZ")
+        P.nt.links.new(P.geo.outputs["Normal"], sep_n.inputs[0])
+        gate = N.math("MULTIPLY", N.math("GREATER_THAN", P.pz, x_min), N.math("GREATER_THAN", sep_n.outputs["Z"], 0.55))
+    else:
+        gate = N.math("MULTIPLY", N.math("GREATER_THAN", N.math("MULTIPLY", P.px, float(side)), x_min),
+                      N.math("GREATER_THAN", N.math("MULTIPLY", P.nx, float(side)), 0.55))
     gate = N.math("MULTIPLY", gate, tex.outputs["Alpha"])
     P.dent(N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", sep.outputs[0], 0.5), 2.0), gate), SHEET_HMAX)
     hole = N.math("MULTIPLY", N.math("MULTIPLY", N.math("SUBTRACT", 0.04, sep.outputs[0]), 60.0, clamp=True), gate)
@@ -672,7 +701,8 @@ def _build_gun():
                                     rough_var=0.14, scratches=0.08, skin_img=d.pattern_image()),
                          dark=(0.040, 0.020, 0.013), light=(0.114, 0.059, 0.036))
     steel = _phosphate(m_steel, MUZZLE_Y, zones=RIFLE_ZONES, sheets=[(detail_sheet(1), 1, GUN_WINDOW, 0.010),
-                                                  (detail_sheet(-1), -1, GUN_WINDOW, 0.010)])
+                                                  (detail_sheet(-1), -1, GUN_WINDOW, 0.010),
+                                                  (top_sheet(), "top", TOP_WINDOW, 0.1300)])
     _stock_wood(m_wood)
     # Struck letters are the finish's own colour; they read by their depth, and by the dust in them.
     lettering = (0.045, 0.040, 0.034)
@@ -1007,7 +1037,7 @@ def build_magazine():
 # ----------------------------------------------------------------------------
 
 SCOPE_REAR, SCOPE_FRONT = -0.0900, 0.0850      # ends of the scope along its axis
-SCOPE_EYE = -0.1550                            # 'eyescope': the eye, behind the eyepiece
+SCOPE_EYE = -0.1320                            # 'eyescope': the eye, behind the eyepiece (1.5x: reticle fills the view)
 
 
 def build_scope():

@@ -28,7 +28,10 @@ SRC = ARGS[0] if ARGS else OUT
 # pass: afm107_body afm107_mag afm107_scope. Run it once per bake: it writes over its source
 # when <source folder> is blender/textures.
 MATTE = "--matte" in ARGS
-ARGS = [a for a in ARGS if a != "--matte"]
+# --median=<v>: only scale the colour so its median is v (no shine, gloss or cavity change), for a
+# finish that is already levelled but reads too light in game (2026-11-26: blued steel read grey).
+ONLY_MEDIAN = next((float(a.split("=", 1)[1]) for a in ARGS if a.startswith("--median=")), None)
+ARGS = [a for a in ARGS if a != "--matte" and not a.startswith("--median=")]
 BASES = ARGS[1:] or ["afstg44_body", "afstg44_mag", "afzf4"]
 AO_FLOOR = 0.30                      # as written by the exporter (afstg44_dayz_export: ex.AO_FLOOR)
 # Target specular at these percentiles of the shine score (the AKM's spread, a little tempered at
@@ -77,6 +80,16 @@ def stats(tag, co, sm):
         (tag,) + tuple(np.percentile(v, [5, 50, 95])) + tuple(np.percentile(sm[..., 1], [5, 50, 95]))
         + tuple(np.percentile(sm[..., 2], [5, 50, 95]))))
 
+
+if ONLY_MEDIAN is not None:
+    for base in BASES:
+        im_co, co = load(os.path.join(SRC, base + "_co.png"))
+        before = float(np.median(co[..., :3].mean(-1)))
+        co[..., :3] *= ONLY_MEDIAN / max(before, 1e-4)
+        save(im_co, co, os.path.join(OUT, base + "_co.png"))
+        print("LEVELS %-28s colour median %.3f -> %.3f (colour only)" % (base, before, float(np.median(co[..., :3].mean(-1)))))
+    print("LEVELS done")
+    sys.exit(0)
 
 for base in BASES:
     im_co, co = load(os.path.join(SRC, base + "_co.png"))

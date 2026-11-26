@@ -200,7 +200,8 @@ def materials(which="rifle"):
         sheets = ([(receiver_sheet(1), 1, None, 0.020), (receiver_sheet(-1), -1, None, 0.020)]
                   if which == "rifle" else [])
         sheets = [(img, sd, tuple(img["af_window"]), xm) for img, sd, _, xm in sheets]
-        stg._phosphate(steel, Y(fx(1443.0)) if which == "rifle" else 9.0, carried=False, zones=zones(which),
+        import af_finish                       # Cerakote palette: an even coat, no dark smudges (2026-11-25)
+        af_finish.worn(steel, Y(fx(1443.0)) if which == "rifle" else 9.0, zones(which), palette="cerakote",
                        sheets=sheets)
     finally:
         m41.PREFIX = old_prefix
@@ -388,6 +389,10 @@ def build():
     ports = [(Y(kx0 + 16 + 40 * k), Y(kx0 + 42 + 40 * k), -0.018, 0.018, 0.0) for k in range(2)]
     af_topo.slotted_tube(bm, Y(kx0), ports, 0.028, 0.009, (Y(kx1), 0.025, 0.009, 0.004), c=(0.0, BORE), step=9.0, gap=0.010)
     brake = d.make("Brake", bm, body, steel, "Muzzle brake: two port chambers, bore through it.", 0.0006)
+    bm = bmesh.new()                             # brake locking screw (detail round 2)
+    d.bm_lathe(bm, [(Zm(27.5), 0.0), (Zm(27.5), 0.0040), (Zm(29.5), 0.0040), (Zm(30.0), 0.0034), (Zm(30.0), 0.0)],
+               sides=6, axis="Z", c=(0.0, Y(kx0 + 6)), smooth=False)
+    d.make("BrakeScrew", bm, body, bare, "Muzzle brake locking screw.", 0.0002)
     lathe("BrakeBaffle", body, dark, [(kx0 + 8, 0), (kx0 + 8, 23), (kx0 + 12, 23), (kx0 + 12, 0)], sides=24)
 
     # --- Lower receiver, stock, grips ----------------------------------------------------------
@@ -419,14 +424,29 @@ def build():
                      0.032, bevel=0.0030, round=0.0, note="Pistol grip with finger grooves.")
     d.profile("Weapon_Trigger", moving, bare, side_pts(P["trigger"]), 0.006, bevel=0.0010, round=0.002,
               note="Trigger. Bone 'trigger'.")
-    d.box("Safety", body, steel, (-0.026, Y(fx(300.0)), Zm(-55)), (0.004, 0.020, 0.008), bevel=0.0008, note="Safety, left.")
-    d.box("ChargingHandle", body, steel, (0.044, Y(fx(520.0)), Zm(-10)), (0.014, 0.014, 0.018), bevel=0.0020,
+    # Safety: a lever on a round hub (detail round 2).
+    bm = bmesh.new()
+    d.bm_lathe(bm, [(-0.0250, 0.0), (-0.0250, 0.0065), (-0.0290, 0.0065), (-0.0295, 0.0058), (-0.0295, 0.0)],
+               sides=24, axis="X", c=(Y(fx(300.0)), Zm(-55)))
+    d.bm_box(bm, (-0.0285, Y(fx(300.0)) + 0.009, Zm(-55)), (0.0030, 0.018, 0.0055), rot=(-20, 0, 0))
+    d.make("Safety", bm, body, steel, "Safety, left: lever on a round hub.", 0.0006)
+    # Charging handle: a lever out of the right side with a round grip knob (detail round 2).
+    bm = bmesh.new()
+    d.bm_box(bm, (0.0420, Y(fx(520.0)), Zm(-10)), (0.010, 0.010, 0.012))
+    d.bm_lathe(bm, [(0.0470, 0.0), (0.0470, 0.0070), (0.0490, 0.0080), (0.0580, 0.0080), (0.0595, 0.0068),
+                    (0.0595, 0.0)], sides=24, axis="X", c=(Y(fx(520.0)), Zm(-10)))
+    d.make("ChargingHandleKnob", bm, body, bare, "Charging handle lever and knob.", 0.0006)
+    d.box("ChargingHandle", body, steel, (0.0395, Y(fx(520.0)), Zm(-10)), (0.004, 0.024, 0.020), bevel=0.0010,
           note="Charging handle, right.")
 
     # --- Monopod, bipod, lock pins ------------------------------------------------------------------
     # (Monopod under the stock removed, owner 2026-11-23.)
     yx0, yx1, yz0, _ = P["bipod_yoke"]
     d.profile("BipodYoke", body, steel, side_pts((yx0, yx1, yz0, -29.0)), 0.044, bevel=0.0018, round=0.004)  # up into the tube
+    bm = bmesh.new()                             # yoke clamp knob, right (detail round 2)
+    d.bm_lathe(bm, [(0.0220, 0.0), (0.0220, 0.0075), (0.0285, 0.0075), (0.0295, 0.0065), (0.0295, 0.0)],
+               sides=24, axis="X", c=(Y((yx0 + yx1) / 2), Zm((yz0 - 29.0) / 2)))
+    d.make("YokeKnob", bm, body, bare, "Bipod yoke clamp knob.", 0.0005)
     # (Folded bipod legs under the barrel removed, owner 2026-11-23.)
     bm = bmesh.new()
     # Mid lock pin: through a lug under the round handguard, ahead of the support hand (at fx 495 its
