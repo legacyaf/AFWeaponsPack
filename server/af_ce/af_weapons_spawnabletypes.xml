@@ -84,5 +84,14 @@
             <item name="Mag_AFM107_10Rnd" chance="1.00"/>
         </attachments>
     </type>
+    <!-- The PeaceKeeper always comes with its AF stock; half spawn with a SCAR-H magazine. -->
+    <type name="AF_PeaceKeeper">
+        <attachments chance="1.00">
+            <item name="AF_PeaceKeeperStock" chance="1.00"/>
+        </attachments>
+        <attachments chance="0.50">
+            <item name="Mag_SCARH_20Rnd" chance="1.00"/>
+        </attachments>
+    </type>
 </spawnabletypes>
 

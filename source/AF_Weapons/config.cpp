@@ -23,10 +23,10 @@ class CfgPatches
 {
 	class AF_Weapons
 	{
-		units[] = {"AF_WeaponRepairKit", "AF_ZF4Optic", "AF_M107Scope"};
-		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold", "AF_StG44", "AF_StG44_Gold", "AF_M107A1"};
+		units[] = {"AF_WeaponRepairKit", "AF_ZF4Optic", "AF_M107Scope", "AF_PeaceKeeperStock"};
+		weapons[] = {"AF7_Vanguard", "AF7_Vanguard_Gold", "AFM41_Pathfinder", "AFM41_Pathfinder_Gold", "AF_MP40", "AF_MP40_Gold", "AF_P08", "AF_P08_Gold", "AF_StG44", "AF_StG44_Gold", "AF_M107A1", "AF_PeaceKeeper"};
 		requiredVersion = 0.1;
-		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools", "DZ_Weapons_Firearms_AKM", "DZ_Weapons_Optics", "DZ_Weapons_Firearms_SVD", "DZ_Weapons_Projectiles", "DZ_Weapons_Ammunition"};
+		requiredAddons[] = {"DZ_Data", "DZ_Scripts", "DZ_Weapons_Firearms", "DZ_Weapons_Firearms_M4", "DZ_Weapons_Firearms_FAL", "DZ_Weapons_Firearms_MosinNagant", "DZ_Weapons_Firearms_UMP", "DZ_Weapons_Firearms_MP5", "DZ_Weapons_Magazines", "DZ_Pistols", "DZ_Pistols_p1", "DZ_Gear_Tools", "DZ_Weapons_Firearms_AKM", "DZ_Weapons_Optics", "DZ_Weapons_Firearms_SVD", "DZ_Weapons_Projectiles", "DZ_Weapons_Ammunition", "DZ_Weapons_Firearms_SCARH", "DZ_Weapons_Supports"};
 	};
 };
 
@@ -569,6 +569,62 @@ class CfgWeapons
 		};
 	};
 
+	// The PeaceKeeper: the AF modern battle rifle, our own SCAR (docs/AF_SCAR.md). It inherits the vanilla
+	// SCAR-H (its animations, sounds, handling and magazines) and is built in the SCAR-H's frame. Matte black
+	// with an orange trim line, gold half-height iron sights with a red-tipped post, a live round counter
+	// (camo4, swapped by AF_PeaceKeeper.c) and three fire modes. Its AF stock is an item of its own on the
+	// vanilla stock slot, so vanilla SCAR stocks fit too.
+	class SCARH_Base: Rifle_Base
+	{
+		class SemiAuto;
+		class FullAuto;
+	};
+	class AF_PeaceKeeper: SCARH_Base
+	{
+		scope = 2;
+		displayName = "AF PeaceKeeper";
+		descriptionShort = "The Allied Forces battle rifle in 7.62x51 (.308): semi, 3-round burst and full auto, a live round counter, gold iron sights and a folding AF stock. Takes SCAR-H magazines.";
+		model = "\AF_Weapons\afpk\afpk.p3d";
+		// The vanilla slots, without the vanilla front sight: the PeaceKeeper has its own gold sights.
+		attachments[] = {"weaponButtstockSCAR", "weaponWrap", "weaponOptics", "suppressorImpro", "weaponFlashlight"};
+		simpleHiddenSelections[] = {};
+		// Five texture sheets: upper, rails and muzzle, polymer lower, small parts, the counter's display.
+		hiddenSelections[] = {"camo", "camo1", "camo2", "camo3", "camo4"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afpk\data\afpk_body_co.paa", "AF_Weapons\afpk\data\afpk_front_co.paa", "AF_Weapons\afpk\data\afpk_lower_co.paa", "AF_Weapons\afpk\data\afpk_parts_co.paa", "AF_Weapons\afpk\data\afpk_counter_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"};
+		modes[] = {"SemiAuto", "Burst", "FullAuto"};
+		class SemiAuto: SemiAuto {};
+		// Three rounds a pull: the vanilla burst is semi-auto with burst = 3 (Mode_Burst, read from the game's
+		// base config), so it builds on the SCAR-H's semi mode and its sounds. A little faster than full
+		// auto and a little looser.
+		class Burst: SemiAuto
+		{
+			displayName = "$STR_Burst";
+			burst = 3;
+			reloadTime = 0.09;
+			dispersion = 0.0012;
+		};
+		class FullAuto: FullAuto {};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 300;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"}},
+						{0.7, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"}},
+						{0.5, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afpk\data\afpk_body_destruct.rvmat", "AF_Weapons\afpk\data\afpk_front_destruct.rvmat", "AF_Weapons\afpk\data\afpk_lower_destruct.rvmat", "AF_Weapons\afpk\data\afpk_parts_destruct.rvmat", "AF_Weapons\afpk\data\afpk_counter_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
+
 	// Gold floral finish: black stock and grips with the gold floral pattern, steel unchanged.
 	// Not in the loot tables by default.
 	class AF_StG44_Gold: AF_StG44
@@ -604,6 +660,37 @@ class CfgWeapons
 // restored, uses per kit and whether it works on suppressors are server settings (AF_WeaponsPack.json).
 class CfgVehicles
 {
+	// The PeaceKeeper's AF stock: matte black with the orange trim, on the vanilla SCAR stock slot (so it
+	// also fits the vanilla SCAR-H, and vanilla SCAR stocks fit the PeaceKeeper). The rifle spawns with it.
+	class SCAR_StockBttstck;
+	class AF_PeaceKeeperStock: SCAR_StockBttstck
+	{
+		scope = 2;
+		displayName = "AF PeaceKeeper Stock";
+		descriptionShort = "The folding Allied Forces stock for the PeaceKeeper, with a cheek riser and the orange AF trim. Fits SCAR rifles.";
+		model = "\AF_Weapons\afpk\afpk_stock.p3d";
+		hiddenSelections[] = {"camo"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afpk\data\afpk_stock_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afpk\data\afpk_stock.rvmat"};
+		class DamageSystem
+		{
+			class GlobalHealth
+			{
+				class Health
+				{
+					hitpoints = 100;
+					healthLevels[] =
+					{
+						{1.0, {"AF_Weapons\afpk\data\afpk_stock.rvmat"}},
+						{0.7, {"AF_Weapons\afpk\data\afpk_stock.rvmat"}},
+						{0.5, {"AF_Weapons\afpk\data\afpk_stock_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afpk\data\afpk_stock_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afpk\data\afpk_stock_destruct.rvmat"}}
+					};
+				};
+			};
+		};
+	};
 	// The AF M107A1's built-in scope: 6x, 8x, 10x, 12x. It is fitted to the rifle when the rifle is made
 	// and cannot be taken off (AF_M107A1.c). Its view - a red-outlined reticle, the magnification and a
 	// live range readout - is drawn by script (AF_M107Scope.c) over the game's round optics mask.

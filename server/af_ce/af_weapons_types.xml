@@ -251,6 +251,37 @@
         <usage name="Military"/>
         <value name="Tier4"/>
     </type>
+    <!-- The PeaceKeeper: AF 7.62x51 battle rifle (SCAR-H base) with its AF stock. Rare, military, top tiers.
+         It takes the vanilla SCAR-H magazines, which spawn from the vanilla types. -->
+    <type name="AF_PeaceKeeper">
+        <nominal>3</nominal>
+        <lifetime>28800</lifetime>
+        <restock>3600</restock>
+        <min>1</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <value name="Tier3"/>
+        <value name="Tier4"/>
+    </type>
+    <!-- The PeaceKeeper's AF stock on its own (it also fits the vanilla SCAR-H). -->
+    <type name="AF_PeaceKeeperStock">
+        <nominal>3</nominal>
+        <lifetime>14400</lifetime>
+        <restock>1800</restock>
+        <min>1</min>
+        <quantmin>-1</quantmin>
+        <quantmax>-1</quantmax>
+        <cost>100</cost>
+        <flags count_in_cargo="0" count_in_hoarder="0" count_in_map="1" count_in_player="0" crafted="0" deloot="0"/>
+        <category name="weapons"/>
+        <usage name="Military"/>
+        <value name="Tier3"/>
+        <value name="Tier4"/>
+    </type>
     <!-- The AF M107A1's 10-round magazine. No other magazine fits the rifle, so keep this one spawning. -->
     <type name="Mag_AFM107_10Rnd">
         <nominal>4</nominal>
