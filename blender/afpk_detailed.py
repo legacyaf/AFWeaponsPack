@@ -288,7 +288,7 @@ def build():
     for name, loc, note in (
             ("Mem_Muzzle", (0.0, 0.5423, 0.0887), "'usti hlavne'"),
             ("Mem_BarrelEnd", (0.0, 0.0741, 0.0888), "'konec hlavne'"),
-            ("Mem_Eye", (0.0, EYE[0], EYE[1]), "'eye': on our lowered sight line (owner)"),
+            ("Mem_Eye", (0.0, -0.19, EYE[1]), "'eye': on our lowered sight line (owner), 48 mm behind the aperture so the ring shows"),
             ("Mem_EyeScope", (0.0, -0.1465, 0.1716), "'eyescope'"),
             ("Mem_CaseStart", (0.0225, 0.0037, 0.0968), "'nabojnicestart'"),
             ("Mem_CaseEnd", (0.0870, -0.0621, 0.1224), "'nabojniceend'"),

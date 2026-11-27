@@ -96,7 +96,9 @@ def _gun_tables():
         "Proxy_Magazine": (ATT + "magazine\\magazine_scarh_20rnd", (0, 1, 0), (0, 0, 1), ("magazine",)),
         "Proxy_Stock": (ATT + "support\\buttstock_scar_stock", (1, 0, 0), (0, 0, 1), ()),
         "Proxy_Optic": (ATT + "optics\\optic_acog", (1, 0, 0), (0, 0, -1), ()),
-        "Proxy_Light": (ATT + "light\\weaponlight_universal", (0, 1, 0), (0, 0, -1), ()),
+        # Written +z: written -z (as the probe read the vanilla light) it came out turned into the
+        # receiver, +z in game (2026-11-26); every other proxy came out as written.
+        "Proxy_Light": (ATT + "light\\weaponlight_universal", (0, 1, 0), (0, 0, 1), ()),
         "Proxy_Suppressor": (ATT + "muzzle\\bottle_suppressor", (1, 0, 0), (0, 0, 1), ()),
         "Proxy_Wrap": (ATT + "support\\ghillie_wrap", (0, 1, 0), (0, 0, 1), ()),
     }
