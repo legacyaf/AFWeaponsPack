@@ -162,6 +162,26 @@ def build():
     prof("BrassDeflector", body, anod, [(-0.024, 0.0950), (-0.004, 0.0950), (-0.004, 0.1190), (-0.018, 0.1190)],
          0.0050, x=HALF + 0.0015, bevel=0.0012, rnd=0.003, note="brass deflector")
     cut(upper, "ChSlot", [((-HALF, 0.150, 0.1125), (0.008, 0.240, 0.0075))])
+    # Shape pass (owner 2026-11-27, "pro grade"): the receiver sides were plain flats.
+    # Handguard vents above the side rails (two on the left, clear of the charging slot; four on the right).
+    cut(upper, "Vents", [((side * HALF, y, 0.1078), (0.0060, 0.0200, 0.0046))
+                         for side, ys in ((-1, (0.288, 0.318)), (1, (0.228, 0.258, 0.288, 0.318))) for y in ys])
+    for side in (-1, 1):
+        # A reinforcing rib along the foot of the upper, under the trim line.
+        prof("UpperRib" + ("R" if side > 0 else "L"), body, anod,
+             [(REAR + 0.010, 0.0765), (0.103, 0.0765), (0.108, 0.0800), (0.103, 0.0835), (REAR + 0.010, 0.0835)],
+             0.0022, x=side * (HALF - 0.0007), bevel=0.0004, note="upper receiver rib")
+    bm = bmesh.new()
+    for side in (-1, 1):
+        # Sling cup at the rear and two receiver bolts, each side.
+        d.bm_lathe(bm, [(side * (HALF - 0.001), 0.0), (side * (HALF - 0.001), 0.0064), (side * (HALF + 0.0016), 0.0064),
+                        (side * (HALF + 0.0016), 0.0044), (side * (HALF + 0.0002), 0.0040), (side * (HALF + 0.0002), 0.0)],
+                   sides=20, c=(-0.1465, 0.1030), axis="X")
+        for y in (0.088, 0.186):
+            d.bm_lathe(bm, [(side * (HALF - 0.001), 0.0), (side * (HALF - 0.001), 0.0030), (side * (HALF + 0.0010), 0.0030),
+                            (side * (HALF + 0.0014), 0.0022), (side * (HALF + 0.0014), 0.0)], sides=12, c=(y, 0.0995),
+                       axis="X")
+    d.make("UpperParts", bm, body, steel, "sling cups, receiver bolts", 0.0003)
     rail = xsec("TopRail", body, anod, dm.rail_pts(0.0, UP_TOP, 0.0, 1.0), REAR + 0.003, UP_FRONT - 0.002,
                 bevel=0.0005, note="top rail")
     n = int((UP_FRONT - REAR - 0.012) / PITCH)
@@ -214,6 +234,13 @@ def build():
                                        (-0.140, 0.0560), (REAR + 0.003, 0.0620)], 0.044, bevel=0.0018, rnd=0.004,
                  note="lower receiver")
     cut(lower, "MagWell", [((0.0, MAG[0] + 0.0010, 0.0), (0.0300, 0.0800, 0.060))])
+    # Shape pass: a recessed panel on each side of the magazine well (the markings sit in the left one) and
+    # a flared collar round its mouth.
+    cut(lower, "MagPanels", [((side * 0.0220, 0.0580, 0.0210), (0.0014, 0.0740, 0.0340)) for side in (-1, 1)])
+    flare = prof("MagFlare", body, poly, [(0.0085, -0.0135), (0.1050, -0.0105), (0.1090, -0.0065), (0.1090, 0.0005),
+                                          (0.1060, 0.0030), (0.0110, 0.0025), (0.0085, 0.0000)], 0.0476,
+                 bevel=0.0010, rnd=0.0015, note="magazine well flare")
+    cut(flare, "MagWellFlare", [((0.0, MAG[0] + 0.0010, 0.0), (0.0300, 0.0800, 0.060))])
     prof("TriggerGuard", body, poly, [(0.010, 0.0315), (0.010, 0.0080), (0.000, 0.0020), (-0.040, 0.0020),
                                       (-0.053, 0.0100), (-0.059, 0.0320), (-0.050, 0.0320), (-0.046, 0.0150),
                                       (-0.038, 0.0095), (-0.002, 0.0095), (0.004, 0.0135), (0.004, 0.0315)], 0.016,
@@ -222,6 +249,13 @@ def build():
                               (-0.062, -0.0300), (-0.072, -0.0580), (-0.082, -0.0720), (-0.118, -0.0680),
                               (-0.121, -0.0560), (-0.110, -0.0200), (-0.104, 0.0100), (-0.106, 0.0280),
                               (-0.120, 0.0470)], 0.032, bevel=0.0030, rnd=0.007, note="pistol grip")
+    # Shape pass: two finger grooves across the front of the grip and a base plate.
+    gbm = bmesh.new()
+    for gy, gz in ((-0.0420, -0.0040), (-0.0515, -0.0300)):
+        d.bm_lathe(gbm, [(-0.022, 0.0), (-0.022, 0.0120), (0.022, 0.0120), (0.022, 0.0)], sides=24, c=(gy, gz), axis="X")
+    d.cut(bpy.data.objects[d.PREFIX + "Grip"], d.make("GripGrooves", gbm, cutc, None, "cutter", 0.0), "GripGrooves")
+    prof("GripCap", body, poly, [(-0.0830, -0.0748), (-0.1190, -0.0708), (-0.1196, -0.0668), (-0.0826, -0.0706)], 0.0345,
+         bevel=0.0008, note="grip base plate")
     bm = bmesh.new()
     for side in (-1, 1):
         d.bm_lathe(bm, [(side * 0.022, 0.0), (side * 0.022, 0.0060), (side * 0.0245, 0.0060), (side * 0.0250, 0.0045),
@@ -231,7 +265,10 @@ def build():
         for y, z in ((-0.134, 0.0660), (0.100, 0.0660)):
             d.bm_lathe(bm, [(side * 0.021, 0.0), (side * 0.021, 0.0038), (side * 0.0228, 0.0038), (side * 0.0232, 0.0030),
                             (side * 0.0232, 0.0)], sides=16, c=(y, z), axis="X")
-    d.make("LowerParts", bm, body, steel, "safety hubs, magazine release, takedown pins", 0.0004)
+        # Shape pass: the front pivot pin's heads.
+        d.bm_lathe(bm, [(side * 0.021, 0.0), (side * 0.021, 0.0044), (side * 0.0229, 0.0044), (side * 0.0233, 0.0035),
+                        (side * 0.0233, 0.0)], sides=16, c=(0.196, 0.0570), axis="X")
+    d.make("LowerParts", bm, body, steel, "safety hubs, magazine release, takedown pins, pivot pin", 0.0004)
 
     # --- Moving parts, on the vanilla bones ----------------------------------------------------------
     d.blade("Trigger", moving, steel, [(TRIGGER[0], TRIGGER[1], 0.0060), (-0.0355, 0.0250, 0.0055),
@@ -333,6 +370,8 @@ def build_stock():
     hole = d.profile("StockHoleCut", cutc, None, [(-0.326, 0.0980), (-0.410, 0.0980), (-0.410, 0.0120)], 0.060,
                      bevel=0.0, round=0.008)
     d.cut(stock, hole, "StockHole")
+    # Shape pass: a recessed panel on each side of the stock, and grooves across the butt pad.
+    cut(stock, "StockPanels", [((side * 0.0200, -0.2450, 0.0940), (0.0016, 0.1000, 0.0220)) for side in (-1, 1)])
     prof("CheekRiser", body, poly, [(-0.262, 0.1200), (-0.408, 0.1225), (-0.408, 0.1385), (-0.280, 0.1360)], 0.036,
          bevel=0.0025, rnd=0.006, note="cheek riser")
     bm = bmesh.new()
@@ -343,6 +382,8 @@ def build_stock():
     prof("ButtPad", body, m["rubber"], [(-0.425, -0.0090), (-0.444, -0.0070), (-0.448, 0.0030), (-0.448, 0.1250),
                                         (-0.444, 0.1340), (-0.425, 0.1340)], 0.044, bevel=0.0020, rnd=0.004,
          note="butt pad")
+    cut(bpy.data.objects[d.PREFIX + "ButtPad"], "PadGrooves",
+        [((0.0, -0.4480, 0.012 + k * 0.0105), (0.050, 0.0018, 0.0024)) for k in range(11)])
     harden((body,))
     to_stock_frame(True)
 

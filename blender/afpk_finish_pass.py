@@ -38,7 +38,8 @@ ARGS = sys.argv[sys.argv.index("--") + 1:] if "--" in sys.argv else []
 ALL = ("afpk_body", "afpk_front", "afpk_lower", "afpk_parts", "afpk_stock")
 SHEETS = [a for a in ARGS if a in ALL] or list(ALL)
 SUFFIXES = ("co", "smdi", "nohq", "as")
-POLYMER_PARTS = ("Lower", "Grip", "TriggerGuard", "ChargingKnob", "StockBody", "CheekRiser", "ButtPad")
+POLYMER_PARTS = ("Lower", "Grip", "GripCap", "MagFlare", "TriggerGuard", "ChargingKnob", "StockBody", "CheekRiser",
+                 "ButtPad")
 SKIP_PARTS = ("TrimL", "TrimR", "FrontPostTip", "StockTrim", "CounterBezel")     # painted or lit: left as baked
 
 
@@ -188,16 +189,17 @@ GLYPHS = {
     "-": [[(0.8, 3), (3.2, 3)]],
     " ": [],
 }
-# (text, y of the first letter, z of the baseline, letter height): on the lower receiver, read from that side.
+# (text, y of the first letter, z of the baseline, letter height): on the lower receiver, read from that side,
+# inside the recessed panels on the magazine well (y 0.021 to 0.095, z 0.004 to 0.038).
 # Left side: the text runs towards -y (the muzzle is to the reader's left). Right side: towards +y.
 SELECTOR = (-0.081, 0.063)                      # the selector's hub (y, z)
 MARKS_LEFT = [
-    ("AF PEACEKEEPER", 0.098, 0.0300, 0.0042),
-    ("CAL 7.62X51", 0.098, 0.0215, 0.0032),
-    ("SER AF 001127", 0.098, 0.0145, 0.0028),
+    ("AF PEACEKEEPER", 0.0915, 0.0300, 0.0042),
+    ("CAL 7.62X51", 0.0915, 0.0215, 0.0032),
+    ("SER AF 001127", 0.0915, 0.0145, 0.0028),
 ]
 MARKS_RIGHT = [
-    ("CAL 7.62X51", 0.020, 0.0215, 0.0032),
+    ("CAL 7.62X51", 0.0245, 0.0215, 0.0032),
 ]
 # Fire-mode marks on an arc below the selector (angle from forward, down is negative), both sides.
 MODE_MARKS = (("S", -152.0), ("1", -112.0), ("3", -68.0), ("A", -28.0))

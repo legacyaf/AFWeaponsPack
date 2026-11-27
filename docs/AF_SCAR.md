@@ -183,3 +183,25 @@ Ideas offered and not chosen (for later, if wanted): less-lethal PeaceKeeper rou
 
 The visual side is part of what makes it special too: matte black with the orange trim, gold sights with a red
 tip, and the orange counter glowing beside the trim.
+
+## Pro-grade pass (owner, 2026-11-27)
+
+The owner asked for the PeaceKeeper's look to be brought up to the level of the StG 44 and M107A1. Four steps, all done:
+
+1. **Finish pass on the baked sheets** (`blender/afpk_finish_pass.py`, no bake). It uses `blender/afpk_texmap.py`, which draws LOD 1 into each sheet's UV square so every texel knows its place on the rifle.
+   - Polymer (lower, grip, stock): a satin spread of shine in place of one flat value.
+   - Raised stipple on the grip and the butt pad, written into the normal map.
+   - Engraved, paint-filled markings on the lower: fire modes by the selector on both sides (S, 1, 3, A), "AF PEACEKEEPER", the calibre and a serial on the left of the magazine well, the calibre on the right. Our own names only.
+   - Wear by use: rubbed edges, faint scuffs on the flats, a little dust in the hollows.
+2. **Glowing round counter**: `emmisive` on `afpk_counter.rvmat`. Readable at night (seen in game).
+3. **Shape pass** in `blender/afpk_detailed.py`, then a new 4096 bake (75 minutes). Rifle LOD 1 is 25,826 triangles (was 22,479), the stock 2,965 (was 2,611).
+   - Upper: handguard vents, a rib along its foot, sling cups, receiver bolts.
+   - Lower: recessed panels on the magazine well, a flared collar at its mouth, front pivot pin heads.
+   - Grip: two finger grooves and a base plate.
+   - Stock: recessed side panels, grooves across the butt pad.
+   - The rear sight was not changed (owner).
+4. **Lighting series** beside the vanilla SCAR-H: `test\run_test.ps1 -Mission AFPKLight.ChernarusPlus -TimeoutSeconds 200` (noon, overcast, evening, night; six views each).
+
+After any new bake run `python blender/afpk_after_bake.py`: it keeps the raw bake, runs the levels (matte black on the upper and rails, median 0.10 on the lower, the stock and the gold sights in `afpk_levels_extra.py`), the finish pass, the counter digits and the `.paa` conversion. Then `build.bat`.
+
+Not yet judged: the owner's score. The gold sights and the orange trim read bright at night; that is their light colour under moonlight, not a glow (the gold's warm lift is 0.03).

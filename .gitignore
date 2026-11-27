@@ -28,3 +28,4 @@ test/mp/captures/
 
 # The PeaceKeeper finish pass reads its input from here (a copy of the sheets after the bake and levels pass)
 blender/textures/afpk_prefinish/
+blender/textures/afpk_raw_last/
