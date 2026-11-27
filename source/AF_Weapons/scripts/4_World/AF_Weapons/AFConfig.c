@@ -65,7 +65,8 @@ class AFConfig
 {
 	static const string FILE = "$profile:AF_WeaponsPack.json";
 	static const int RPC_REQUEST = 0x41460001;     //!< player -> server: send me the settings
-	static const int RPC_SETTINGS = 0x41460002;    //!< server -> player: the settings, as JSON text
+	static const int RPC_SETTINGS = 0x41460002;    //!< server -> player: one piece of the settings' JSON text (index, total, text)
+	static const int PIECE_LENGTH = 400;           //!< characters of JSON in one RPC_SETTINGS
 	static const int RPC_SOUND = 0x41460003;       //!< player -> server: I aimed / zoomed / zeroed
 	static const int RPC_SOUND_PLAY = 0x41460004;  //!< server -> players nearby: play that sound on this player
 	static const int SOUND_AIM = 0;
@@ -80,6 +81,8 @@ class AFConfig
 	protected static bool s_Loaded;          //!< server / single player: the file has been read
 	protected static bool s_Received;        //!< player: the server's settings have arrived
 	protected static int s_LastRequest;
+	protected static string s_Pieces;        //!< player: the settings' JSON text received so far
+	protected static int s_NextPiece;        //!< player: the piece expected next
 	protected static int s_Revision;         //!< goes up whenever the settings change; weapons re-read theirs
 	static bool s_ApplyingDamage;            //!< guard: our own scaled damage must not be scaled again
 
@@ -232,18 +235,43 @@ class AFConfig
 	{
 		if (!player || !identity)
 			return;
+		// In pieces: the game drops an RPC that carries a long string, and with seven weapons the
+		// settings no longer fit in one (found in the server and client test of 2026-11-27).
 		string json = JsonFileLoader<AFConfigData>.JsonMakeData(Get());
-		ScriptRPC rpc = new ScriptRPC();
-		rpc.Write(json);
-		rpc.Send(player, RPC_SETTINGS, true, identity);
+		int total = (json.Length() + PIECE_LENGTH - 1) / PIECE_LENGTH;
+		for (int i = 0; i < total; i++)
+		{
+			int from = i * PIECE_LENGTH;
+			int len = json.Length() - from;
+			if (len > PIECE_LENGTH)
+				len = PIECE_LENGTH;
+			ScriptRPC rpc = new ScriptRPC();
+			rpc.Write(i);
+			rpc.Write(total);
+			rpc.Write(json.Substring(from, len));
+			rpc.Send(player, RPC_SETTINGS, true, identity);
+		}
 	}
 
 	//! Player's PC: the server's settings arrived.
 	static void Receive(ParamsReadContext ctx)
 	{
-		string json;
-		if (!ctx.Read(json))
+		int index, total;
+		string piece;
+		if (!ctx.Read(index) || !ctx.Read(total) || !ctx.Read(piece))
 			return;
+		// The pieces come in order (guaranteed RPCs); a piece out of order starts again at the next first piece.
+		if (index == 0)
+			s_Pieces = "";
+		else if (index != s_NextPiece)
+			return;
+		s_Pieces = s_Pieces + piece;
+		s_NextPiece = index + 1;
+		if (s_NextPiece < total)
+			return;
+		string json = s_Pieces;
+		s_Pieces = "";
+		s_NextPiece = 0;
 		AFConfigData data;
 		JsonFileLoader<AFConfigData>.JsonLoadData(json, data);
 		if (!data)
@@ -251,6 +279,7 @@ class AFConfig
 		Tidy(data);
 		s_Data = data;
 		s_Received = true;
+		Print("[AF_WeaponsPack] settings received from the server, " + data.Weapons.Count().ToString() + " weapons");
 		s_Revision++;
 		// The weapon in the player's hands worked out its recoil and sway before the settings came.
 		PlayerBase player = PlayerBase.Cast(GetGame().GetPlayer());

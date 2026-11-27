@@ -18,3 +18,10 @@ blender/pbr/
 blender/masters/*_packed.blend
 blender/masters/*_1k.blend
 *.blend1
+
+# Local multiplayer test (test/mp/run_mp.ps1): built helper, assembled mission, logs, pictures
+test/mp/@AFPKMP/
+test/mp/run_mp/
+test/mp/profiles_server/
+test/mp/profiles_client/
+test/mp/captures/
