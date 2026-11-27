@@ -1,0 +1,38 @@
+[h1]0.14.0: The PeaceKeeper[/h1]
+A new weapon: the AF PeaceKeeper, a modern 7.62 battle rifle with a live round counter.
+
+[h1]AF PeaceKeeper[/h1]
+[list]
+[*][b]7.62x51mm (.308 Win)[/b] from the vanilla 20-round SCAR-H magazines.
+[*][b]Three fire modes:[/b] single shots, 3-round burst and full auto (about 610 rounds a minute).
+[*][b]Live round counter[/b] on the side of the rifle. It shows the rounds left and glows, so it reads at night.
+[*][b]Gold ghost-ring iron sights[/b] with a red front post tip.
+[*][b]Its own AF stock.[/b] The vanilla SCAR stocks fit the rifle too, and the AF stock fits the vanilla SCAR-H.
+[*][b]Attachments:[/b] optic, flashlight, improvised suppressor and ghillie wrap.
+[*][b]Finish:[/b] matte black with orange trim. Stippled grip, engraved markings and wear where the rifle is handled.
+[*][b]Handling:[/b] uses the SCAR-H animations and sounds.
+[/list]
+
+Class names: [b]AF_PeaceKeeper[/b] and the stock [b]AF_PeaceKeeperStock[/b]
+
+[h1]Fixes[/h1]
+[list]
+[*]Server settings now reach every player. The settings were sent in one message that had grown too long for the game, so clients could miss them.
+[/list]
+
+[h1]Workshop page[/h1]
+[list]
+[*]New pictures of all seven weapons, each with its stats.
+[/list]
+
+[h1]Server owners[/h1]
+[list]
+[*]Two new loot entries in [b]ServerFiles[/b]: [b]AF_PeaceKeeper[/b] and [b]AF_PeaceKeeperStock[/b] in the types file, and the PeaceKeeper in the spawnable types file (it spawns with its stock, half the time with a magazine). Add them to your server to make the rifle spawn.
+[*]The PeaceKeeper appears in [b]AF_WeaponsPack.json[/b] on the next start. Your values are kept.
+[*]No other class name, loot or settings changes.
+[/list]
+
+[h1]Known issues[/h1]
+[list]
+[*]The PeaceKeeper is new. Its fire modes and round counter have been tested on a local server, not yet on a busy live one.
+[/list]

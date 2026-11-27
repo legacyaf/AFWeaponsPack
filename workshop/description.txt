@@ -85,6 +85,21 @@ A .50 BMG anti-materiel rifle with its own model, textures, magazine, rounds and
 
 Class names: [b]AF_M107A1[/b], the magazine [b]Mag_AFM107_10Rnd[/b] and the rounds [b]Ammo_AF50BMG[/b]
 
+[h1]AF PeaceKeeper[/h1]
+A modern 7.62 battle rifle with its own model, textures and stock.
+
+[list]
+[*][b]7.62x51mm (.308 Win)[/b] from the vanilla 20-round SCAR-H magazines. Single shots, 3-round burst or full auto.
+[*][b]Live round counter[/b] on the side of the rifle. It glows, so it reads at night.
+[*][b]Gold ghost-ring iron sights[/b] with a red front post tip.
+[*][b]Attachments:[/b] optic, flashlight, improvised suppressor and ghillie wrap.
+[*][b]Its own AF stock.[/b] The vanilla SCAR stocks fit the rifle too, and the AF stock fits the vanilla SCAR-H.
+[*][b]Handling:[/b] uses the SCAR-H animations and sounds.
+[*]Matte black with orange trim, a stippled grip, engraved markings and wear where the rifle is handled.
+[/list]
+
+Class names: [b]AF_PeaceKeeper[/b] and the stock [b]AF_PeaceKeeperStock[/b]
+
 [h1]Server settings[/h1]
 Server owners tune the pack in one file, [b]AF_WeaponsPack.json[/b], which the server writes into its profiles folder on first start.
 
@@ -126,6 +141,7 @@ This mod only works on servers that hold a licence. When a server starts, the mo
 [*]The M107A1 is new: the view through its scope and the rifle's height when aiming are still being tuned.
 [*]The M107A1's loose .50 BMG rounds use the vanilla 7.62 round model for now.
 [*]The StG 44's selector and magazine catch do not animate.
+[*]The PeaceKeeper is new: its fire modes and round counter have been tested on a local server, not yet on a busy live one.
 [/list]
 
 [h1]Terms[/h1]
