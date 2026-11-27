@@ -14,8 +14,7 @@ The next weapon after 0.13.0, and the first built with the full professional wor
   copied from its files (owner's Bohemia rule).
 - **Proportions:** a reference board of real photos (orthographic side, top, front, plus close-ups), used for
   measuring only, never published or committed.
-- **Name:** SCAR is FN's trademark, so the weapon gets our own name. Proposed: "AF Mk 17", the US military
-  designation of the SCAR-H, used the same way as "AF M107A1". The owner decides.
+- **Name:** SCAR is FN's trademark, so the weapon gets our own name: **The PeaceKeeper** (owner's choice, below).
 
 ## Our own design
 
@@ -44,7 +43,7 @@ The weapon is in the SCAR family but recognisably ours:
 4. **Finish:** `af_finish` layers.
    - Colour medians matched to vanilla from the first bake: dark metal about 0.095 to 0.10, FDE about 0.32.
      The 0.13.0 audit showed that lighter values read grey or cream in DayZ's light.
-   - Finishes: black, FDE two-tone (the classic SCAR look), and the gold skin.
+   - Finish: matte black with the orange trim (owner's decisions below).
 5. **In-game checks:**
    - fit in the hands;
    - sights;
@@ -58,6 +57,50 @@ The weapon is in the SCAR family but recognisably ours:
    - loot entries;
    - server settings;
    - change notes.
+
+## The vanilla SCAR-H's frame (measured in game, 2026-11-26)
+
+Read by the probe mission `test/AFScarProbe.ChernarusPlus` through the public script API (config, memory
+points, attachment transforms, the player's hand bones). DayZ model space: -x forward, +y up, +z left/right.
+Working frame of the Blender scripts: y = -x_dayz, z = y_dayz, x = z_dayz.
+
+**Classes:**
+- `SCARH_Base` (scope 0, from `Rifle_Base`), with `SCARH` and `SCARH_Black` (scope 2) under it.
+- `SCARL_Base`, `SCARL` and `SCARL_Black` also exist.
+- Magazines: `Mag_SCARH_20Rnd` and `Mag_SCARH_20Rnd_Black`.
+- Model: `\DZ\weapons\firearms\SCARH\ScarH.p3d`. Hidden selections: `camo1`, `camo2`.
+- Fire modes: `SemiAuto` (reloadTime 0.12) and `FullAuto` (0.098, about 610 rounds a minute). It has
+  **no burst mode**, so ours adds one.
+- Attachment slots include `weaponButtstockSCAR` (**the stock is a separate attachment**: the bare rifle ends
+  at x 0.158) and `weaponWrap`, plus others; the probe printed only the start of the list. The front sight is
+  an attachment too (`Scarh_Front_Sight`).
+
+| Point | DayZ model space (m) | Working frame (y forward, z up) |
+|---|---|---|
+| `usti hlavne` (muzzle) | -0.5423, 0.0887, 0 | y 0.5423, z 0.0887 |
+| `konec hlavne` (barrel end) | -0.0741, 0.0888, 0 | y 0.0741, z 0.0888 |
+| `eye` (iron sights) | 0.1470, 0.1720, 0 | y -0.1470, z 0.1720 |
+| `trigger_axis` | 0.0361, 0.0367, -0.0200 | y -0.0361, z 0.0367 |
+| `bolt_axis` | -0.2415, 0.1175, 0 | y 0.2415, z 0.1175 |
+| `nabojnicestart` / `nabojniceend` | -0.0037, 0.0968, 0.0225 / 0.0621, 0.1224, 0.0870 | |
+| Magazine attachment origin | -0.0567, 0.0245, -0.0001; upright | y 0.0567, z 0.0245 |
+| Front sight attachment origin | -0.3044, 0.1314, 0.0002 | y 0.3044, z 0.1314 |
+| Right hand (index finger base) | 0.0816, 0.0231, 0.0298 | y -0.0816, z 0.0231 |
+| Left hand | -0.1361, 0.0364, -0.0703 | y 0.1361, z 0.0364 |
+| Collision box (no stock) | -0.562, -0.076, -0.017 .. 0.158, 0.143, 0.010 | |
+
+`magazine_axis`, `firemode_axis`, `charging_axis` and the other names tried are not in this model.
+The hands are the same at rest and raised (within 2 mm).
+
+**What this means for the build:**
+- The bore is at z 0.0887 and the iron-sight eye 83 mm above it. The left hand sits 217 mm ahead of the
+  trigger, on the handguard.
+- The magazine proxy point is fixed: the vanilla magazines must sit in our well exactly there.
+- **The stock (owner, 2026-11-26: "Both"):**
+  - Keep the `weaponButtstockSCAR` slot, so vanilla SCAR stocks fit.
+  - Add our own AF PeaceKeeper stock as a separate item for that slot, matte black with the orange trim, with
+    its own model and loot entry.
+  - The rifle spawns with the AF stock fitted.
 
 ## Owner decisions (2026-11-26)
 
