@@ -1,0 +1,335 @@
+{
+ "_about": "Text of the Workshop cards (workshop/make_cards.ps1). Every value is what the running game resolves for the weapon, inherited values included: measured 2026-11-27 with test/AFStatsProbe (docs/weapon_stats_measured.txt). Rate of fire is 60 / the mode's cycle time, rounded to 10. Damage is the round's health damage. A row is [label, value] or [label, value, label, value] for two side by side.",
+ "pack": "ALLIED FORCES WEAPONS PACK",
+ "cards": [
+  {
+   "tag": "af7",
+   "name": "AF-7 VANGUARD",
+   "kind": "Multi-calibre assault rifle",
+   "stats": [
+    [
+     "Calibre",
+     "5.56x45 or .308 Win"
+    ],
+    [
+     "Magazines",
+     "STANAG, CMAG (10-60) or LAR (20)"
+    ],
+    [
+     "Fire modes",
+     "Semi, full auto"
+    ],
+    [
+     "Rate of fire",
+     "920 rpm",
+     "Muzzle velocity",
+     "850 / 770 m/s"
+    ],
+    [
+     "Damage",
+     "110 / 150",
+     "Weight",
+     "3.2 kg"
+    ],
+    [
+     "Inventory",
+     "8 x 3",
+     "Sight zero",
+     "25 m"
+    ],
+    [
+     "Attachments",
+     "Optic, light, suppressor"
+    ]
+   ],
+   "features": [
+    "The magazine decides the calibre",
+    "Less recoil than the M4A1 (x0.9)",
+    "Standard and gold finishes"
+   ],
+   "loot": "Military  -  Tier 3-4"
+  },
+  {
+   "tag": "m41",
+   "name": "AF M41 PATHFINDER",
+   "kind": "Bolt-action sniper rifle",
+   "stats": [
+    [
+     "Calibre",
+     "7.62x54mmR"
+    ],
+    [
+     "Magazine",
+     "5 rounds, internal; clips fit"
+    ],
+    [
+     "Action",
+     "Bolt"
+    ],
+    [
+     "Muzzle velocity",
+     "785 m/s",
+     "Damage",
+     "150"
+    ],
+    [
+     "Weight",
+     "4.0 kg",
+     "Inventory",
+     "10 x 3"
+    ],
+    [
+     "Sight zero",
+     "100-1,000 m",
+     "Dispersion",
+     "0.0012"
+    ],
+    [
+     "Attachments",
+     "PU scope, compensator, bayonet, suppressor, wrap"
+    ]
+   ],
+   "features": [
+    "Steadier than the rifle it is built on",
+    "Rounds visible with the bolt open",
+    "Standard and gold finishes"
+   ],
+   "loot": "Military, Hunting  -  Tier 2-3"
+  },
+  {
+   "tag": "mp40",
+   "name": "AF MP40",
+   "kind": "Submachine gun",
+   "stats": [
+    [
+     "Calibre",
+     "9x19mm"
+    ],
+    [
+     "Magazine",
+     "32 rounds, its own"
+    ],
+    [
+     "Fire mode",
+     "Full auto"
+    ],
+    [
+     "Rate of fire",
+     "520 rpm",
+     "Muzzle velocity",
+     "350 m/s"
+    ],
+    [
+     "Damage",
+     "40",
+     "Weight",
+     "4.0 kg"
+    ],
+    [
+     "Inventory",
+     "6 x 3",
+     "Sight zero",
+     "25 m"
+    ],
+    [
+     "Attachments",
+     "Pistol suppressor, wrap"
+    ]
+   ],
+   "features": [
+    "Slow, steady, less recoil (x0.85)",
+    "Steel tube receiver, under-folding stock",
+    "Standard and gold finishes"
+   ],
+   "loot": "Military, Police  -  Tier 2-3"
+  },
+  {
+   "tag": "p08",
+   "name": "AF P08",
+   "kind": "Service pistol",
+   "stats": [
+    [
+     "Calibre",
+     "9x19mm"
+    ],
+    [
+     "Magazine",
+     "8 rounds, its own"
+    ],
+    [
+     "Fire mode",
+     "Semi-automatic"
+    ],
+    [
+     "Muzzle velocity",
+     "350 m/s",
+     "Damage",
+     "40"
+    ],
+    [
+     "Weight",
+     "0.87 kg",
+     "Inventory",
+     "3 x 2"
+    ],
+    [
+     "Sight zero",
+     "25 m",
+     "Dispersion",
+     "0.011"
+    ],
+    [
+     "Attachments",
+     "Pistol or improvised suppressor"
+    ]
+   ],
+   "features": [
+    "Toggle-lock action, slim tapered barrel",
+    "Checkered walnut grip panels",
+    "Standard and gold finishes"
+   ],
+   "loot": "Military, Police, Town  -  Tier 1-3"
+  },
+  {
+   "tag": "stg44",
+   "name": "AF STG 44",
+   "kind": "Assault rifle",
+   "stats": [
+    [
+     "Calibre",
+     "7.62x39mm"
+    ],
+    [
+     "Magazine",
+     "30 rounds, its own"
+    ],
+    [
+     "Fire modes",
+     "Semi, full auto"
+    ],
+    [
+     "Rate of fire",
+     "570 rpm",
+     "Muzzle velocity",
+     "640 m/s"
+    ],
+    [
+     "Damage",
+     "110",
+     "Weight",
+     "4.6 kg"
+    ],
+    [
+     "Inventory",
+     "8 x 3",
+     "Sight zero",
+     "100-1,000 m"
+    ],
+    [
+     "Attachments",
+     "AF ZF4 1.5x scope, AK muzzle devices, wrap"
+    ]
+   ],
+   "features": [
+    "A third less recoil than the AKM (x0.65)",
+    "Its own ZF4 scope, zeroed 100-800 m",
+    "Standard and gold finishes"
+   ],
+   "loot": "Military  -  Tier 3-4"
+  },
+  {
+   "tag": "m107",
+   "name": "AF M107A1",
+   "kind": ".50 anti-materiel rifle",
+   "stats": [
+    [
+     "Calibre",
+     ".50 BMG, its own round"
+    ],
+    [
+     "Magazine",
+     "10 rounds, its own"
+    ],
+    [
+     "Fire mode",
+     "Semi-automatic"
+    ],
+    [
+     "Muzzle velocity",
+     "853 m/s",
+     "Damage",
+     "400"
+    ],
+    [
+     "Weight",
+     "12.5 kg",
+     "Inventory",
+     "12 x 3"
+    ],
+    [
+     "Scope zero",
+     "100-1,200 m",
+     "Dispersion",
+     "0.0005"
+    ],
+    [
+     "Optic",
+     "Built-in 6-12x scope with rangefinder"
+    ]
+   ],
+   "features": [
+    "Illuminated reticle and zoom readout",
+    "Recoil-operated; heavy, long and very loud",
+    "Matte black finish"
+   ],
+   "loot": "Military  -  Tier 4"
+  },
+  {
+   "tag": "pk",
+   "name": "AF PEACEKEEPER",
+   "kind": "Battle rifle",
+   "stats": [
+    [
+     "Calibre",
+     "7.62x51mm (.308 Win)"
+    ],
+    [
+     "Magazine",
+     "20 rounds, SCAR-H"
+    ],
+    [
+     "Fire modes",
+     "Semi, 3-round burst, full auto"
+    ],
+    [
+     "Rate of fire",
+     "610 rpm",
+     "Muzzle velocity",
+     "770 m/s"
+    ],
+    [
+     "Damage",
+     "150",
+     "Weight",
+     "3.7 kg"
+    ],
+    [
+     "Inventory",
+     "6 x 3",
+     "Sight zero",
+     "25 m"
+    ],
+    [
+     "Attachments",
+     "Optic, light, improvised suppressor, wrap"
+    ]
+   ],
+   "features": [
+    "Live round counter that glows at night",
+    "Gold ghost-ring iron sights",
+    "Its own AF stock; vanilla SCAR stocks fit too"
+   ],
+   "loot": "Military  -  Tier 3-4"
+  }
+ ]
+}

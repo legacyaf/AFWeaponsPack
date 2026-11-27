@@ -20,6 +20,7 @@ args = sys.argv[sys.argv.index("--") + 1:]
 OUT, TAG, OBJS = args[0], args[1], json.loads(args[2])
 SAMPLES = int(args[3]) if len(args) > 3 else 256
 ONLY = set(args[4].split(",")) if len(args) > 4 else None     # render only these shots (tests)
+FLIP = -1.0 if os.environ.get("AF_STUDIO_FLIP") else 1.0      # set AF_STUDIO_FLIP=1 to shoot the weapon's other side
 T = os.path.join(os.path.dirname(os.path.abspath(__file__)), "textures") + os.sep
 sc = bpy.context.scene
 for ob in sc.objects:
@@ -40,7 +41,14 @@ def material(base):
         if not colour:
             t.image.colorspace_settings.name = "Non-Color"
         return t
-    co, nh, sm, ao = tex("_co.png", True), tex("_nohq.png", False), tex("_smdi.png", False), tex("_as.png", False)
+    # "set+other": the maps of `set` with the colour map of `other` (a display showing one of its swapped textures).
+    colour_base = base
+    if "+" in base:
+        base, colour_base = base.split("+", 1)
+    co = N.new("ShaderNodeTexImage")
+    co.image = bpy.data.images.load(T + colour_base + "_co.png", check_existing=True)
+    co.interpolation = "Cubic"
+    nh, sm, ao = tex("_nohq.png", False), tex("_smdi.png", False), tex("_as.png", False)
     sep_ao = N.new("ShaderNodeSeparateColor")
     L.new(ao.outputs[0], sep_ao.inputs[0])
     mix = N.new("ShaderNodeMix")
@@ -99,7 +107,7 @@ Lg = size[ax]
 
 def vec(a, s, z):
     v = [0.0, 0.0, 0.0]
-    v[ax], v[side], v[2] = a, s, z
+    v[ax], v[side], v[2] = a, s * FLIP, z
     return Vector(v)
 
 
@@ -195,6 +203,23 @@ def shot(tag, loc, target, lens, dof=None):
 
 
 aim = ctr + vec(0.0, 0.0, -0.05 * size[2])
+# "card": the hero view from further back with the frame shifted, so the weapon sits in the left two thirds of a
+# 1920 x 1080 picture and a stats panel fits on the right (af_workshop_cards.ps1). Only rendered when asked for.
+if ONLY and "card" in ONLY:
+    sc.render.resolution_x, sc.render.resolution_y = 1920, 1080
+    cam.data.shift_x = 0.17
+    bb.inputs["Base Color"].default_value = (0.0045, 0.0048, 0.0055, 1)     # a near-black stage
+    w.node_tree.nodes["Background"].inputs[1].default_value = 0.15
+    moody = {"Key": 0.85, "Rim": 1.6, "Fill": 0.30, "Top": 0.35}      # darker, more contrast than the product shots
+    for lname, k in moody.items():
+        bpy.data.objects[lname].data.energy *= k
+    shot("card", ctr + vec(0.80 * Lg, 1.45 * Lg, 0.36 * Lg) * 1.46, aim, 60)
+    bb.inputs["Base Color"].default_value = (0.018, 0.019, 0.021, 1)
+    w.node_tree.nodes["Background"].inputs[1].default_value = 0.35
+    for lname, k in moody.items():
+        bpy.data.objects[lname].data.energy /= k
+    cam.data.shift_x = 0.0
+    sc.render.resolution_x, sc.render.resolution_y = 2400, 1350
 shot("hero", ctr + vec(0.80 * Lg, 1.45 * Lg, 0.42 * Lg), aim, 60)
 shot("side", ctr + vec(0.0, 2.2 * Lg, 0.04 * Lg), aim, 60)
 shot("rear34", ctr + vec(-0.95 * Lg, 1.35 * Lg, 0.48 * Lg), aim, 60)

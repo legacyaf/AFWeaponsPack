@@ -1,0 +1,92 @@
+AF7_Vanguard name AF-7 Vanguard
+AF7_Vanguard weight_g 3200 itemSize 8,3
+AF7_Vanguard recoilModifier 0.9,0.9,0.9 swayModifier 1.7,1.7,1
+AF7_Vanguard attachments weaponOptics,weaponFlashlight,weaponMuzzleM4
+AF7_Vanguard zeroing 25
+AF7_Vanguard mode SemiAuto reloadTime 0.12 burst 1 autoFire 0 dispersion 0.002
+AF7_Vanguard mode FullAuto reloadTime 0.065 burst 1 autoFire 1 dispersion 0.002
+AF7_Vanguard magazine Mag_STANAG_30Rnd count 30 weight_g 90 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_STANAGCoupled_30Rnd count 60 weight_g 180 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_STANAG_60Rnd count 60 weight_g 450 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_10Rnd count 10 weight_g 30 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_20Rnd count 20 weight_g 60 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_30Rnd count 30 weight_g 90 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_40Rnd count 40 weight_g 100 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_10Rnd_Green count 10 weight_g 30 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_20Rnd_Green count 20 weight_g 60 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_30Rnd_Green count 30 weight_g 90 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_40Rnd_Green count 40 weight_g 100 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_10Rnd_Black count 10 weight_g 30 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_20Rnd_Black count 20 weight_g 60 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_30Rnd_Black count 30 weight_g 90 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_CMAG_40Rnd_Black count 40 weight_g 100 ammoItems Ammo_556x45,Ammo_556x45Tracer
+AF7_Vanguard magazine Mag_FAL_20Rnd count 20 weight_g 120 ammoItems Ammo_308Win,Ammo_308WinTracer
+AF7_Vanguard internal chamberSize 1 internalMagazine Ammo_556x45,Ammo_556x45Tracer,Ammo_308Win,Ammo_308WinTracer
+AF7_Vanguard round Ammo_556x45 bullet Bullet_556x45 initSpeed 850 hit 8 health 110 blood 100 shock 110
+AF7_Vanguard round Ammo_556x45Tracer bullet Bullet_556x45Tracer initSpeed 850 hit 8 health 110 blood 100 shock 110
+AF7_Vanguard round Ammo_308Win bullet Bullet_308Win initSpeed 770 hit 12 health 150 blood 100 shock 150
+AF7_Vanguard round Ammo_308WinTracer bullet Bullet_308WinTracer initSpeed 770 hit 12 health 150 blood 100 shock 150
+AFM41_Pathfinder name AF M41 Pathfinder
+AFM41_Pathfinder weight_g 4000 itemSize 10,3
+AFM41_Pathfinder recoilModifier 1,1,1 swayModifier 2.2,2.2,0.9
+AFM41_Pathfinder attachments weaponWrap,weaponOpticsMosin,weaponMuzzleMosin,suppressorImpro,weaponBayonetMosin
+AFM41_Pathfinder zeroing 100,200,300,400,500,600,700,800,900,1000
+AFM41_Pathfinder mode Single reloadTime 1 burst 1 autoFire 0 dispersion 0.0012
+AFM41_Pathfinder internal chamberSize 5 internalMagazine Ammo_762x54,Ammo_762x54Tracer,Mag_CLIP762x54_5Rnd
+AFM41_Pathfinder round Ammo_762x54 bullet Bullet_762x54 initSpeed 785 hit 12 health 150 blood 100 shock 150
+AFM41_Pathfinder round Ammo_762x54Tracer bullet Bullet_762x54Tracer initSpeed 785 hit 12 health 150 blood 100 shock 150
+AFM41_Pathfinder round Mag_CLIP762x54_5Rnd bullet Bullet_762x54 initSpeed 785 hit 12 health 150 blood 100 shock 150
+AF_MP40 name AF MP40
+AF_MP40 weight_g 4000 itemSize 6,3
+AF_MP40 recoilModifier 0.85,0.85,0.85 swayModifier 1.2,1.2,0.7
+AF_MP40 attachments weaponWrap,pistolMuzzle
+AF_MP40 zeroing 25
+AF_MP40 mode FullAuto reloadTime 0.115 burst 1 autoFire 1 dispersion 0.003
+AF_MP40 magazine Mag_AFMP40_32Rnd count 32 weight_g 250 ammoItems Ammo_9x19
+AF_MP40 internal chamberSize 1 internalMagazine Ammo_9x19
+AF_MP40 round Ammo_9x19 bullet Bullet_9x19 initSpeed 350 hit 7 health 40 blood 100 shock 40
+AF_P08 name AF P08
+AF_P08 weight_g 870 itemSize 3,2
+AF_P08 recoilModifier 1,1,1 swayModifier 1.1,1.1,0.45
+AF_P08 attachments suppressorImpro,pistolMuzzle
+AF_P08 zeroing 25
+AF_P08 mode Single reloadTime 0.13 burst 1 autoFire 0 dispersion 0.011
+AF_P08 magazine Mag_AFP08_8Rnd count 8 weight_g 227 ammoItems Ammo_9x19
+AF_P08 internal chamberSize 1 internalMagazine Ammo_9x19
+AF_P08 round Ammo_9x19 bullet Bullet_9x19 initSpeed 350 hit 7 health 40 blood 100 shock 40
+AF_StG44 name AF StG 44
+AF_StG44 weight_g 4600 itemSize 8,3
+AF_StG44 recoilModifier 0.65,0.65,0.65 swayModifier 2,2,0.85
+AF_StG44 attachments weaponWrap,weaponOpticsAFStG,weaponMuzzleAK,suppressorImpro
+AF_StG44 zeroing 100,200,300,400,500,600,700,800,900,1000
+AF_StG44 mode SemiAuto reloadTime 0.12 burst 1 autoFire 0 dispersion 0.002
+AF_StG44 mode FullAuto reloadTime 0.105 burst 1 autoFire 1 dispersion 0.002
+AF_StG44 magazine Mag_AFStG44_30Rnd count 30 weight_g 400 ammoItems Ammo_762x39,Ammo_762x39Tracer
+AF_StG44 internal chamberSize 1 internalMagazine Ammo_762x39,Ammo_762x39Tracer
+AF_StG44 round Ammo_762x39 bullet Bullet_762x39 initSpeed 640 hit 9.5 health 110 blood 100 shock 110
+AF_StG44 round Ammo_762x39Tracer bullet Bullet_762x39Tracer initSpeed 640 hit 9.5 health 110 blood 100 shock 110
+AF_M107A1 name AF M107A1
+AF_M107A1 weight_g 12500 itemSize 12,3
+AF_M107A1 recoilModifier 1.1,1.1,1.1 swayModifier 2.6,2.6,0.8
+AF_M107A1 attachments weaponOpticsAFM107
+AF_M107A1 zeroing 100,200,300,400,500,600,700,800,900,1000
+AF_M107A1 mode SemiAuto reloadTime 0.3 burst 1 autoFire 0 dispersion 0.0005
+AF_M107A1 magazine Mag_AFM107_10Rnd count 10 weight_g 1300 ammoItems Ammo_AF50BMG
+AF_M107A1 internal chamberSize 1 internalMagazine Ammo_AF50BMG
+AF_M107A1 round Ammo_AF50BMG bullet Bullet_AF50BMG initSpeed 853 hit 30 health 400 blood 250 shock 400
+AF_PeaceKeeper name AF PeaceKeeper
+AF_PeaceKeeper weight_g 3700 itemSize 6,3
+AF_PeaceKeeper recoilModifier 1,1,1 swayModifier 2.1,2.3,0.85
+AF_PeaceKeeper attachments weaponButtstockSCAR,weaponWrap,weaponOptics,suppressorImpro,weaponFlashlight
+AF_PeaceKeeper zeroing 25
+AF_PeaceKeeper mode SemiAuto reloadTime 0.12 burst 1 autoFire 0 dispersion 0.002
+AF_PeaceKeeper mode Burst reloadTime 0.09 burst 3 autoFire 0 dispersion 0.0012
+AF_PeaceKeeper mode FullAuto reloadTime 0.098 burst 1 autoFire 1 dispersion 0.002
+AF_PeaceKeeper magazine Mag_SCARH_20Rnd count 20 weight_g 275 ammoItems Ammo_308Win,Ammo_308WinTracer
+AF_PeaceKeeper magazine Mag_SCARH_20Rnd_Black count 20 weight_g 275 ammoItems Ammo_308Win,Ammo_308WinTracer
+AF_PeaceKeeper internal chamberSize 1 internalMagazine Ammo_308Win,Ammo_308WinTracer
+AF_PeaceKeeper round Ammo_308Win bullet Bullet_308Win initSpeed 770 hit 12 health 150 blood 100 shock 150
+AF_PeaceKeeper round Ammo_308WinTracer bullet Bullet_308WinTracer initSpeed 770 hit 12 health 150 blood 100 shock 150
+AF_ZF4Optic zeroing 100,200,300,400,500,600,700,800
+AF_M107Scope zeroing 100,200,300,400,500,600,700,800,900,1000,1100,1200
+DONE
