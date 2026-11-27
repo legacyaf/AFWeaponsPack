@@ -25,3 +25,6 @@ test/mp/run_mp/
 test/mp/profiles_server/
 test/mp/profiles_client/
 test/mp/captures/
+
+# The PeaceKeeper finish pass reads its input from here (a copy of the sheets after the bake and levels pass)
+blender/textures/afpk_prefinish/

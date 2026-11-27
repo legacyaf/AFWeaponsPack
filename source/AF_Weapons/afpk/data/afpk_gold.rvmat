@@ -6,7 +6,7 @@
 ambient[] = {1.0, 0.74, 0.42, 1};        // warm: in shade under a blue sky the gold read olive (owner 2026-11-27)
 diffuse[] = {1, 1, 1, 1};
 forcedDiffuse[] = {0, 0, 0, 0};
-emmisive[] = {0.10, 0.055, 0.008, 1};   // a little warm lift, so the sights stay gold seen from behind
+emmisive[] = {0.03, 0.017, 0.003, 1};     // a trace of warm lift; 0.10 made the sights glow at night (lighting series 2026-11-27)
 specular[] = {1.0, 0.62, 0.18, 1};      // polished gold: a strong reflection, tinted gold (owner 2026-11-27: metallic gloss)
 specularPower = 260;
 PixelShaderID = "Super";
