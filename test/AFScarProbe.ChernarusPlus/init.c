@@ -79,7 +79,8 @@ void LogConfig()
 	string p = "CfgWeapons " + g_Rifle;
 	TStringArray arr = new TStringArray;
 	GetGame().ConfigGetTextArray(p + " attachments", arr);
-	Print("[AFProbe] attachments " + arr.ToString());
+	foreach (string slot : arr)
+		Print("[AFProbe] slot " + slot);
 	arr.Clear();
 	GetGame().ConfigGetTextArray(p + " magazines", arr);
 	Print("[AFProbe] magazines " + arr.ToString());
@@ -107,6 +108,8 @@ void main()
 	TStringArray mg = new TStringArray;
 	ListClasses("CfgWeapons", w);
 	ListClasses("CfgMagazines", mg);
+	TStringArray veh = new TStringArray;
+	ListClasses("CfgVehicles", veh);
 	// The rifle: the first public (scope 2) weapon class whose name has SCAR and H (the SCAR-H).
 	foreach (string c : w)
 	{
@@ -133,6 +136,22 @@ void main()
 		g_W = Weapon_Base.Cast(g_P.GetHumanInventory().CreateInHands(g_Rifle));
 	if (g_W && g_Mag != "")
 		g_W.SpawnAmmo(g_Mag, WeaponWithAmmoFlags.CHAMBER | WeaponWithAmmoFlags.MAX_CAPACITY_MAG);
+	// Fit a vanilla SCAR stock, to read where the stock slot sits.
+	if (g_W)
+	{
+		foreach (string v : veh)
+		{
+			string lv = v;
+			lv.ToLower();
+			if (lv.Contains("bttstck") && GetGame().ConfigGetInt("CfgVehicles " + v + " scope") == 2)
+			{
+				EntityAI st = g_W.GetInventory().CreateAttachment(v);
+				Print("[AFProbe] stock " + v + " fitted " + (st != null).ToString());
+				if (st)
+					break;
+			}
+		}
+	}
 	Print("[AFProbe] spawned " + g_Rifle + " " + (g_W != null).ToString());
 }
 

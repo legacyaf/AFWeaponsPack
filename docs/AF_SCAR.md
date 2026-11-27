@@ -89,6 +89,21 @@ Working frame of the Blender scripts: y = -x_dayz, z = y_dayz, x = z_dayz.
 | Left hand | -0.1361, 0.0364, -0.0703 | y 0.1361, z 0.0364 |
 | Collision box (no stock) | -0.562, -0.076, -0.017 .. 0.158, 0.143, 0.010 | |
 
+**Attachment slots (full list):**
+- `weaponButtstockSCAR`
+- `weaponWrap`
+- `weaponOptics`
+- `suppressorImpro`
+- `Scarh_FrontSight`
+- `weaponFlashlight`
+
+There is no muzzle slot apart from the improvised suppressor.
+
+**Stocks:** `SCAR_StockBttstck`, `SCAR_PrecisionBttstck` and their `_Black` versions, all from `Inventory_Base`.
+A fitted `SCAR_StockBttstck` has its origin at -/+: 0.2897, 0.0715, -0.0002 (working frame y -0.2897, z 0.0715).
+It is turned: its model's up (+y) points along the rifle's +x (backwards), its +z along the rifle's +z, so its
+model's +x points down. Our AF stock item is built in that frame, so it sits where vanilla stocks do.
+
 `magazine_axis`, `firemode_axis`, `charging_axis` and the other names tried are not in this model.
 The hands are the same at rest and raised (within 2 mm).
 
