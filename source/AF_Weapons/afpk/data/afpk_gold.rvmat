@@ -1,14 +1,14 @@
 // Material for The PeaceKeeper (gold sights sheet) ("Super" shader).
 // Lighting values are the vanilla AKM's (dz\weapons\firearms\akm\data\akm.rvmat, read 2026-11-22):
-// ambient 0.7, specular 0.79/0.75/0.74, power 70, fresnel(0.8,0.7), env_land_co. Only the texture paths differ.
+// ambient 0.7, specular 0.79/0.75/0.74, power 70, fresnel(1.0,2.8), env_land_co. Only the texture paths differ.
 // Textures come from blender/afpk_dayz_export.py, converted to .paa.
 
 ambient[] = {1.0, 0.74, 0.42, 1};        // warm: in shade under a blue sky the gold read olive (owner 2026-11-27)
 diffuse[] = {1, 1, 1, 1};
 forcedDiffuse[] = {0, 0, 0, 0};
 emmisive[] = {0.10, 0.055, 0.008, 1};   // a little warm lift, so the sights stay gold seen from behind
-specular[] = {1.0, 0.82, 0.45, 1};      // polished gold: a warm, strong highlight (2026-11-27)
-specularPower = 110;
+specular[] = {1.0, 0.62, 0.18, 1};      // polished gold: a strong reflection, tinted gold (owner 2026-11-27: metallic gloss)
+specularPower = 260;
 PixelShaderID = "Super";
 VertexShaderID = "Super";
 
@@ -44,7 +44,7 @@ class Stage5
 };
 class Stage6
 {
-	texture = "#(ai,32,128,1)fresnel(0.8,0.7)";
+	texture = "#(ai,32,128,1)fresnel(1.0,2.8)";
 	uvSource = "none";
 };
 class Stage7
