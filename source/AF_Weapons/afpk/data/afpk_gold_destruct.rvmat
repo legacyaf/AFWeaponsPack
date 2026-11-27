@@ -1,9 +1,9 @@
 // The PeaceKeeper (gold sights sheet), "destruct" look: the generic overlay used by the AF-7, over the PeaceKeeper textures.
 
-ambient[] = {1, 1, 1, 1};
+ambient[] = {1.0, 0.74, 0.42, 1};
 diffuse[] = {1, 1, 1, 1};
 forcedDiffuse[] = {0, 0, 0, 0};
-emmisive[] = {0, 0, 0, 1};
+emmisive[] = {0.10, 0.055, 0.008, 1};
 specular[] = {0.4, 0.4, 0.4, 1};
 specularPower = 50;
 PixelShaderID = "Super";
