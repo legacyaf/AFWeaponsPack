@@ -585,6 +585,9 @@ class CfgWeapons
 		displayName = "AF PeaceKeeper";
 		descriptionShort = "The Allied Forces battle rifle in 7.62x51 (.308): semi, 3-round burst and full auto, a live round counter, gold iron sights and a folding AF stock. Takes SCAR-H magazines.";
 		model = "\AF_Weapons\afpk\afpk.p3d";
+		// No aiming blur (first value 0, as on the pack's other weapons): the SCAR-H's own setting
+		// {1, 0.5, 20, 170, 4, 10} blurred the rear sight (owner 2026-11-27).
+		PPDOFProperties[] = {0, 0.5, 20, 170, 4, 10};
 		// The vanilla slots, without the vanilla front sight: the PeaceKeeper has its own gold sights.
 		attachments[] = {"weaponButtstockSCAR", "weaponWrap", "weaponOptics", "suppressorImpro", "weaponFlashlight"};
 		simpleHiddenSelections[] = {};
