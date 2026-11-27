@@ -588,10 +588,10 @@ class CfgWeapons
 		// The vanilla slots, without the vanilla front sight: the PeaceKeeper has its own gold sights.
 		attachments[] = {"weaponButtstockSCAR", "weaponWrap", "weaponOptics", "suppressorImpro", "weaponFlashlight"};
 		simpleHiddenSelections[] = {};
-		// Five texture sheets: upper, rails and muzzle, polymer lower, small parts, the counter's display.
-		hiddenSelections[] = {"camo", "camo1", "camo2", "camo3", "camo4"};
-		hiddenSelectionsTextures[] = {"AF_Weapons\afpk\data\afpk_body_co.paa", "AF_Weapons\afpk\data\afpk_front_co.paa", "AF_Weapons\afpk\data\afpk_lower_co.paa", "AF_Weapons\afpk\data\afpk_parts_co.paa", "AF_Weapons\afpk\data\afpk_counter_co.paa"};
-		hiddenSelectionsMaterials[] = {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"};
+		// Six texture sheets: upper, rails and muzzle, polymer lower, small parts, the counter's display, the gold sights.
+		hiddenSelections[] = {"camo", "camo1", "camo2", "camo3", "camo4", "camo5"};
+		hiddenSelectionsTextures[] = {"AF_Weapons\afpk\data\afpk_body_co.paa", "AF_Weapons\afpk\data\afpk_front_co.paa", "AF_Weapons\afpk\data\afpk_lower_co.paa", "AF_Weapons\afpk\data\afpk_parts_co.paa", "AF_Weapons\afpk\data\afpk_counter_co.paa", "AF_Weapons\afpk\data\afpk_gold_co.paa"};
+		hiddenSelectionsMaterials[] = {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat", "AF_Weapons\afpk\data\afpk_gold.rvmat"};
 		modes[] = {"SemiAuto", "Burst", "FullAuto"};
 		class SemiAuto: SemiAuto {};
 		// Three rounds a pull: the vanilla burst is semi-auto with burst = 3 (Mode_Burst, read from the game's
@@ -614,11 +614,11 @@ class CfgWeapons
 					hitpoints = 300;
 					healthLevels[] =
 					{
-						{1.0, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"}},
-						{0.7, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat"}},
-						{0.5, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat"}},
-						{0.3, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat"}},
-						{0.0, {"AF_Weapons\afpk\data\afpk_body_destruct.rvmat", "AF_Weapons\afpk\data\afpk_front_destruct.rvmat", "AF_Weapons\afpk\data\afpk_lower_destruct.rvmat", "AF_Weapons\afpk\data\afpk_parts_destruct.rvmat", "AF_Weapons\afpk\data\afpk_counter_destruct.rvmat"}}
+						{1.0, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat", "AF_Weapons\afpk\data\afpk_gold.rvmat"}},
+						{0.7, {"AF_Weapons\afpk\data\afpk_body.rvmat", "AF_Weapons\afpk\data\afpk_front.rvmat", "AF_Weapons\afpk\data\afpk_lower.rvmat", "AF_Weapons\afpk\data\afpk_parts.rvmat", "AF_Weapons\afpk\data\afpk_counter.rvmat", "AF_Weapons\afpk\data\afpk_gold.rvmat"}},
+						{0.5, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat", "AF_Weapons\afpk\data\afpk_gold_damage.rvmat"}},
+						{0.3, {"AF_Weapons\afpk\data\afpk_body_damage.rvmat", "AF_Weapons\afpk\data\afpk_front_damage.rvmat", "AF_Weapons\afpk\data\afpk_lower_damage.rvmat", "AF_Weapons\afpk\data\afpk_parts_damage.rvmat", "AF_Weapons\afpk\data\afpk_counter_damage.rvmat", "AF_Weapons\afpk\data\afpk_gold_damage.rvmat"}},
+						{0.0, {"AF_Weapons\afpk\data\afpk_body_destruct.rvmat", "AF_Weapons\afpk\data\afpk_front_destruct.rvmat", "AF_Weapons\afpk\data\afpk_lower_destruct.rvmat", "AF_Weapons\afpk\data\afpk_parts_destruct.rvmat", "AF_Weapons\afpk\data\afpk_counter_destruct.rvmat", "AF_Weapons\afpk\data\afpk_gold_destruct.rvmat"}}
 					};
 				};
 			};

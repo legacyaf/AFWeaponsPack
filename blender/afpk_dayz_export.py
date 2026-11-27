@@ -10,7 +10,7 @@ names and its proxies, with the positions and orientations measured in game (doc
 model is built in the SCAR-H's own frame, so there is no origin shift.
 
 WHAT IT MAKES
-  blender/textures/afpk_body_*.png, afpk_front_*, afpk_lower_*, afpk_parts_*, afpk_counter_*, afpk_stock_*
+  blender/textures/afpk_body_*.png, afpk_front_*, afpk_lower_*, afpk_parts_*, afpk_counter_*, afpk_gold_*, afpk_stock_*
   source/AF_Weapons/afpk/afpk.p3d, afpk_stock.p3d
 """
 
@@ -76,12 +76,14 @@ def _gun_tables():
     ex.P3D_TEXTURE = ex.MOD_DIR + "\\data\\afpk_body_co.paa"
     ex.P3D_MATERIAL = ex.MOD_DIR + "\\data\\afpk_body.rvmat"
     ex.MASS_KG = 3.6
-    # Five sheets: the upper (set 0), the rails and muzzle, the polymer lower, the small parts, and the
+    # Six sheets: the upper (set 0), the rails and muzzle, the polymer lower, the small parts, the gold
+    # sights, and the
     # round counter's display on its own (camo4), so the script can swap its texture for the count.
     ex.EXTRA_SETS = (("afpk_front", ("AnodisedRail",)),
                      ("afpk_lower", ("Polymer", "GripPolymer")),
-                     ("afpk_parts", ("Steel", "Gold", "Red", "Orange")),
-                     ("afpk_counter", ("Counter",)))
+                     ("afpk_parts", ("Steel", "Red", "Orange")),
+                     ("afpk_counter", ("Counter",)),
+                     ("afpk_gold", ("Gold",)))          # the sights: their own sheet and shinier material (camo5)
     ex.SELECTIONS = {"Trigger": "trigger", "BoltCarrier": "bolt", "ChargingHandle": "charging",
                      "ChargingKnob": "charging", "Safety": "firemode", "BoltRelease": "boltrelease"}
     ex.UV_PRIORITY = {"Upper": 1.2, "Lower": 1.2, "Grip": 1.1, "CounterDisplay": 2.0, "BoltCarrier": 0.5,

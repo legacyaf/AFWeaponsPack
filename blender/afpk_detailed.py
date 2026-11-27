@@ -82,7 +82,8 @@ def materials(which="rifle"):
         "steel": d.material("Steel", (0.10, 0.10, 0.105), rough=0.32, metal=0.9, machining=0.3),
         "rubber": d.material("Rubber", (0.012, 0.012, 0.012), rough=0.90, bump=0.25, bump_scale=500, stipple=0.6),
         "orange": d.material("Orange", (0.75, 0.28, 0.04), rough=0.50, wear=0.25, wear_rgb=(0.10, 0.08, 0.06)),
-        "gold": d.material("Gold", (0.80, 0.56, 0.20), rough=0.32, metal=1.0, wear=0.3, wear_rgb=(0.9, 0.75, 0.45)),
+        # Deeper and shinier (2026-11-27): the first gold baked pale and read cream, then khaki, in game.
+        "gold": d.material("Gold", (0.72, 0.48, 0.12), rough=0.22, metal=1.0, wear=0.08, wear_rgb=(0.85, 0.62, 0.25)),
         "red": d.material("Red", (0.85, 0.03, 0.02), rough=0.40),
         "counter": d.material("Counter", (0.004, 0.004, 0.005), rough=0.08),
     }
@@ -255,16 +256,18 @@ def build():
     # --- Gold sights, half height (owner), red tip on the front post ------------------------------
     bm = bmesh.new()
     d.bm_profile(bm, d.fillet([(-0.155, RAIL_TOP), (-0.127, RAIL_TOP), (-0.129, 0.1395), (-0.152, 0.1395)], 0.002), 0.026)
+    # Ghost ring (owner 2026-11-27, after the first-person check): a thin ring with a 7 mm hole on a slim
+    # stem, low slim ears. The 4 mm peephole in a 14 mm disc hid the front post and the target.
     for side in (-1, 1):
-        d.bm_profile(bm, d.fillet([(-0.149, 0.1390), (-0.131, 0.1390), (-0.136, EYE[1] + 0.005),
-                                   (-0.144, EYE[1] + 0.005)], 0.002), 0.0025, x=side * 0.0105)
-    d.bm_profile(bm, d.fillet([(-0.144, 0.1390), (-0.136, 0.1390), (-0.137, EYE[1] - 0.004), (-0.143, EYE[1] - 0.004)],
-                              0.0015), 0.010)
+        d.bm_profile(bm, d.fillet([(-0.146, 0.1390), (-0.134, 0.1390), (-0.137, EYE[1] + 0.0035),
+                                   (-0.143, EYE[1] + 0.0035)], 0.0015), 0.0020, x=side * 0.0098)
+    d.bm_profile(bm, d.fillet([(-0.1425, 0.1390), (-0.1375, 0.1390), (-0.1385, EYE[1] - 0.0045),
+                               (-0.1415, EYE[1] - 0.0045)], 0.0008), 0.0040)
     circ = lambda r: [(r * math.cos(2 * math.pi * i / 32), EYE[1] + r * math.sin(2 * math.pi * i / 32)) for i in range(32)]
-    d.bm_tube(bm, circ(0.0068), circ(0.0019), -0.1425, -0.1375, zref=EYE[1])
+    d.bm_tube(bm, circ(0.0052), circ(0.0035), -0.1415, -0.1385, zref=EYE[1])
     d.bm_lathe(bm, [(-0.013, 0.0), (-0.013, 0.0035), (-0.0155, 0.0035), (-0.016, 0.0025), (-0.016, 0.0)], sides=16,
                c=(-0.141, 0.1340), axis="X")
-    d.make("RearSight", bm, body, gold, "rear sight (gold): base, ears, aperture", 0.0006)
+    d.make("RearSight", bm, body, gold, "rear sight (gold): base, ears, ghost ring", 0.0006)
     bm = bmesh.new()
     d.bm_profile(bm, d.fillet([(FRONT_SIGHT - 0.014, RAIL_TOP), (FRONT_SIGHT + 0.014, RAIL_TOP),
                                (FRONT_SIGHT + 0.012, 0.1400), (FRONT_SIGHT - 0.012, 0.1400)], 0.002), 0.026)
