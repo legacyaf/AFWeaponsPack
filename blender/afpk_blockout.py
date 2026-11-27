@@ -38,7 +38,7 @@ import af7_vanguard_detailed as d  # noqa: E402
 PREFIX = "PK_"
 BORE = 0.0887
 MUZZLE = 0.5423
-EYE = (-0.147, 0.172)
+EYE = (-0.147, 0.1515)            # sight line: owner 2026-11-26 halved the sight height (vanilla eye z 0.172)
 TRIGGER = (-0.0361, 0.0367)
 MAG = (0.0567, 0.0245)
 BOLT = (0.2415, 0.1175)
@@ -251,9 +251,9 @@ def build():
              [(FRONT_SIGHT - 0.010, 0.1395), (FRONT_SIGHT + 0.010, 0.1395), (FRONT_SIGHT + 0.004, EYE[1] + 0.002),
               (FRONT_SIGHT - 0.004, EYE[1] + 0.002)], 0.0025, x=side * 0.0095, bevel=0.0007, rnd=0.002)
     prof("FrontTower", body, gold, [(FRONT_SIGHT - 0.006, 0.1395), (FRONT_SIGHT + 0.006, 0.1395),
-                                    (FRONT_SIGHT + 0.003, 0.1560), (FRONT_SIGHT - 0.003, 0.1560)], 0.0070,
+                                    (FRONT_SIGHT + 0.003, 0.1445), (FRONT_SIGHT - 0.003, 0.1445)], 0.0070,
          bevel=0.0006, rnd=0.0015)
-    prof("FrontPost", body, gold, [(FRONT_SIGHT - 0.0016, 0.1555), (FRONT_SIGHT + 0.0016, 0.1555),
+    prof("FrontPost", body, gold, [(FRONT_SIGHT - 0.0016, 0.1440), (FRONT_SIGHT + 0.0016, 0.1440),
                                    (FRONT_SIGHT + 0.0016, EYE[1] - 0.0035), (FRONT_SIGHT - 0.0016, EYE[1] - 0.0035)],
          0.0022, bevel=0.0003, note="front post (gold)")
     prof("FrontPostTip", body, red, [(FRONT_SIGHT - 0.0016, EYE[1] - 0.0035), (FRONT_SIGHT + 0.0016, EYE[1] - 0.0035),

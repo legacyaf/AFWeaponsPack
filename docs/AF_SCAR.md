@@ -127,6 +127,9 @@ The hands are the same at rest and raised (within 2 mm).
     logo panels);
   - the **iron sights gold, with a red tip** on the front post.
   - **No gold version** (owner).
+  - **Sights half the height** (owner, 2026-11-26: "Lower the iron sight by half"): the sight line is 20.5 mm
+    above the rail (z 0.1515) instead of the vanilla 41 mm (z 0.172). Our model's `eye` memory point goes
+    there too, so the iron-sight view lines up.
 - The earlier "Our own design" points still stand (AF handguard, brake, stock, roll mark, no AF logo).
 
 ## Finish notes for the build
