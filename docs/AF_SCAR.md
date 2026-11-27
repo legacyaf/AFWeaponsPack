@@ -104,6 +104,29 @@ A fitted `SCAR_StockBttstck` has its origin at -/+: 0.2897, 0.0715, -0.0002 (wor
 It is turned: its model's up (+y) points along the rifle's +x (backwards), its +z along the rifle's +z, so its
 model's +x points down. Our AF stock item is built in that frame, so it sits where vanilla stocks do.
 
+**Skeleton, proxies and memory points** (read from the vanilla model's header, 2026-11-26, for measurement only):
+- Skeleton `ScarH`: `magazine`, `trigger`, `bolt`, `bullet`, `charging`, `firemode`, `boltrelease`, `front_sight`,
+  in that order, none with a parent.
+- Proxies: `bottle_suppressor`, `buttstock_scar_stock`, `ghillie_wrap`, `magazine_scarh_20rnd`, `optic_acog`,
+  `weaponlight_universal`, and the front sight `scarh\proxy\scarh_frontsight`.
+- Memory points also include `frontsight_axis`, `magout_axis`, `eyescope`, `invview`.
+
+**Attachment positions** (probe, every attachment fitted; DayZ model space, then `dir` / `up`):
+
+| Attachment | Origin | dir | up |
+|---|---|---|---|
+| Magazine (`Mag_SCARH_20Rnd`) | -0.0567, 0.0245, 0 | 0 0 1 | 0 1 0 |
+| Stock (`SCAR_StockBttstck`) | 0.2897, 0.0715, 0 | 0 0 1 | 1 0 0 |
+| Optic (`ACOGOptic`) | 0.0162, 0.1363, 0 | 0 0 -1 | 1 0 0 |
+| Light (`UniversalLight`) | -0.2521, 0.0905, 0.0282 | 0 0 -1 | 0 1 0 |
+| Improvised suppressor | -0.5117, 0.0886, 0 | 0 0 1 | 1 0 0 |
+| Wrap (`GhillieAtt_Tan`) | -0.0747, 0.1465, 0 | 0 0 1 | 0 1 0 |
+| Front sight (`Scarh_Front_Sight`) | -0.3040, 0.1323, 0 | 0 0 -1 | -1 0 0 |
+
+Further memory points (probe, DayZ model space): `frontsight_axis` -0.3043, 0.1320, 0.0100;
+`magout_axis` -0.0432, -0.0199, 0; `eyescope` 0.1465, 0.1716, 0; `invview` -0.2032, 0.0565, 0.3724;
+`ce_center` -0.2032, 0.0565, -0.0041.
+
 `magazine_axis`, `firemode_axis`, `charging_axis` and the other names tried are not in this model.
 The hands are the same at rest and raised (within 2 mm).
 

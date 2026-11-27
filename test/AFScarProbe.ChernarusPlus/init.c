@@ -43,7 +43,7 @@ void LogFrame(string tag)
 		Print("[AFProbe] FAILED no weapon");
 		return;
 	}
-	TStringArray mem = {"usti hlavne", "konec hlavne", "eye", "nabojnicestart", "nabojniceend", "bolt_axis", "trigger_axis", "magazine_axis", "magazine_axis2", "firemode_axis", "mag_release_axis", "charging_axis", "stock_axis", "lefthand", "righthand"};
+	TStringArray mem = {"usti hlavne", "konec hlavne", "eye", "nabojnicestart", "nabojniceend", "bolt_axis", "trigger_axis", "magazine_axis", "magazine_axis2", "firemode_axis", "mag_release_axis", "charging_axis", "stock_axis", "lefthand", "righthand", "frontsight_axis", "magout_axis", "eyescope", "invview", "ce_center", "boundingbox_min", "boundingbox_max"};
 	foreach (string m : mem)
 	{
 		if (g_W.MemoryPointExists(m))
@@ -150,6 +150,16 @@ void main()
 				if (st)
 					break;
 			}
+		}
+	}
+	// The other attachments, to read where each proxy sits (the PeaceKeeper's export needs them).
+	if (g_W)
+	{
+		TStringArray extra = {"ACOGOptic", "UniversalLight", "ImprovisedSuppressor", "GhillieAtt_Tan"};
+		foreach (string an : extra)
+		{
+			EntityAI at = g_W.GetInventory().CreateAttachment(an);
+			Print("[AFProbe] attachment " + an + " fitted " + (at != null).ToString());
 		}
 	}
 	Print("[AFProbe] spawned " + g_Rifle + " " + (g_W != null).ToString());

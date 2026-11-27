@@ -309,7 +309,7 @@ def harden():
             ob.data.polygons.foreach_set("use_smooth", [False] * len(ob.data.polygons))
 
 
-def render(out):
+def render(out, tag="pk_v2"):
     sc = bpy.context.scene
     sc.render.engine = "CYCLES"
     sc.cycles.samples = 96
@@ -352,7 +352,7 @@ def render(out):
             cam.data.lens = 50
             cam.location = centre + direction * 1.55
         cam.rotation_euler = (centre - cam.location).to_track_quat("-Z", "Y").to_euler()
-        sc.render.filepath = os.path.join(out, "pk_v2_%s.png" % name)
+        sc.render.filepath = os.path.join(out, "%s_%s.png" % (tag, name))
         bpy.ops.render.render(write_still=True)
         print("RENDERED", sc.render.filepath)
     cam.data.type = "PERSP"
@@ -360,7 +360,7 @@ def render(out):
     cam.data.clip_start = 0.005          # the aperture is only a few centimetres from the eye
     cam.location = Vector((0.0, EYE[0] - 0.05, EYE[1]))
     cam.rotation_euler = (Vector((0.0, 0.30, EYE[1])) - cam.location).to_track_quat("-Z", "Y").to_euler()
-    sc.render.filepath = os.path.join(out, "pk_v2_shooter.png")
+    sc.render.filepath = os.path.join(out, tag + "_shooter.png")
     bpy.ops.render.render(write_still=True)
     print("RENDERED", sc.render.filepath)
 
